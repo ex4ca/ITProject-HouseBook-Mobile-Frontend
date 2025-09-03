@@ -15,9 +15,13 @@ Before you begin, ensure you have the following installed on your system:
    - For pnpm: `npm install -g pnpm`
    - Verify installation: `npm --version` or `pnpm --version`
 
-3. **Expo CLI** (recommended)
+3. **Expo CLI** (optional - can use npx instead)
    ```bash
+   # Global installation (optional)
    npm install -g @expo/cli
+   
+   # Or use npx (recommended to avoid installation issues)
+   npx expo --version
    ```
 
 4. **Mobile device or emulator**
@@ -48,11 +52,11 @@ Before you begin, ensure you have the following installed on your system:
    # Using npm
    npm start
    
-   # Or using pnpm
+   # Or using pnpm (recommended)
    pnpm start
    
-   # Or using Expo CLI directly
-   expo start
+   # Or using npx expo (if you didn't install Expo CLI globally)
+   npx expo start
    ```
 
 ## Running the App

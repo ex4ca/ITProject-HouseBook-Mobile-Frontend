@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,63 +7,127 @@ import {
   SafeAreaView,
   ScrollView,
   Image,
+  ActivityIndicator,
 } from 'react-native';
 import { Button, DropField } from '../../components/common';
 import { COLORS, FONTS, STYLES } from '../../components/styles/constants';
-import { mockProperties, sortOptions } from '../../constants/mockData';
+import { supabase } from '../../services/supabase'; 
+import { sortOptions } from '../../constants/mockData'; 
 
 const PropertyList = ({ navigation, isOwner = true }) => {
   const [selectedSort, setSelectedSort] = useState('newest');
-  const [properties] = useState(mockProperties);
+  const [properties, setProperties] = useState([]);
+  const [loading, setLoading] = useState(true);
 
+  useEffect(() => {
+    if (isOwner) {
+      fetchOwnerProperties();
+    } else {
+      setLoading(false);
+    }
+
+    const subscription = supabase
+      .channel('public:Property')
+      .on('postgres_changes', { event: '*', schema: 'public' }, () => {
+        fetchOwnerProperties();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(subscription);
+    };
+  }, [isOwner]);
+
+  const fetchOwnerProperties = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("No user is logged in.");
+
+      // --- FIX APPLIED HERE ---
+      // Removed .single() to handle cases where multiple owner profiles might exist for a user.
+      const { data, error } = await supabase
+        .from('Owner')
+        .select(`
+          OwnerProperty (
+            Property (
+              property_id,
+              address,
+              created_at
+            )
+          )
+        `)
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+      
+      // The query now returns an array of owner profiles. We'll use the first one found.
+      if (data && data.length > 0) {
+        const ownerProfile = data[0]; // Get the first owner profile from the array
+        if (ownerProfile && ownerProfile.OwnerProperty) {
+          const fetchedProperties = ownerProfile.OwnerProperty.map(item => ({
+            ...item.Property,
+            id: item.Property.property_id,
+          }));
+          setProperties(fetchedProperties);
+        }
+      } else {
+        // If no owner profile is found, set properties to an empty array.
+        setProperties([]);
+      }
+    } catch (err) {
+      console.error("Error fetching properties: ", err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+  
   const getSortedProperties = () => {
     switch (selectedSort) {
       case 'oldest':
-        return [...properties].reverse();
+        return [...properties].sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
       case 'a-z':
         return [...properties].sort((a, b) => a.address.localeCompare(b.address));
       case 'z-a':
         return [...properties].sort((a, b) => b.address.localeCompare(a.address));
-      default:
-        return properties;
+      default: // 'newest'
+        return [...properties].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
     }
   };
 
-  const PropertyCard = ({ property }) => (
-    <TouchableOpacity
-      style={styles.propertyCard}
-      onPress={() => navigation.navigate('PropertyDetails', { property, isOwner })}
-    >
-      {/* Property Image Placeholder */}
-      <View style={styles.propertyImage}>
-        {property.image ? (
-          <Image source={{ uri: property.image }} style={styles.image} />
-        ) : (
-          <View style={styles.imagePlaceholder} />
-        )}
-      </View>
-
-      {/* Property Info */}
-      <View style={styles.propertyInfo}>
-        <Text style={styles.propertyAddress}>{property.address}</Text>
-        <View style={styles.statusContainer}>
-          <Text style={[styles.statusText, { color: property.statusColor }]}>
-            {property.status}
+  const PropertyCard = ({ property }) => {
+    const imageUrl = `https://placehold.co/600x400/EEE/CCC?text=${encodeURIComponent(property.address.split(',')[0])}`;
+      
+    return (
+      <TouchableOpacity
+        style={styles.propertyCard}
+        onPress={() => navigation.navigate('PropertyDetails', { propertyId: property.id, isOwner })}
+      >
+        <View style={styles.propertyImage}>
+          <Image source={{ uri: imageUrl }} style={styles.image} />
+        </View>
+        <View style={styles.propertyInfo}>
+          <Text style={styles.propertyAddress}>{property.address}</Text>
+          <Text style={styles.propertyDate}>
+            Listed on: {new Date(property.created_at).toLocaleDateString()}
           </Text>
         </View>
+      </TouchableOpacity>
+    );
+  };
+
+  if (loading) {
+    return (
+      <View style={[styles.container, styles.centerContent]}>
+        <ActivityIndicator size="large" color={COLORS.primary} />
+        <Text style={styles.loadingText}>Loading Properties...</Text>
       </View>
-    </TouchableOpacity>
-  );
-
-
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Property</Text>
-        
-        {/* Sort Options */}
         <View style={styles.sortContainer}>
           <DropField
             options={sortOptions.map(option => option.label)}
@@ -78,18 +142,22 @@ const PropertyList = ({ navigation, isOwner = true }) => {
         </View>
       </View>
 
-      {/* Property List */}
       <ScrollView style={styles.propertyList} showsVerticalScrollIndicator={false}>
-        {getSortedProperties().map((property) => (
-          <PropertyCard key={property.id} property={property} />
-        ))}
+        {getSortedProperties().length > 0 ? (
+          getSortedProperties().map((property) => (
+            <PropertyCard key={property.id} property={property} />
+          ))
+        ) : (
+          <View style={styles.centerContent}>
+            <Text style={styles.emptyListText}>You have no properties yet.</Text>
+          </View>
+        )}
       </ScrollView>
 
-      {/* Floating Add Button - Only show for tradie users */}
-      {!isOwner && (
+      {isOwner && (
         <Button
           text="+"
-          onPress={() => navigation.navigate('Scanner')}
+          onPress={() => navigation.navigate('PropertyEdit', { isNew: true })}
           style={styles.floatingAddButton}
           textStyle={styles.floatingAddButtonText}
         />
@@ -102,6 +170,21 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.white,
+  },
+  centerContent: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: STYLES.spacing.lg,
+  },
+  loadingText: {
+    ...FONTS.commonText,
+    marginTop: STYLES.spacing.md,
+  },
+  emptyListText: {
+    ...FONTS.commonText,
+    textAlign: 'center',
+    opacity: 0.6,
   },
   header: {
     flexDirection: 'row',
@@ -163,19 +246,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginBottom: STYLES.spacing.xs,
   },
-  statusContainer: {
-    alignSelf: 'flex-start',
-  },
-  statusText: {
+  // New style for the date text
+  propertyDate: {
     ...FONTS.smallText,
     fontSize: 14,
-    paddingHorizontal: STYLES.spacing.sm,
-    paddingVertical: STYLES.spacing.xs,
-    backgroundColor: COLORS.secondary,
-    borderRadius: STYLES.borderRadius.small,
-    overflow: 'hidden',
+    opacity: 0.7,
   },
-
   floatingAddButton: {
     position: 'absolute',
     bottom: STYLES.spacing.xl,

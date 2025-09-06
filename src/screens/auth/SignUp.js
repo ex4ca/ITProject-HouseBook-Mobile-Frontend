@@ -6,32 +6,88 @@ import {
   StyleSheet,
   SafeAreaView,
   ScrollView,
+  Alert, 
 } from 'react-native';
 import { Button, TextField, Checkbox } from '../../components/common';
 import { COLORS, FONTS, STYLES } from '../../components/styles/constants';
+import { supabase } from '../../services/supabase';
 
 const SignUp = ({ navigation, route }) => {
-  const [name, setName] = useState('');
-  const [username, setUsername] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [agreeToTerms, setAgreeToTerms] = useState(false);
-  
-  // Get the role from navigation params, default to owner if not provided
+  const [loading, setLoading] = useState(false); 
+
   const isOwner = route?.params?.isOwner ?? true;
   const roleText = isOwner ? 'Owner' : 'Tradie';
 
-  const handleSignUp = () => {
-    if (name && username && password && confirmPassword && agreeToTerms) {
-      if (password === confirmPassword) {
-        // TODO: Implement actual registration
-        navigation.navigate('Login');
-      } else {
-        alert('Passwords do not match');
-      }
-    } else {
-      alert('Please fill in all fields and agree to terms');
+  const handleSignUp = async () => {
+    if (!firstName || !lastName || !email || !password || !confirmPassword) {
+      Alert.alert('Missing Information', 'Please fill in all fields.');
+      return;
     }
+    if (password !== confirmPassword) {
+      Alert.alert('Password Mismatch', 'The passwords do not match.');
+      return;
+    }
+    if (!agreeToTerms) {
+      Alert.alert('Terms and Conditions', 'You must agree to the terms and policy to continue.');
+      return;
+    }
+
+    setLoading(true);
+
+    const { data: authData, error: authError } = await supabase.auth.signUp({
+      email: email,
+      password: password,
+    });
+
+    if (authError) {
+      Alert.alert('Sign Up Error', authError.message);
+      setLoading(false);
+      return;
+    }
+    if (!authData.user) {
+      Alert.alert('Sign Up Error', 'An unexpected issue occurred. Please try again.');
+      setLoading(false);
+      return;
+    }
+
+    const { error: profileError } = await supabase
+      .from('User') 
+      .insert({
+        user_id: authData.user.id, 
+        first_name: firstName,
+        last_name: lastName,
+        email: email,
+      });
+
+    if (profileError) {
+      Alert.alert('Profile Creation Error', profileError.message);
+      setLoading(false);
+      return;
+    }
+    
+    const roleTable = isOwner ? 'Owner' : 'Tradesperson';
+    const { error: roleError } = await supabase
+      .from(roleTable)
+      .insert({
+        user_id: authData.user.id,
+      });
+
+    if (roleError) {
+      Alert.alert('Role Assignment Error', roleError.message);
+    } else {
+      Alert.alert(
+        'Success!',
+        'Your account has been created. Please check your email for a confirmation link.'
+      );
+    }
+
+    setLoading(false);
   };
 
   return (
@@ -53,17 +109,24 @@ const SignUp = ({ navigation, route }) => {
           {/* Input Fields */}
           <View style={styles.inputContainer}>
             <TextField
-              placeholder="Name"
-              value={name}
-              onChangeText={setName}
+              placeholder="First Name"
+              value={firstName}
+              onChangeText={setFirstName}
+              style={styles.input}
+            />
+             <TextField
+              placeholder="Last Name"
+              value={lastName}
+              onChangeText={setLastName}
               style={styles.input}
             />
             
             <TextField
-              placeholder="Username"
-              value={username}
-              onChangeText={setUsername}
-              keyboardType="default"
+              placeholder="Email"
+              value={email}
+              onChangeText={setEmail}
+              keyboardType="email-address"
+              autoCapitalize="none"
               style={styles.input}
             />
             
@@ -100,9 +163,10 @@ const SignUp = ({ navigation, route }) => {
 
           {/* Sign Up Button */}
           <Button
-            text="Sign up"
+            text={loading ? 'Creating Account...' : 'Sign up'}
             onPress={handleSignUp}
             style={styles.signUpButton}
+            disabled={loading}
           />
         </View>
       </ScrollView>
@@ -111,19 +175,16 @@ const SignUp = ({ navigation, route }) => {
 };
 
 const styles = StyleSheet.create({
-  // Main Container (Root)
   container: {
     flex: 1,
     backgroundColor: COLORS.white,
   },
-  
-  // Top Navigation Header
   header: {
     paddingHorizontal: STYLES.spacing.lg,
     paddingTop: STYLES.spacing.sm,
     paddingBottom: STYLES.spacing.sm,
     backgroundColor: COLORS.white,
-    marginBottom: 0, // Adjust this to add space after header
+    marginBottom: 0,
   },
   backButton: {
     alignSelf: 'flex-start',
@@ -132,8 +193,6 @@ const styles = StyleSheet.create({
     ...FONTS.commonText,
     fontSize: 18,
   },
-  
-  // Scroll Container
   scrollContent: {
     flexGrow: 1,
   },
@@ -142,12 +201,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: STYLES.spacing.xxl,
     justifyContent: 'center',
   },
-  
-  // Title Section (Top of content)
   headerSection: {
     alignItems: 'center',
-    marginTop: STYLES.spacing.xxl * 1, // Space from top
-    marginBottom: STYLES.spacing.xxl * 1, // Space before inputs
+    marginTop: STYLES.spacing.xxl * 1,
+    marginBottom: STYLES.spacing.xxl * 1,
   },
   title: {
     ...FONTS.screenTitle,
@@ -157,19 +214,15 @@ const styles = StyleSheet.create({
   titleBold: {
     fontWeight: 'bold',
   },
-  
-  // Input Fields Section
   inputContainer: {
-    marginBottom: STYLES.spacing.xl, // Space before terms
+    marginBottom: STYLES.spacing.xl,
   },
   input: {
-    marginBottom: STYLES.spacing.xl, // Space between each input
+    marginBottom: STYLES.spacing.xl,
     height: 60,
   },
-  
-  // Terms & Conditions Section
   termsContainer: {
-    marginBottom: STYLES.spacing.xxl * 0.5, // Space before sign up button
+    marginBottom: STYLES.spacing.xxl * 0.5,
   },
   checkbox: {
     alignItems: 'flex-start',
@@ -184,11 +237,9 @@ const styles = StyleSheet.create({
     color: COLORS.primary,
     fontWeight: '600',
   },
-  
-  // Sign Up Button (Bottom of content)
   signUpButton: {
     height: 60,
-    marginBottom: STYLES.spacing.xxl, // Space at bottom
+    marginBottom: STYLES.spacing.xxl,
   },
 });
 

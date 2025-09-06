@@ -5,20 +5,35 @@ import {
   StyleSheet,
   SafeAreaView,
   TouchableOpacity,
+  Alert, 
 } from 'react-native';
 import { Button, TextField } from '../../components/common';
 import { COLORS, FONTS, STYLES } from '../../components/styles/constants';
+import { supabase } from '../../services/supabase'; 
 
 const Login = ({ navigation }) => {
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isOwner, setIsOwner] = useState(true);
+  const [loading, setLoading] = useState(false);
 
-  const handleLogin = () => {
-    // TODO: Implement actual authentication
-    if (username && password) {
-      navigation.navigate('Main', { isOwner });
+  const handleLogin = async () => {
+    if (!email || !password) {
+      Alert.alert('Error', 'Please enter both an email and password.');
+      return;
     }
+
+    setLoading(true);
+    const { error } = await supabase.auth.signInWithPassword({
+      email: email,
+      password: password,
+    });
+
+    if (error) {
+      Alert.alert('Login Error', error.message);
+    }
+    
+    setLoading(false);
   };
 
   const handleSignUp = () => {
@@ -56,11 +71,13 @@ const Login = ({ navigation }) => {
         {/* Input Fields */}
         <View style={styles.inputContainer}>
           <TextField
-            placeholder="Username"
-            value={username}
-            onChangeText={setUsername}
+            // Changed placeholder and value to use email
+            placeholder="Email"
+            value={email}
+            onChangeText={setEmail}
             style={styles.input}
-            keyboardType="default"
+            keyboardType="email-address" // Set keyboard type for email
+            autoCapitalize="none"
           />
           
           <TextField
@@ -74,9 +91,11 @@ const Login = ({ navigation }) => {
 
         {/* Sign In Button */}
         <Button
-          text="Sign In"
+          // Show loading state on the button
+          text={loading ? "Signing In..." : "Sign In"}
           onPress={handleLogin}
           style={styles.signInButton}
+          disabled={loading} // Disable button while loading
         />
 
         {/* Sign Up Link */}

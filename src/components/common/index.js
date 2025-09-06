@@ -1,4 +1,5 @@
 // Export all common components for easy importing
+import 'react-native-url-polyfill/auto';
 export { default as Button } from './Button';
 export { default as TextField } from './TextField';
 export { default as DropField } from './DropField';

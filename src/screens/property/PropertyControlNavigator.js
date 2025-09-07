@@ -12,7 +12,9 @@ const Tab = createBottomTabNavigator();
 
 // Property Control Navigator with 3 tabs
 function PropertyControlNavigator({ route }) {
-  const { property, isOwner } = route?.params || {};
+  // --- FIX APPLIED HERE ---
+  // We now correctly receive the 'propertyId' passed from the PropertyList screen.
+  const { propertyId, isOwner } = route.params || {};
 
   return (
     <Tab.Navigator
@@ -38,38 +40,39 @@ function PropertyControlNavigator({ route }) {
         headerShown: false,
       })}
     >
+      {/* Each screen now receives the 'propertyId' so it can fetch its own data */}
       <Tab.Screen 
         name="General"
+        component={PropertyGeneral}
+        initialParams={{ propertyId: propertyId }}
         options={{
           tabBarIcon: ({ color, size, focused }) => (
             <GeneralIcon color={color} size={size} focused={focused} />
           ),
         }}
-      >
-        {(props) => <PropertyGeneral {...props} property={property} />}
-      </Tab.Screen>
+      />
       
       <Tab.Screen 
         name="Details"
+        component={PropertyDetails}
+        initialParams={{ propertyId: propertyId }}
         options={{
           tabBarIcon: ({ color, size, focused }) => (
             <DetailsIcon color={color} size={size} focused={focused} />
           ),
         }}
-      >
-        {(props) => <PropertyDetails {...props} property={property} />}
-      </Tab.Screen>
+      />
       
       <Tab.Screen 
         name="Authority"
+        component={Role}
+        initialParams={{ propertyId: propertyId, isOwner: isOwner }}
         options={{
           tabBarIcon: ({ color, size, focused }) => (
             <AuthorityIcon color={color} size={size} focused={focused} />
           ),
         }}
-      >
-        {(props) => <Role {...props} property={property} isOwner={isOwner} />}
-      </Tab.Screen>
+      />
     </Tab.Navigator>
   );
 }

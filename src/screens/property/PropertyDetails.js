@@ -15,25 +15,38 @@ import { DropField } from '../../components/common';
 import { COLORS, FONTS, STYLES } from '../../components/styles/constants';
 import { supabase } from '../../services/supabase';
 
-// Enable LayoutAnimation on Android for the accordion effect
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
-// --- Helper Component: Renders a single, expandable asset ---
-const AssetAccordion = ({ asset, isExpanded, onToggle }) => {
-  // The latest change is the first item after sorting
-  const latestChange = asset.Change_Log && asset.Change_Log.length > 0 ? asset.Change_Log[0] : null;
+const SpecificationDetails = ({ specifications }) => (
+  <View style={styles.specificationsBox}>
+    {Object.entries(specifications).map(([key, value]) => (
+      <View key={key} style={styles.specPair}>
+        <Text style={styles.specKey}>{key.replace(/_/g, ' ')}:</Text>
+        <Text style={styles.specValue}>{String(value)}</Text>
+      </View>
+    ))}
+  </View>
+);
 
-  const toggle = () => {
-    // Animate the expand/collapse transition
+const AssetAccordion = ({ asset, isExpanded, onToggle }) => {
+  const [expandedHistoryId, setExpandedHistoryId] = useState(null);
+  const latestChange = asset.ChangeLog?.[0] || null;
+
+  const toggleAsset = () => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     onToggle();
   };
 
+  const toggleHistoryEntry = (entryId) => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setExpandedHistoryId(expandedHistoryId === entryId ? null : entryId);
+  };
+
   return (
     <View style={styles.assetContainer}>
-      <TouchableOpacity style={styles.assetHeader} onPress={toggle}>
+      <TouchableOpacity style={styles.assetHeader} onPress={toggleAsset}>
         <Text style={styles.assetTitle}>{asset.name}</Text>
         <Text style={styles.assetToggleIcon}>{isExpanded ? '−' : '+'}</Text>
       </TouchableOpacity>
@@ -43,33 +56,39 @@ const AssetAccordion = ({ asset, isExpanded, onToggle }) => {
           {latestChange ? (
             <>
               <Text style={styles.changelogSectionTitle}>Current Specifications:</Text>
-              <View style={styles.specificationsBox}>
-                {Object.entries(latestChange.specifications).map(([key, value]) => (
-                  <View key={key} style={styles.specPair}>
-                    <Text style={styles.specKey}>{key.replace(/_/g, ' ')}:</Text>
-                    <Text style={styles.specValue}>{String(value)}</Text>
-                  </View>
-                ))}
-              </View>
+              <SpecificationDetails specifications={latestChange.specifications} />
               
-              {asset.Change_Log.length > 1 && (
+              {asset.ChangeLog.length > 1 && (
                 <>
                   <Text style={styles.changelogSectionTitle}>History:</Text>
-                  {asset.Change_Log.map((entry, index) => (
-                    <View key={entry.id} style={[styles.changelogEntry, index === 0 && styles.latestChangelog]}>
-                      <Text style={styles.changelogDate}>
-                        {new Date(entry.created_at).toLocaleString()}
-                        {index === 0 && ' (Latest)'}
-                      </Text>
-                      <Text style={styles.changelogDescription}>“{entry.change_description}”</Text>
-                      <Text style={styles.changelogAuthor}>- Changed by: {entry.changed_by_user_id || 'System'}</Text>
+                  {asset.ChangeLog.map((entry, index) => (
+                    <View key={entry.id} style={styles.historyItemContainer}>
+                      <TouchableOpacity 
+                        style={[styles.changelogEntry, index === 0 && styles.latestChangelog]}
+                        onPress={() => toggleHistoryEntry(entry.id)}
+                      >
+                        <View style={styles.historyHeader}>
+                            <Text style={styles.changelogDate}>
+                                {new Date(entry.created_at).toLocaleString()}
+                                {index === 0 && ' (Latest)'}
+                            </Text>
+                            <Text style={styles.historyToggleIcon}>{expandedHistoryId === entry.id ? '↓' : '→'}</Text>
+                        </View>
+                        <Text style={styles.changelogDescription}>“{entry.change_description}”</Text>
+                        <Text style={styles.changelogAuthor}>- by: {entry.changed_by_user_id?.split('-')[0] || 'System'}</Text>
+                      </TouchableOpacity>
+                      {expandedHistoryId === entry.id && (
+                        <View style={styles.historySpecBox}>
+                            <SpecificationDetails specifications={entry.specifications} />
+                        </View>
+                      )}
                     </View>
                   ))}
                 </>
               )}
             </>
           ) : (
-            <Text style={styles.placeholderText}>No specifications or history found for this asset.</Text>
+            <Text style={styles.placeholderText}>No specifications or history found.</Text>
           )}
         </View>
       )}
@@ -78,7 +97,6 @@ const AssetAccordion = ({ asset, isExpanded, onToggle }) => {
 };
 
 
-// --- Main Property Details Screen ---
 const PropertyDetails = ({ route, navigation }) => {
   const propertyId = route.params?.propertyId;
 
@@ -111,7 +129,7 @@ const PropertyDetails = ({ route, navigation }) => {
             Assets (
               id,
               name,
-              Change_Log (
+              ChangeLog (
                 id,
                 specifications,
                 change_description,
@@ -134,7 +152,7 @@ const PropertyDetails = ({ route, navigation }) => {
         data.Spaces.forEach(space => {
           const sortedAssets = space.Assets.map(asset => ({
             ...asset,
-            Change_Log: [...asset.Change_Log].sort((a, b) => new Date(b.created_at) - new Date(a.created_at)),
+            ChangeLog: [...asset.ChangeLog].sort((a, b) => new Date(b.created_at) - new Date(a.created_at)),
           }));
           assetsMap[space.id] = sortedAssets;
         });
@@ -193,7 +211,7 @@ const PropertyDetails = ({ route, navigation }) => {
               const space = spaces.find(s => s.name === name);
               if (space) {
                 setSelectedSpace(space.id);
-                setExpandedAssetId(null); // Collapse any open asset when changing space
+                setExpandedAssetId(null);
               }
             }}
             placeholder="Select a Space"
@@ -289,7 +307,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     color: COLORS.grey,
   },
-  // Asset Styles
   assetContainer: {
     backgroundColor: COLORS.white,
     borderRadius: STYLES.borderRadius.medium,
@@ -317,7 +334,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: STYLES.spacing.md,
     paddingBottom: STYLES.spacing.md,
   },
-  // Changelog & Specs Styles
   changelogSectionTitle: {
     ...FONTS.title,
     fontSize: 16,
@@ -331,7 +347,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#f0f4f8',
     borderRadius: STYLES.borderRadius.small,
     padding: STYLES.spacing.md,
-    marginBottom: STYLES.spacing.lg,
+    marginBottom: STYLES.spacing.sm,
   },
   specPair: {
     flexDirection: 'row',
@@ -345,19 +361,34 @@ const styles = StyleSheet.create({
   specValue: {
     flex: 1,
   },
+  // History Item Styles
+  historyItemContainer: {
+    marginBottom: STYLES.spacing.sm,
+  },
   changelogEntry: {
     borderLeftWidth: 3,
     borderLeftColor: COLORS.grey,
-    paddingLeft: STYLES.spacing.md,
-    marginBottom: STYLES.spacing.md,
+    padding: STYLES.spacing.sm,
+    backgroundColor: '#fdfdfd',
+    borderRadius: STYLES.borderRadius.small,
   },
   latestChangelog: {
     borderLeftColor: COLORS.primary,
+    backgroundColor: '#fefefe',
+  },
+  historyHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   changelogDate: {
     fontSize: 12,
     color: COLORS.grey,
     marginBottom: STYLES.spacing.xs,
+  },
+  historyToggleIcon: {
+    fontSize: 16,
+    color: COLORS.grey,
   },
   changelogDescription: {
     fontStyle: 'italic',
@@ -366,6 +397,13 @@ const styles = StyleSheet.create({
   changelogAuthor: {
     fontSize: 12,
     fontWeight: 'bold',
+  },
+  historySpecBox: {
+    // Indent the historical specs slightly
+    paddingLeft: STYLES.spacing.md,
+    paddingTop: STYLES.spacing.sm,
+    borderLeftWidth: 3,
+    borderLeftColor: COLORS.textfield,
   },
 });
 

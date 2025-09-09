@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -6,81 +6,240 @@ import {
   StyleSheet,
   SafeAreaView,
   ScrollView,
+  ActivityIndicator,
+  LayoutAnimation,
+  Platform,
+  UIManager,
 } from 'react-native';
-import { Button, DropField } from '../../components/common';
+import { DropField } from '../../components/common';
 import { COLORS, FONTS, STYLES } from '../../components/styles/constants';
-import { mockProperties, interiorSections, exteriorSections } from '../../constants/mockData';
+import { supabase } from '../../services/supabase';
 
-const PropertyDetails = ({ route, navigation }) => {
-  const { property } = route?.params || { property: mockProperties[0] };
-  const [isExterior, setIsExterior] = useState(true);
-  const [selectedSection, setSelectedSection] = useState(exteriorSections[0]);
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
 
-  // Get current sections based on interior/exterior
-  const currentSections = isExterior ? exteriorSections : interiorSections;
+const SpecificationDetails = ({ specifications }) => (
+  <View style={styles.specificationsBox}>
+    {Object.entries(specifications).map(([key, value]) => (
+      <View key={key} style={styles.specPair}>
+        <Text style={styles.specKey}>{key.replace(/_/g, ' ')}:</Text>
+        <Text style={styles.specValue}>{String(value)}</Text>
+      </View>
+    ))}
+  </View>
+);
 
-  // Update selected section when switching between exterior/interior
-  React.useEffect(() => {
-    setSelectedSection(currentSections[0]);
-  }, [isExterior]);
+const AssetAccordion = ({ asset, isExpanded, onToggle }) => {
+  const [expandedHistoryId, setExpandedHistoryId] = useState(null);
+  const latestChange = asset.ChangeLog?.[0] || null;
 
-  const handleSectionChange = (section) => {
-    setSelectedSection(section);
+  const toggleAsset = () => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    onToggle();
   };
 
-  const toggleExteriorInterior = () => {
-    setIsExterior(!isExterior);
+  const toggleHistoryEntry = (entryId) => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setExpandedHistoryId(expandedHistoryId === entryId ? null : entryId);
   };
 
   return (
+    <View style={styles.assetContainer}>
+      <TouchableOpacity style={styles.assetHeader} onPress={toggleAsset}>
+        <Text style={styles.assetTitle}>{asset.name}</Text>
+        <Text style={styles.assetToggleIcon}>{isExpanded ? '−' : '+'}</Text>
+      </TouchableOpacity>
+      
+      {isExpanded && (
+        <View style={styles.assetContent}>
+          {latestChange ? (
+            <>
+              <Text style={styles.changelogSectionTitle}>Current Specifications:</Text>
+              <SpecificationDetails specifications={latestChange.specifications} />
+              
+              {asset.ChangeLog.length > 1 && (
+                <>
+                  <Text style={styles.changelogSectionTitle}>History:</Text>
+                  {asset.ChangeLog.map((entry, index) => (
+                    <View key={entry.id} style={styles.historyItemContainer}>
+                      <TouchableOpacity 
+                        style={[styles.changelogEntry, index === 0 && styles.latestChangelog]}
+                        onPress={() => toggleHistoryEntry(entry.id)}
+                      >
+                        <View style={styles.historyHeader}>
+                            <Text style={styles.changelogDate}>
+                                {new Date(entry.created_at).toLocaleString()}
+                                {index === 0 && ' (Latest)'}
+                            </Text>
+                            <Text style={styles.historyToggleIcon}>{expandedHistoryId === entry.id ? '↓' : '→'}</Text>
+                        </View>
+                        <Text style={styles.changelogDescription}>“{entry.change_description}”</Text>
+                        <Text style={styles.changelogAuthor}>- by: {entry.changed_by_user_id?.split('-')[0] || 'System'}</Text>
+                      </TouchableOpacity>
+                      {expandedHistoryId === entry.id && (
+                        <View style={styles.historySpecBox}>
+                            <SpecificationDetails specifications={entry.specifications} />
+                        </View>
+                      )}
+                    </View>
+                  ))}
+                </>
+              )}
+            </>
+          ) : (
+            <Text style={styles.placeholderText}>No specifications or history found.</Text>
+          )}
+        </View>
+      )}
+    </View>
+  );
+};
+
+
+const PropertyDetails = ({ route, navigation }) => {
+  const propertyId = route.params?.propertyId;
+
+  const [loading, setLoading] = useState(true);
+  const [propertyAddress, setPropertyAddress] = useState('');
+  const [spaces, setSpaces] = useState([]);
+  const [assetsBySpace, setAssetsBySpace] = useState({});
+  const [selectedSpace, setSelectedSpace] = useState(null);
+  const [expandedAssetId, setExpandedAssetId] = useState(null);
+
+  useEffect(() => {
+    if (propertyId) {
+      fetchPropertyData();
+    } else {
+      setLoading(false);
+    }
+  }, [propertyId]);
+
+  const fetchPropertyData = async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('Property')
+        .select(`
+          address,
+          Spaces (
+            id,
+            name,
+            type,
+            Assets (
+              id,
+              name,
+              ChangeLog (
+                id,
+                specifications,
+                change_description,
+                created_at,
+                changed_by_user_id
+              )
+            )
+          )
+        `)
+        .eq('property_id', propertyId)
+        .single();
+
+      if (error) throw error;
+
+      if (data) {
+        setPropertyAddress(data.address);
+        setSpaces(data.Spaces);
+
+        const assetsMap = {};
+        data.Spaces.forEach(space => {
+          const sortedAssets = space.Assets.map(asset => ({
+            ...asset,
+            ChangeLog: [...asset.ChangeLog].sort((a, b) => new Date(b.created_at) - new Date(a.created_at)),
+          }));
+          assetsMap[space.id] = sortedAssets;
+        });
+        setAssetsBySpace(assetsMap);
+        
+        if (data.Spaces.length > 0) {
+          setSelectedSpace(data.Spaces[0].id);
+        }
+      }
+    } catch (err) {
+      console.error("Error fetching property details: ", err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const currentAssets = selectedSpace ? assetsBySpace[selectedSpace] || [] : [];
+  const selectedSpaceName = spaces.find(s => s.id === selectedSpace)?.name || 'Select a Space';
+
+  if (loading) {
+    return (
+      <SafeAreaView style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color={COLORS.primary} />
+        <Text>Loading Details...</Text>
+      </SafeAreaView>
+    );
+  }
+
+  if (!propertyId) {
+    return (
+       <SafeAreaView style={styles.container}>
+         <View style={styles.header}>
+            <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+              <Text style={styles.backButtonText}>←</Text>
+            </TouchableOpacity>
+         </View>
+        <View style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
+            <Text style={styles.placeholderText}>No property selected.</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  return (
     <SafeAreaView style={styles.container}>
-      {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.navigate('Properties')}
-        >
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
           <Text style={styles.backButtonText}>←</Text>
         </TouchableOpacity>
         
-        {/* Section Dropdown Container */}
         <View style={styles.dropdownContainer}>
           <DropField
-            options={currentSections}
-            selectedValue={selectedSection}
-            onSelect={handleSectionChange}
-            placeholder="Select Section"
+            options={spaces.map(s => s.name)}
+            selectedValue={selectedSpaceName}
+            onSelect={(name) => {
+              const space = spaces.find(s => s.name === name);
+              if (space) {
+                setSelectedSpace(space.id);
+                setExpandedAssetId(null);
+              }
+            }}
+            placeholder="Select a Space"
             style={styles.dropdown}
             textStyle={styles.dropdownText}
           />
         </View>
-
-        {/* Exterior/Interior Toggle Button */}
-        <TouchableOpacity
-          style={styles.toggleButton}
-          onPress={toggleExteriorInterior}
-        >
-          <Text style={styles.toggleButtonText}>
-            {isExterior ? 'E' : 'I'}
-          </Text>
-        </TouchableOpacity>
+        <View style={styles.headerRightPlaceholder} />
       </View>
 
-      {/* Content Area */}
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.sectionContent}>
-          <Text style={styles.sectionTitle}>
-            {isExterior ? 'Exterior' : 'Interior'} - {selectedSection}
-          </Text>
+          <Text style={styles.sectionTitle}>{selectedSpaceName}</Text>
           
-          <View style={styles.placeholderContent}>
-            <Text style={styles.placeholderText}>
-              Content for {selectedSection} will be displayed here.
-            </Text>
-            <Text style={styles.placeholderSubtext}>
-              This section will contain detailed information about the selected {isExterior ? 'exterior' : 'interior'} component.
-            </Text>
-          </View>
+          {currentAssets.length > 0 ? (
+            currentAssets.map(asset => (
+              <AssetAccordion
+                key={asset.id}
+                asset={asset}
+                isExpanded={expandedAssetId === asset.id}
+                onToggle={() => setExpandedAssetId(expandedAssetId === asset.id ? null : asset.id)}
+              />
+            ))
+          ) : (
+            <View style={styles.placeholderContent}>
+                <Text style={styles.placeholderText}>No assets found in this space.</Text>
+            </View>
+          )}
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -96,109 +255,34 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: STYLES.spacing.lg,
-    paddingTop: STYLES.spacing.sm,
-    paddingBottom: STYLES.spacing.md,
+    paddingVertical: STYLES.spacing.sm,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.textfield,
     backgroundColor: COLORS.white,
-    ...STYLES.shadow,
   },
   backButton: {
-    width: 50,
-    height: 45,
-    justifyContent: 'center',
-    alignItems: 'center',
+    padding: STYLES.spacing.sm,
   },
   backButtonText: {
-    ...FONTS.commonText,
     fontSize: 24,
+    color: COLORS.primary,
   },
   dropdownContainer: {
     flex: 1,
     marginHorizontal: STYLES.spacing.sm,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   dropdown: {
     width: '100%',
-    maxWidth: 280,
     height: 45,
   },
   dropdownText: {
-    textAlign: 'center',
-    fontSize: 16,
-    fontWeight: '500',
-  },
-  toggleButton: {
-    width: 50,
-    height: 45,
-    backgroundColor: COLORS.primary,
-    borderRadius: STYLES.borderRadius.medium,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  toggleButtonText: {
-    ...FONTS.highlightText,
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: 'bold',
+    color: COLORS.black,
   },
-  
-  // Top Controls Section
-  controlsSection: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: STYLES.spacing.lg,
-    paddingVertical: STYLES.spacing.lg,
-    backgroundColor: COLORS.white,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.textfield,
+  headerRightPlaceholder: {
+    width: 40, 
   },
-  dropdownContainer: {
-    flex: 1,
-    marginRight: STYLES.spacing.lg,
-  },
-  sectionDropdown: {
-    width: '100%',
-    height: 40,
-  },
-  toggleContainer: {
-    flexDirection: 'row',
-    borderRadius: STYLES.borderRadius.medium,
-    overflow: 'hidden',
-  },
-  toggleButton: {
-    paddingVertical: STYLES.spacing.sm,
-    paddingHorizontal: STYLES.spacing.lg,
-    backgroundColor: COLORS.secondary,
-    borderWidth: 1,
-    borderColor: COLORS.secondary,
-  },
-  leftToggle: {
-    borderTopLeftRadius: STYLES.borderRadius.medium,
-    borderBottomLeftRadius: STYLES.borderRadius.medium,
-    borderRightWidth: 0,
-  },
-  rightToggle: {
-    borderTopRightRadius: STYLES.borderRadius.medium,
-    borderBottomRightRadius: STYLES.borderRadius.medium,
-    borderLeftWidth: 0,
-  },
-  activeToggle: {
-    backgroundColor: COLORS.primary,
-    borderColor: COLORS.primary,
-  },
-  toggleText: {
-    ...FONTS.hintText,
-    fontSize: 14,
-    textAlign: 'center',
-  },
-  activeToggleText: {
-    ...FONTS.highlightText,
-    fontSize: 14,
-  },
-  
-  // Content Area
   content: {
     flex: 1,
     backgroundColor: COLORS.textfield,
@@ -208,28 +292,118 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     ...FONTS.screenTitle,
-    fontSize: 24,
-    marginBottom: STYLES.spacing.xl,
+    fontSize: 28,
     textAlign: 'center',
+    marginBottom: STYLES.spacing.xl,
   },
   placeholderContent: {
+    marginTop: 40,
+    padding: STYLES.spacing.xl,
     backgroundColor: COLORS.white,
     borderRadius: STYLES.borderRadius.medium,
-    padding: STYLES.spacing.xl,
     alignItems: 'center',
-    ...STYLES.shadow,
   },
   placeholderText: {
-    ...FONTS.commonText,
-    fontSize: 16,
     textAlign: 'center',
-    marginBottom: STYLES.spacing.md,
+    color: COLORS.grey,
   },
-  placeholderSubtext: {
-    ...FONTS.hintText,
-    fontSize: 14,
-    textAlign: 'center',
-    opacity: 0.7,
+  assetContainer: {
+    backgroundColor: COLORS.white,
+    borderRadius: STYLES.borderRadius.medium,
+    marginBottom: STYLES.spacing.md,
+    ...STYLES.shadow,
+    overflow: 'hidden',
+  },
+  assetHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: STYLES.spacing.md,
+    backgroundColor: '#f9f9f9',
+  },
+  assetTitle: {
+    ...FONTS.title,
+    fontSize: 18,
+  },
+  assetToggleIcon: {
+    fontSize: 24,
+    color: COLORS.primary,
+    fontWeight: 'bold',
+  },
+  assetContent: {
+    paddingHorizontal: STYLES.spacing.md,
+    paddingBottom: STYLES.spacing.md,
+  },
+  changelogSectionTitle: {
+    ...FONTS.title,
+    fontSize: 16,
+    marginTop: STYLES.spacing.md,
+    marginBottom: STYLES.spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.textfield,
+    paddingBottom: STYLES.spacing.xs,
+  },
+  specificationsBox: {
+    backgroundColor: '#f0f4f8',
+    borderRadius: STYLES.borderRadius.small,
+    padding: STYLES.spacing.md,
+    marginBottom: STYLES.spacing.sm,
+  },
+  specPair: {
+    flexDirection: 'row',
+    marginBottom: STYLES.spacing.xs,
+  },
+  specKey: {
+    fontWeight: 'bold',
+    textTransform: 'capitalize',
+    width: '40%',
+  },
+  specValue: {
+    flex: 1,
+  },
+  // History Item Styles
+  historyItemContainer: {
+    marginBottom: STYLES.spacing.sm,
+  },
+  changelogEntry: {
+    borderLeftWidth: 3,
+    borderLeftColor: COLORS.grey,
+    padding: STYLES.spacing.sm,
+    backgroundColor: '#fdfdfd',
+    borderRadius: STYLES.borderRadius.small,
+  },
+  latestChangelog: {
+    borderLeftColor: COLORS.primary,
+    backgroundColor: '#fefefe',
+  },
+  historyHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  changelogDate: {
+    fontSize: 12,
+    color: COLORS.grey,
+    marginBottom: STYLES.spacing.xs,
+  },
+  historyToggleIcon: {
+    fontSize: 16,
+    color: COLORS.grey,
+  },
+  changelogDescription: {
+    fontStyle: 'italic',
+    marginBottom: STYLES.spacing.xs,
+  },
+  changelogAuthor: {
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  historySpecBox: {
+    // Indent the historical specs slightly
+    paddingLeft: STYLES.spacing.md,
+    paddingTop: STYLES.spacing.sm,
+    borderLeftWidth: 3,
+    borderLeftColor: COLORS.textfield,
   },
 });
 

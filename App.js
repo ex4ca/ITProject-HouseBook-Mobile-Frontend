@@ -1,15 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, {useState, useEffect } from 'react';
 import { View } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { StatusBar } from 'expo-status-bar';
 import { COLORS } from './src/components/styles/constants';
-import { supabase } from './src/services/supabase'; // Make sure this path is correct
+import { supabase } from './src/services/supabase';
 
 // Import screens
-import Login from './src/screens/auth/Login';
-import SignUp from './src/screens/auth/SignUp';
+import AuthScreen from './src/screens/auth/AuthScreen'; // Import the new combined auth screen
 import PropertyList from './src/screens/property/PropertyList';
 import PropertyControlNavigator from './src/screens/property/PropertyControlNavigator';
 import PropertyEdit from './src/screens/property/PropertyEdit';
@@ -21,26 +20,21 @@ import Account from './src/screens/profile/Account';
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
 
-// --- MAP #1: For Logged-OUT Users ---
-// This navigator only contains the Login and SignUp screens.
+// --- Navigator for Logged-OUT Users ---
+// This navigator now only shows the single, combined AuthScreen.
 function AuthNavigator() {
   return (
-    <Stack.Navigator
-      initialRouteName="Login"
-      screenOptions={{ headerShown: false }}
-    >
-      <Stack.Screen name="Login" component={Login} />
-      <Stack.Screen name="SignUp" component={SignUp} />
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="Auth" component={AuthScreen} />
     </Stack.Navigator>
   );
 }
 
-// --- MAP #2: For Logged-IN Users ---
-// This is your existing application structure.
+// --- Navigator for Logged-IN Users (No changes needed here) ---
 function AppNavigator() {
   return (
     <Stack.Navigator
-      initialRouteName="Main" // The first screen after login is the Tab Navigator
+      initialRouteName="Main"
       screenOptions={{ headerShown: false }}
     >
       <Stack.Screen name="Main" component={MainTabNavigator} />
@@ -53,7 +47,7 @@ function AppNavigator() {
   );
 }
 
-// Main Tab Navigator (part of the logged-in experience)
+// Main Tab Navigator (No changes needed here)
 function MainTabNavigator({ route }) {
   const isOwner = route?.params?.isOwner ?? true;
   
@@ -104,7 +98,7 @@ function MainTabNavigator({ route }) {
   );
 }
 
-// Icon components (no changes needed here)
+// Icon components (No changes needed here)
 const PropertiesIcon = ({ color, size, focused }) => (
     <View style={{ width: size + 10, height: size + 10, backgroundColor: focused ? COLORS.primary : COLORS.textfield, borderRadius: (size + 10) / 2, justifyContent: 'center', alignItems: 'center' }}><View style={{ width: size - 8, height: size - 8, backgroundColor: focused ? COLORS.white : COLORS.black, borderRadius: 4 }} /></View>
 );
@@ -113,24 +107,21 @@ const AccountIcon = ({ color, size, focused }) => (
 );
 
 
-// --- THE MAIN APP COMPONENT & TRAFFIC CONTROLLER ---
+// --- Main App Component (No changes to logic) ---
 export default function App() {
   const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check for an existing session when the app starts
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setLoading(false);
     });
 
-    // Listen for auth changes (SIGN_IN, SIGN_OUT)
     const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
     });
 
-    // Cleanup the listener
     return () => {
       authListener.subscription.unsubscribe();
     };
@@ -143,9 +134,8 @@ export default function App() {
   return (
     <NavigationContainer>
       <StatusBar style="auto" />
-      {/* This is the traffic controller. It shows the correct map based on login status. */}
+      {/* The core logic remains: show the correct navigator based on login status. */}
       {session && session.user ? <AppNavigator /> : <AuthNavigator />}
     </NavigationContainer>
   );
 }
-

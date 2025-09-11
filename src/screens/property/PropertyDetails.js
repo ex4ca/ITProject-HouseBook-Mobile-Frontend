@@ -15,7 +15,7 @@ import {
   Alert,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
-import { ChevronDown, ChevronRight, ChevronLeft, PlusCircle, X } from 'lucide-react-native';
+import { ChevronDown, ChevronRight, ChevronLeft, PlusCircle, X, Trash2 } from 'lucide-react-native';
 import { DropField } from '../../components/common';
 import { supabase } from '../../api/supabaseClient';
 
@@ -30,6 +30,7 @@ const PALETTE = {
   textSecondary: '#6B7280',
   primary: '#111827',
   border: '#E5E7EB',
+  danger: '#DC2626',
 };
 
 const FormModal = ({ visible, onClose, title, children, onSubmit, submitText = "Add" }) => (
@@ -80,7 +81,7 @@ const AssetAccordion = ({ asset, isExpanded, onToggle, onAddHistory }) => {
   return (
     <View style={styles.assetContainer}>
       <TouchableOpacity style={styles.assetHeader} onPress={toggleAsset}>
-        <Text style={styles.assetTitle}>{asset.name}</Text>
+        <Text style={styles.assetTitle}>{asset.description}</Text>
         {isExpanded ? <ChevronDown color={PALETTE.textPrimary} size={20} /> : <ChevronRight color={PALETTE.textPrimary} size={20} />}
       </TouchableOpacity>
       
@@ -148,47 +149,51 @@ const PropertyDetails = ({ route, navigation }) => {
 
   const [newSpaceName, setNewSpaceName] = useState('');
   const [newSpaceType, setNewSpaceType] = useState(null);
-  const [newAssetName, setNewAssetName] = useState('');
+  const [newAssetDescription, setNewAssetDescription] = useState('');
   const [selectedAssetType, setSelectedAssetType] = useState(null);
   const [newHistoryDescription, setNewHistoryDescription] = useState('');
+  const [editableSpecs, setEditableSpecs] = useState([]);
 
-  // Define the available space types based on your database enum.
   const spaceTypeOptions = ['Bedroom', 'Bathroom', 'Kitchen', 'Living Area', 'Hallway', 'Laundry', 'Garage', 'Exterior', 'Garden', 'Other'];
 
-  const fetchPropertyData = useCallback(async () => {
-    setLoading(true);
-    try {
-      const [propertyResponse, assetTypesResponse] = await Promise.all([
-          supabase.from('Property').select(`Spaces (id, name, Assets (id, name, ChangeLog (id, specifications, change_description, created_at, status, User (first_name, last_name))))`).eq('property_id', propertyId).single(),
-          supabase.from('AssetTypes').select('id, name')
-      ]);
-
-      const { data, error } = propertyResponse;
-      if (error) throw error;
-      if (data && data.Spaces) {
-        setSpaces(data.Spaces);
-        const assetsMap = {};
-        data.Spaces.forEach(space => {
-          assetsMap[space.id] = space.Assets.map(asset => ({...asset, ChangeLog: [...asset.ChangeLog].sort((a, b) => new Date(b.created_at) - new Date(a.created_at))}));
-        });
-        setAssetsBySpace(assetsMap);
-        if (data.Spaces.length > 0 && !selectedSpace) {
-          setSelectedSpace(data.Spaces[0].id);
+  useFocusEffect(
+    useCallback(() => {
+      const fetchPropertyData = async () => {
+        setLoading(true);
+        try {
+          const [propertyResponse, assetTypesResponse] = await Promise.all([
+              supabase.from('Property').select(`Spaces (id, name, Assets (id, description, ChangeLog (id, specifications, change_description, created_at, status, User (first_name, last_name))))`).eq('property_id', propertyId).single(),
+              supabase.from('AssetTypes').select('id, name')
+          ]);
+    
+          const { data, error } = propertyResponse;
+          if (error && error.code !== 'PGRST116') throw error;
+          if (data && data.Spaces) {
+            setSpaces(data.Spaces);
+            const assetsMap = {};
+            data.Spaces.forEach(space => {
+              assetsMap[space.id] = space.Assets.map(asset => ({...asset, ChangeLog: [...asset.ChangeLog].sort((a, b) => new Date(b.created_at) - new Date(a.created_at))}));
+            });
+            setAssetsBySpace(assetsMap);
+            if (data.Spaces.length > 0 && !selectedSpace) {
+              setSelectedSpace(data.Spaces[0].id);
+            }
+          }
+    
+          const { data: assetTypesData, error: assetTypesError } = assetTypesResponse;
+          if (assetTypesError) throw assetTypesError;
+          setAssetTypes(assetTypesData || []);
+    
+        } catch (err) {
+          console.error("Error fetching property details:", err.message);
+        } finally {
+          setLoading(false);
         }
-      }
+      };
 
-      const { data: assetTypesData, error: assetTypesError } = assetTypesResponse;
-      if (assetTypesError) throw assetTypesError;
-      setAssetTypes(assetTypesData || []);
-
-    } catch (err) {
-      console.error("Error fetching property details:", err.message);
-    } finally {
-      setLoading(false);
-    }
-  }, [propertyId, selectedSpace]);
-
-  useFocusEffect(fetchPropertyData);
+      fetchPropertyData();
+    }, [propertyId, selectedSpace])
+  );
 
   const handleAddSpace = async () => {
     if (!newSpaceName.trim() || !newSpaceType) {
@@ -198,23 +203,23 @@ const PropertyDetails = ({ route, navigation }) => {
     const { error } = await supabase.from('Spaces').insert({ property_id: propertyId, name: newSpaceName, type: newSpaceType });
     if (error) Alert.alert("Error", error.message);
     else {
-      setNewSpaceName(''); setNewSpaceType(null); setAddSpaceModalVisible(false); fetchPropertyData();
+      setNewSpaceName(''); setNewSpaceType(null); setAddSpaceModalVisible(false); // Refetch is triggered by useFocusEffect
     }
   };
 
   const handleAddAsset = async () => {
-    if (!newAssetName.trim() || !selectedAssetType) {
-      Alert.alert("Missing Information", "Please select an asset type and provide a name.");
+    if (!newAssetDescription.trim() || !selectedAssetType) {
+      Alert.alert("Missing Information", "Please select an asset type and provide a description.");
       return;
     }
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
-    const { data: newAsset, error: assetError } = await supabase.from('Assets').insert({ name: newAssetName, space_id: selectedSpace, asset_type_id: selectedAssetType }).select().single();
+    const { data: newAsset, error: assetError } = await supabase.from('Assets').insert({ description: newAssetDescription, space_id: selectedSpace, asset_type_id: selectedAssetType }).select().single();
     if (assetError) { Alert.alert("Error", assetError.message); return; }
     const { error: changelogError } = await supabase.from('ChangeLog').insert({ asset_id: newAsset.id, specifications: {}, change_description: "Asset created.", changed_by_user_id: user.id, status: 'ACCEPTED' });
     if (changelogError) Alert.alert("Error", changelogError.message);
     else {
-      setNewAssetName(''); setSelectedAssetType(null); setAddAssetModalVisible(false); fetchPropertyData();
+      setNewAssetDescription(''); setSelectedAssetType(null); setAddAssetModalVisible(false); // Refetch is triggered by useFocusEffect
     }
   };
 
@@ -226,18 +231,38 @@ const PropertyDetails = ({ route, navigation }) => {
     if (!currentAsset) return;
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
-    const latestAcceptedLog = currentAsset.ChangeLog.find(log => log.status === 'ACCEPTED');
-    const latestSpec = latestAcceptedLog?.specifications || {};
-    const { error } = await supabase.from('ChangeLog').insert({ asset_id: currentAsset.id, specifications: latestSpec, change_description: newHistoryDescription, changed_by_user_id: user.id, status: 'ACCEPTED' });
+
+    const newSpecifications = editableSpecs.reduce((acc, spec) => {
+        if (spec.key.trim()) { acc[spec.key.trim()] = spec.value.trim(); }
+        return acc;
+    }, {});
+
+    const { error } = await supabase.from('ChangeLog').insert({ asset_id: currentAsset.id, specifications: newSpecifications, change_description: newHistoryDescription, changed_by_user_id: user.id, status: 'ACCEPTED' });
     if (error) Alert.alert("Error", error.message);
     else {
-      setNewHistoryDescription(''); setAddHistoryModalVisible(false); setCurrentAsset(null); fetchPropertyData();
+      setNewHistoryDescription(''); setAddHistoryModalVisible(false); setCurrentAsset(null); // Refetch is triggered by useFocusEffect
     }
   };
 
   const openAddHistoryModal = (asset) => {
     setCurrentAsset(asset);
+    const latestAcceptedLog = asset.ChangeLog.find(log => log.status === 'ACCEPTED');
+    const latestSpecs = latestAcceptedLog?.specifications || {};
+    const specsArray = Object.entries(latestSpecs).map(([key, value], index) => ({ id: index, key, value }));
+    setEditableSpecs(specsArray);
     setAddHistoryModalVisible(true);
+  };
+
+  const handleSpecChange = (id, field, value) => {
+    setEditableSpecs(prevSpecs => prevSpecs.map(spec => spec.id === id ? { ...spec, [field]: value } : spec));
+  };
+
+  const addNewSpecRow = () => {
+      setEditableSpecs(prevSpecs => [...prevSpecs, { id: Date.now(), key: '', value: '' }]);
+  };
+
+  const removeSpecRow = (id) => {
+      setEditableSpecs(prevSpecs => prevSpecs.filter(spec => spec.id !== id));
   };
 
   const currentAssets = selectedSpace ? assetsBySpace[selectedSpace] || [] : [];
@@ -285,12 +310,7 @@ const PropertyDetails = ({ route, navigation }) => {
 
       <FormModal visible={isAddSpaceModalVisible} onClose={() => setAddSpaceModalVisible(false)} title="Add New Space" onSubmit={handleAddSpace}>
         <TextInput style={styles.input} placeholder="Space Name (e.g., Main Bedroom)" value={newSpaceName} onChangeText={setNewSpaceName} />
-        <DropField
-            options={spaceTypeOptions}
-            selectedValue={newSpaceType}
-            onSelect={setNewSpaceType}
-            placeholder="Select a space type..."
-        />
+        <DropField options={spaceTypeOptions} selectedValue={newSpaceType} onSelect={setNewSpaceType} placeholder="Select a space type..." />
       </FormModal>
 
       <FormModal visible={isAddAssetModalVisible} onClose={() => setAddAssetModalVisible(false)} title={`Add Asset to ${selectedSpaceName}`} onSubmit={handleAddAsset}>
@@ -301,14 +321,23 @@ const PropertyDetails = ({ route, navigation }) => {
                 const type = assetTypes.find(t => t.name === name);
                 setSelectedAssetType(type ? type.id : null);
             }}
-            placeholder="Select an asset type..."
-            style={{ marginBottom: 12 }}
+            placeholder="Select an asset type..." style={{ marginBottom: 12 }}
         />
-        <TextInput style={styles.input} placeholder="Asset Name (e.g., Air Conditioner)" value={newAssetName} onChangeText={setNewAssetName} />
+        <TextInput style={styles.input} placeholder="Asset Description (e.g., Air Conditioner)" value={newAssetDescription} onChangeText={setNewAssetDescription} />
       </FormModal>
 
-      <FormModal visible={isAddHistoryModalVisible} onClose={() => setAddHistoryModalVisible(false)} title={`Add History to ${currentAsset?.name}`} onSubmit={handleAddHistory}>
-        <TextInput style={[styles.input, { height: 100 }]} placeholder="Describe the change or update..." value={newHistoryDescription} onChangeText={setNewHistoryDescription} multiline />
+      <FormModal visible={isAddHistoryModalVisible} onClose={() => setAddHistoryModalVisible(false)} title={`Update ${currentAsset?.description}`} onSubmit={handleAddHistory} submitText="Submit Update">
+        <Text style={styles.label}>Update Description</Text>
+        <TextInput style={[styles.input, { height: 80 }]} placeholder="Describe the change or update..." value={newHistoryDescription} onChangeText={setNewHistoryDescription} multiline />
+        <Text style={styles.label}>Specifications</Text>
+        {editableSpecs.map((spec) => (
+            <View key={spec.id} style={styles.specRow}>
+                <TextInput style={[styles.input, styles.specInputKey]} placeholder="Attribute" value={spec.key} onChangeText={(text) => handleSpecChange(spec.id, 'key', text)} />
+                <TextInput style={[styles.input, styles.specInputValue]} placeholder="Value" value={spec.value} onChangeText={(text) => handleSpecChange(spec.id, 'value', text)} />
+                <TouchableOpacity onPress={() => removeSpecRow(spec.id)} style={styles.removeRowButton}><Trash2 size={20} color={PALETTE.danger} /></TouchableOpacity>
+            </View>
+        ))}
+        <TouchableOpacity style={styles.addRowButton} onPress={addNewSpecRow}><PlusCircle size={20} color={PALETTE.primary} /><Text style={styles.addRowButtonText}>Add Attribute</Text></TouchableOpacity>
       </FormModal>
     </SafeAreaView>
   );
@@ -356,6 +385,13 @@ const styles = StyleSheet.create({
   historySectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   addButtonSmall: { flexDirection: 'row', alignItems: 'center' },
   addButtonSmallText: { marginLeft: 4, fontSize: 14, fontWeight: '500', color: PALETTE.primary },
+  label: { fontSize: 14, fontWeight: '500', color: PALETTE.textSecondary, marginBottom: 8 },
+  specRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
+  specInputKey: { flex: 2, marginRight: 8, marginBottom: 0, padding: 12 },
+  specInputValue: { flex: 3, marginBottom: 0, padding: 12 },
+  removeRowButton: { padding: 8, marginLeft: 4 },
+  addRowButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: 12, marginTop: 8 },
+  addRowButtonText: { marginLeft: 8, color: PALETTE.primary, fontWeight: '500' },
 });
 
 export default PropertyDetails;

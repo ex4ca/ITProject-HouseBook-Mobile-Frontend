@@ -105,7 +105,7 @@ const PropertyRequest = ({ route, navigation }) => {
             .select(`
               id, change_description, specifications, created_at,
               User ( first_name, last_name ),
-              Assets ( name, Spaces ( name, Property ( name, property_id )))
+              Assets ( description, Spaces ( name, Property ( name, property_id )))
             `)
             .eq('status', 'PENDING')
             .eq('Assets.Spaces.property_id', propertyId);

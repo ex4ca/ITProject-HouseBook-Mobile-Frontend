@@ -1,6 +1,3 @@
-// API service functions for backend integration
-// Currently using mock data - replace with actual API calls
-
 const API_BASE_URL = 'https://your-backend-api.com/api';
 
 /**

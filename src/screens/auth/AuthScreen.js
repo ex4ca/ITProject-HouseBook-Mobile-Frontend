@@ -8,12 +8,11 @@ import {
   Alert,
   ScrollView,
   KeyboardAvoidingView,
-  Platform,
-  ActivityIndicator,
+  Platform
 } from 'react-native';
 import { Home, Wrench } from 'lucide-react-native';
 import { Button, TextField, Checkbox } from '../../components/common';
-import { supabase } from '../../services/supabase';
+import { supabase } from '../../api/supabaseClient';
 
 // Defines the color palette for the UI.
 const PALETTE = {

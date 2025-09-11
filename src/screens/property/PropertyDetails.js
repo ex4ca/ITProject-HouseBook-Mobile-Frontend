@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { DropField } from '../../components/common';
 import { COLORS, FONTS, STYLES } from '../../components/styles/constants';
-import { supabase } from '../../services/supabase';
+import { supabase } from '../../api/supabaseClient';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);

@@ -13,7 +13,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { COLORS, FONTS, STYLES } from '../../components/styles/constants';
-import { supabase } from '../../services/supabase';
+import { supabase } from '../../api/supabaseClient';
 
 const PropertyGeneral = ({ route, navigation }) => {
   const propertyId = route.params?.propertyId;

@@ -11,7 +11,6 @@ import {
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Home } from 'lucide-react-native';
-import { Button } from '../../components/common';
 import { supabase } from '../../api/supabaseClient';
 
 const PALETTE = {
@@ -185,13 +184,6 @@ const PropertyListScreen = ({ navigation }) => {
         }
         contentContainerStyle={styles.listContentContainer}
       />
-
-      <Button
-        text="+"
-        onPress={() => navigation.navigate('PropertyEdit', { isNew: true })}
-        style={styles.floatingAddButton}
-        textStyle={styles.floatingAddButtonText}
-      />
     </SafeAreaView>
   );
 };
@@ -210,7 +202,7 @@ const styles = StyleSheet.create({
   },
   listContentContainer: {
     paddingHorizontal: 20,
-    paddingBottom: 100, // Space for the floating button
+    paddingBottom: 20,
   },
   header: {
     paddingVertical: 24,
@@ -292,20 +284,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: PALETTE.textSecondary,
     textAlign: 'center',
-  },
-  floatingAddButton: {
-    position: 'absolute',
-    bottom: 30,
-    right: 20,
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: PALETTE.primary,
-  },
-  floatingAddButtonText: {
-    fontSize: 32,
-    color: PALETTE.white,
-    lineHeight: 32,
   },
 });
 

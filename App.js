@@ -7,20 +7,21 @@ import { StatusBar } from 'expo-status-bar';
 import { Home, User, Briefcase } from 'lucide-react-native';
 import { supabase } from './src/api/supabaseClient';
 
-// Screen imports
+// Navigators
+import PropertyControlNavigator from './src/navigation/PropertyControlNavigator';
+
+// Screens
 import AuthScreen from './src/screens/auth/AuthScreen';
 import PropertyList from './src/screens/property/PropertyList';
-import PropertyControlNavigator from './src/navigation/PropertyControlNavigator';
+import Account from './src/screens/profile/Account';
 import PropertyEdit from './src/screens/property/PropertyEdit';
 import ComponentDetails from './src/screens/property/ComponentDetails';
 import QRScanner from './src/screens/scanner/QRScanner';
 import PinEntry from './src/screens/scanner/PinEntry';
-import Account from './src/screens/profile/Account';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
 
-// Defines a consistent, clean color scheme for the app.
 const PALETTE = {
   background: '#FFFFFF',
   card: '#FFFFFF',
@@ -30,7 +31,6 @@ const PALETTE = {
   border: '#E5E7EB',
 };
 
-// Handles the authentication flow for unauthenticated users.
 function AuthNavigator() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
@@ -39,9 +39,6 @@ function AuthNavigator() {
   );
 }
 
-// Navigators for authenticated users, split by role.
-
-// Owner-specific tab navigator.
 function OwnerTabNavigator() {
   return (
     <Tab.Navigator
@@ -71,7 +68,6 @@ function OwnerTabNavigator() {
   );
 }
 
-// Tradie-specific tab navigator.
 function TradieTabNavigator() {
   return (
     <Tab.Navigator
@@ -85,7 +81,7 @@ function TradieTabNavigator() {
     >
       <Tab.Screen 
         name="Jobs"
-        component={PropertyList} // Placeholder: Replace with a JobBoardScreen
+        component={PropertyList} // Placeholder
         options={{
           tabBarIcon: ({ color, size }) => <Briefcase color={color} size={size} />,
         }}
@@ -101,7 +97,6 @@ function TradieTabNavigator() {
   );
 }
 
-// Stack navigator for all post-login screens.
 function AppNavigator({ userRole }) {
   const MainTabNavigator = userRole === 'owner' ? OwnerTabNavigator : TradieTabNavigator;
 
@@ -117,7 +112,6 @@ function AppNavigator({ userRole }) {
   );
 }
 
-// Root component: manages auth state and navigators.
 export default function App() {
   const [session, setSession] = useState(null);
   const [userRole, setUserRole] = useState(null);
@@ -126,25 +120,13 @@ export default function App() {
   const fetchUserRole = async (user) => {
     if (!user) return null;
     
-    // Check if the user is in the Owner table.
-    const { data: ownerData } = await supabase
-      .from('Owner')
-      .select('user_id', { count: 'exact' })
-      .eq('user_id', user.id);
-
-    if (ownerData && ownerData.length > 0) {
-      return 'owner';
-    }
-
-    // Check if the user is in the Tradesperson table.
-    const { data: tradieData } = await supabase
-      .from('Tradesperson')
-      .select('user_id', { count: 'exact' })
-      .eq('user_id', user.id);
-
-    if (tradieData && tradieData.length > 0) {
-      return 'tradie';
-    }
+    const { count: ownerCount, error: ownerError } = await supabase.from('Owner').select('*', { count: 'exact', head: true }).eq('user_id', user.id);
+    if (ownerError) { console.error("Error checking owner table:", ownerError); return null; }
+    if (ownerCount > 0) return 'owner';
+    
+    const { count: tradieCount, error: tradieError } = await supabase.from('Tradesperson').select('*', { count: 'exact', head: true }).eq('user_id', user.id);
+    if (tradieError) { console.error("Error checking tradie table:", tradieError); return null; }
+    if (tradieCount > 0) return 'tradie';
     
     return null; 
   };
@@ -159,7 +141,6 @@ export default function App() {
       }
       setLoading(false);
     };
-
     initializeApp();
 
     const { data: authListener } = supabase.auth.onAuthStateChange(async (_event, session) => {
@@ -171,24 +152,19 @@ export default function App() {
         setUserRole(null);
       }
     });
-
     return () => {
       authListener.subscription.unsubscribe();
     };
   }, []);
 
   if (loading) {
-    return null; // Render a splash screen or loading indicator here.
+    return null;
   }
 
   return (
     <NavigationContainer>
       <StatusBar style="dark" />
-      {session && session.user && userRole ? (
-        <AppNavigator userRole={userRole} />
-      ) : (
-        <AuthNavigator />
-      )}
+      {session && session.user && userRole ? (<AppNavigator userRole={userRole} />) : (<AuthNavigator />)}
     </NavigationContainer>
   );
 }
@@ -200,7 +176,7 @@ const styles = StyleSheet.create({
     borderTopColor: PALETTE.border,
     height: 90,
     paddingTop: 10,
-    paddingBottom: 30, 
+    paddingBottom: 30,
   },
   tabBarLabel: {
     fontSize: 12,

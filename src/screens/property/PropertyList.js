@@ -23,7 +23,7 @@ const PALETTE = {
   white: '#FFFFFF',
 };
 
-const PropertyListScreen = ({ navigation }) => {
+const PropertyList = ({ navigation }) => {
   const [properties, setProperties] = useState([]);
   const [userName, setUserName] = useState('');
   const [loading, setLoading] = useState(true);
@@ -276,4 +276,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default PropertyListScreen;
+export default PropertyList;

@@ -1,20 +1,17 @@
-import React, { useState, useRef } from 'react';
-import { TouchableOpacity, Text, View, StyleSheet, Modal, FlatList } from 'react-native';
-import { COLORS, FONTS, STYLES } from '../styles/constants';
+import { useState, useRef } from 'react';
+import { TouchableOpacity, Text, View, StyleSheet, Modal, FlatList, SafeAreaView } from 'react-native';
+import { ChevronsUpDown } from 'lucide-react-native';
 
-/**
- * Reusable DropField Component
- * @param {Object} props
- * @param {Array} props.options - Array of options to display in dropdown
- * @param {string} props.placeholder - Placeholder text when no option is selected
- * @param {string} props.selectedValue - Currently selected value
- * @param {function} props.onSelect - Function to call when an option is selected
- * @param {Object} props.style - Additional styles for the container
- * @param {Object} props.textStyle - Additional styles for the displayed text
- * @param {number} props.width - DropField width (optional)
- * @param {number} props.height - DropField height (optional)
- * @param {boolean} props.disabled - Whether the dropdown is disabled
- */
+// Consistent color palette for the Notion-like design.
+const PALETTE = {
+  background: '#F8F9FA',
+  card: '#FFFFFF',
+  textPrimary: '#111827',
+  textSecondary: '#6B7280',
+  primary: '#111827',
+  border: '#E5E7EB',
+};
+
 const DropField = ({
   options = [],
   placeholder = 'Select an option',
@@ -22,8 +19,6 @@ const DropField = ({
   onSelect,
   style = {},
   textStyle = {},
-  width,
-  height = 50,
   disabled = false,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -31,20 +26,19 @@ const DropField = ({
   const dropdownRef = useRef(null);
 
   const toggleDropdown = () => {
-    if (!disabled) {
-      if (!isOpen) {
-        // Measure the dropdown button position before opening
-        dropdownRef.current?.measure((x, y, width, height, pageX, pageY) => {
-          setDropdownPosition({
-            x: pageX,
-            y: pageY + height,
-            width: width
-          });
-          setIsOpen(true);
+    if (disabled) return;
+    
+    if (isOpen) {
+      setIsOpen(false);
+    } else {
+      dropdownRef.current?.measure((x, y, width, height, pageX, pageY) => {
+        setDropdownPosition({
+          x: pageX,
+          y: pageY + height,
+          width: width,
         });
-      } else {
-        setIsOpen(false);
-      }
+        setIsOpen(true);
+      });
     }
   };
 
@@ -54,36 +48,25 @@ const DropField = ({
   };
 
   const displayText = selectedValue || placeholder;
-  const isSelected = !!selectedValue;
+  const isPlaceholder = !selectedValue;
 
   const containerStyles = [
     styles.container,
-    {
-      backgroundColor: isSelected ? COLORS.primary : COLORS.secondary,
-      width: width,
-      height: height,
-      opacity: disabled ? 0.6 : 1,
-    },
     style,
+    disabled && styles.disabledContainer,
   ];
 
   const textStyles = [
     styles.text,
-    {
-      color: isSelected ? COLORS.white : FONTS.hintText.color,
-      fontSize: 10, // Fixed smaller font size
-    },
+    isPlaceholder && styles.placeholderText,
     textStyle,
   ];
-
-  // Filter out the currently selected option
-  const filteredOptions = options.filter(option => option !== selectedValue);
 
   const renderOption = ({ item, index }) => (
     <TouchableOpacity
       style={[
         styles.option,
-        index === filteredOptions.length - 1 && styles.lastOption
+        index === options.length - 1 && styles.lastOption
       ]}
       onPress={() => selectOption(item)}
     >
@@ -92,7 +75,7 @@ const DropField = ({
   );
 
   return (
-    <View style={styles.wrapper}>
+    <View>
       <TouchableOpacity
         ref={dropdownRef}
         style={containerStyles}
@@ -102,9 +85,7 @@ const DropField = ({
         <Text style={textStyles} numberOfLines={1}>
           {displayText}
         </Text>
-        <Text style={[styles.arrow, { color: isSelected ? COLORS.white : FONTS.hintText.color }]}>
-          {isOpen ? '▲' : '▼'}
-        </Text>
+        <ChevronsUpDown size={20} color={PALETTE.textSecondary} />
       </TouchableOpacity>
 
       <Modal
@@ -118,25 +99,25 @@ const DropField = ({
           activeOpacity={1}
           onPress={() => setIsOpen(false)}
         >
-          <View 
-            style={[
-              styles.dropdown, 
-              {
-                position: 'absolute',
-                top: dropdownPosition.y,
-                left: dropdownPosition.x,
-                width: dropdownPosition.width,
-              }
-            ]}
-          >
-            <FlatList
-              data={filteredOptions}
-              renderItem={renderOption}
-              keyExtractor={(item, index) => index.toString()}
-              showsVerticalScrollIndicator={false}
-              style={styles.optionsList}
-            />
-          </View>
+          <SafeAreaView>
+            <View 
+              style={[
+                styles.dropdown, 
+                {
+                  top: dropdownPosition.y,
+                  left: dropdownPosition.x,
+                  width: dropdownPosition.width,
+                }
+              ]}
+            >
+              <FlatList
+                data={options}
+                renderItem={renderOption}
+                keyExtractor={(item, index) => index.toString()}
+                showsVerticalScrollIndicator={false}
+              />
+            </View>
+          </SafeAreaView>
         </TouchableOpacity>
       </Modal>
     </View>
@@ -144,56 +125,56 @@ const DropField = ({
 };
 
 const styles = StyleSheet.create({
-  wrapper: {
-    position: 'relative',
-    zIndex: 1000,
-  },
   container: {
-    backgroundColor: COLORS.secondary,
-    borderRadius: STYLES.borderRadius.medium,
-    paddingHorizontal: STYLES.spacing.md,
-    paddingVertical: STYLES.spacing.sm,
+    backgroundColor: PALETTE.card,
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    height: 58,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    ...STYLES.shadow,
+    borderWidth: 1,
+    borderColor: PALETTE.border,
+  },
+  disabledContainer: {
+    backgroundColor: PALETTE.background,
   },
   text: {
     flex: 1,
-    fontWeight: FONTS.hintText.fontWeight,
-    fontSize: 14,
+    fontSize: 16,
+    color: PALETTE.textPrimary,
   },
-  arrow: {
-    fontSize: 12,
-    marginLeft: STYLES.spacing.sm,
+  placeholderText: {
+    color: PALETTE.textSecondary,
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.1)',
   },
   dropdown: {
-    backgroundColor: COLORS.white,
-    borderRadius: STYLES.borderRadius.medium,
-    maxHeight: 200,
-    ...STYLES.shadow,
+    position: 'absolute',
+    backgroundColor: PALETTE.card,
+    borderRadius: 8,
+    maxHeight: 220,
+    borderWidth: 1,
+    borderColor: PALETTE.border,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
     elevation: 5,
   },
-  optionsList: {
-    flexGrow: 0,
-  },
   option: {
-    paddingHorizontal: STYLES.spacing.md,
-    paddingVertical: STYLES.spacing.md,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.textfield,
+    borderBottomColor: PALETTE.border,
   },
   lastOption: {
     borderBottomWidth: 0,
   },
   optionText: {
-    fontSize: 10,
-    fontWeight: FONTS.hintText.fontWeight,
-    color: FONTS.commonText.color,
+    fontSize: 16,
+    color: PALETTE.textPrimary,
   },
 });
 

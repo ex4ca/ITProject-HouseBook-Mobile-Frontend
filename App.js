@@ -1,16 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { View } from 'react-native';
+import { StyleSheet } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { StatusBar } from 'expo-status-bar';
-import { COLORS } from './src/components/styles/constants';
+import { Home, User, Briefcase } from 'lucide-react-native';
 import { supabase } from './src/api/supabaseClient';
 
-// Import screens
+// Screen imports
 import AuthScreen from './src/screens/auth/AuthScreen';
 import PropertyList from './src/screens/property/PropertyList';
-import PropertyControlNavigator from './src/screens/property/PropertyControlNavigator';
+import PropertyControlNavigator from './src/navigation/PropertyControlNavigator';
 import PropertyEdit from './src/screens/property/PropertyEdit';
 import ComponentDetails from './src/screens/property/ComponentDetails';
 import QRScanner from './src/screens/scanner/QRScanner';
@@ -20,7 +20,17 @@ import Account from './src/screens/profile/Account';
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
 
-// Handles the authentication flow for users who are not logged in.
+// Defines a consistent, clean color scheme for the app.
+const PALETTE = {
+  background: '#FFFFFF',
+  card: '#FFFFFF',
+  textPrimary: '#111827',
+  textSecondary: '#6B7280',
+  primary: '#111827',
+  border: '#E5E7EB',
+};
+
+// Handles the authentication flow for unauthenticated users.
 function AuthNavigator() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
@@ -29,102 +39,74 @@ function AuthNavigator() {
   );
 }
 
-// Icon components
-const PropertiesIcon = ({ color, size, focused }) => (
-    <View style={{ width: size + 10, height: size + 10, backgroundColor: focused ? COLORS.primary : COLORS.textfield, borderRadius: (size + 10) / 2, justifyContent: 'center', alignItems: 'center' }}><View style={{ width: size - 8, height: size - 8, backgroundColor: focused ? COLORS.white : COLORS.black, borderRadius: 4 }} /></View>
-);
-const AccountIcon = ({ color, size, focused }) => (
-    <View style={{ width: size + 10, height: size + 10, backgroundColor: focused ? COLORS.primary : COLORS.textfield, borderRadius: (size + 10) / 2, justifyContent: 'center', alignItems: 'center' }}><View style={{ width: size - 8, height: size - 8, backgroundColor: focused ? COLORS.white : COLORS.black, borderRadius: (size - 8) / 2 }} /></View>
-);
-
-// Common screen options for the tab navigators
-const tabNavigatorScreenOptions = {
-  tabBarStyle: {
-    backgroundColor: COLORS.white,
-    borderTopWidth: 1,
-    borderTopColor: COLORS.textfield,
-    height: 80,
-    paddingBottom: 10,
-    paddingTop: 10,
-  },
-  tabBarActiveTintColor: COLORS.primary,
-  tabBarInactiveTintColor: COLORS.black,
-  tabBarItemStyle: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  tabBarLabelStyle: {
-    display: 'none',
-  },
-  headerShown: false,
-};
-
-
 // Navigators for authenticated users, split by role.
 
-// The set of tabs and screens for property owners.
+// Owner-specific tab navigator.
 function OwnerTabNavigator() {
   return (
-    <Tab.Navigator screenOptions={tabNavigatorScreenOptions}>
+    <Tab.Navigator
+      screenOptions={{
+        headerShown: false,
+        tabBarActiveTintColor: PALETTE.primary,
+        tabBarInactiveTintColor: PALETTE.textSecondary,
+        tabBarStyle: styles.tabBar,
+        tabBarLabelStyle: styles.tabBarLabel,
+      }}
+    >
       <Tab.Screen 
         name="Properties"
         component={PropertyList}
         options={{
-          tabBarIcon: ({ color, size, focused }) => (
-            <PropertiesIcon color={color} size={size} focused={focused} />
-          ),
+          tabBarIcon: ({ color, size }) => <Home color={color} size={size} />,
         }}
       />
       <Tab.Screen 
         name="Account" 
         component={Account}
         options={{
-          tabBarIcon: ({ color, size, focused }) => (
-            <AccountIcon color={color} size={size} focused={focused} />
-          ),
+          tabBarIcon: ({ color, size }) => <User color={color} size={size} />,
         }}
       />
     </Tab.Navigator>
   );
 }
 
-// The set of tabs and screens for tradies.
+// Tradie-specific tab navigator.
 function TradieTabNavigator() {
   return (
-    <Tab.Navigator screenOptions={tabNavigatorScreenOptions}>
+    <Tab.Navigator
+      screenOptions={{
+        headerShown: false,
+        tabBarActiveTintColor: PALETTE.primary,
+        tabBarInactiveTintColor: PALETTE.textSecondary,
+        tabBarStyle: styles.tabBar,
+        tabBarLabelStyle: styles.tabBarLabel,
+      }}
+    >
       <Tab.Screen 
-        name="JobBoard" // A different starting screen for tradies
-        component={PropertyList} // Replace with your JobBoardScreen later
+        name="Jobs"
+        component={PropertyList} // Placeholder: Replace with a JobBoardScreen
         options={{
-          tabBarIcon: ({ color, size, focused }) => (
-            <PropertiesIcon color={color} size={size} focused={focused} /> // Replace with a "Jobs" icon
-          ),
+          tabBarIcon: ({ color, size }) => <Briefcase color={color} size={size} />,
         }}
       />
       <Tab.Screen 
         name="Account" 
         component={Account}
         options={{
-          tabBarIcon: ({ color, size, focused }) => (
-            <AccountIcon color={color} size={size} focused={focused} />
-          ),
+          tabBarIcon: ({ color, size }) => <User color={color} size={size} />,
         }}
       />
     </Tab.Navigator>
   );
 }
 
-
-// This stack contains all post-login screens and uses the correct tab navigator.
+// Stack navigator for all post-login screens.
 function AppNavigator({ userRole }) {
   const MainTabNavigator = userRole === 'owner' ? OwnerTabNavigator : TradieTabNavigator;
 
   return (
-    <Stack.Navigator
-      initialRouteName="Main"
-      screenOptions={{ headerShown: false }}
-    >
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="Main" component={MainTabNavigator} />
       <Stack.Screen name="Scanner" component={QRScanner} />
       <Stack.Screen name="PinEntry" component={PinEntry} />
@@ -135,47 +117,40 @@ function AppNavigator({ userRole }) {
   );
 }
 
-
-// The root component that determines which navigator to show.
+// Root component: manages auth state and navigators.
 export default function App() {
   const [session, setSession] = useState(null);
   const [userRole, setUserRole] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Function to fetch the user role from the database
   const fetchUserRole = async (user) => {
     if (!user) return null;
-
-    // Check the Owner table first
+    
+    // Check if the user is in the Owner table.
     const { data: ownerData } = await supabase
       .from('Owner')
-      .select('user_id')
-      .eq('user_id', user.id)
-      .single();
+      .select('user_id', { count: 'exact' })
+      .eq('user_id', user.id);
 
-    if (ownerData) {
+    if (ownerData && ownerData.length > 0) {
       return 'owner';
     }
 
-    // If not an owner, check the Tradesperson table
+    // Check if the user is in the Tradesperson table.
     const { data: tradieData } = await supabase
       .from('Tradesperson')
-      .select('user_id')
-      .eq('user_id', user.id)
-      .single();
+      .select('user_id', { count: 'exact' })
+      .eq('user_id', user.id);
 
-    if (tradieData) {
+    if (tradieData && tradieData.length > 0) {
       return 'tradie';
     }
     
-    // Default or handle cases where user has no role
     return null; 
   };
 
-
   useEffect(() => {
     const initializeApp = async () => {
-      // Check for existing session on app start
       const { data: { session } } = await supabase.auth.getSession();
       setSession(session);
       if (session) {
@@ -187,14 +162,12 @@ export default function App() {
 
     initializeApp();
 
-    // Listen for auth state changes (sign in, sign out)
     const { data: authListener } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setSession(session);
       if (session) {
         const role = await fetchUserRole(session.user);
         setUserRole(role);
       } else {
-        // Clear role on sign out
         setUserRole(null);
       }
     });
@@ -205,12 +178,12 @@ export default function App() {
   }, []);
 
   if (loading) {
-    return null; // Or a loading screen
+    return null; // Render a splash screen or loading indicator here.
   }
 
   return (
     <NavigationContainer>
-      <StatusBar style="auto" />
+      <StatusBar style="dark" />
       {session && session.user && userRole ? (
         <AppNavigator userRole={userRole} />
       ) : (
@@ -220,3 +193,18 @@ export default function App() {
   );
 }
 
+const styles = StyleSheet.create({
+  tabBar: {
+    backgroundColor: PALETTE.card,
+    borderTopWidth: 1,
+    borderTopColor: PALETTE.border,
+    height: 90,
+    paddingTop: 10,
+    paddingBottom: 30, 
+  },
+  tabBarLabel: {
+    fontSize: 12,
+    fontWeight: '500',
+    marginTop: 4,
+  },
+});

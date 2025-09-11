@@ -28,12 +28,9 @@ const PropertyListScreen = ({ navigation }) => {
   const [userName, setUserName] = useState('');
   const [loading, setLoading] = useState(true);
   
-  // Use a ref to prevent multiple fetches from running at the same time.
   const isFetching = useRef(false);
 
-  // This function contains all the logic to fetch fresh data for the screen.
   const fetchData = useCallback(async () => {
-    // If a fetch is already in progress, don't start another one.
     if (isFetching.current) return;
 
     try {
@@ -47,7 +44,6 @@ const PropertyListScreen = ({ navigation }) => {
         return;
       }
 
-      // Fetch user's name and their properties concurrently.
       const [propertiesResponse, userResponse] = await Promise.all([
         supabase
           .from('Owner')
@@ -61,7 +57,6 @@ const PropertyListScreen = ({ navigation }) => {
           .single(),
       ]);
 
-      // Process the user's name from the response.
       if (userResponse.data) {
         setUserName(userResponse.data.first_name);
       }
@@ -69,7 +64,6 @@ const PropertyListScreen = ({ navigation }) => {
         throw userResponse.error;
       }
 
-      // Process the properties from the response.
       if (propertiesResponse.data && propertiesResponse.data.OwnerProperty) {
         const fetchedProperties = propertiesResponse.data.OwnerProperty.map(item => ({
           ...item.Property,
@@ -81,8 +75,6 @@ const PropertyListScreen = ({ navigation }) => {
         setProperties([]);
       }
       if (propertiesResponse.error) {
-        // A .single() query can error if no row is found, which is a valid case.
-        // throw if it's not a "not found" error.
         if (propertiesResponse.error.code !== 'PGRST116') {
             throw propertiesResponse.error;
         }
@@ -93,25 +85,21 @@ const PropertyListScreen = ({ navigation }) => {
       setProperties([]);
       setUserName('');
     } finally {
-      // Ensure the fetching flag and loading state are always reset.
       isFetching.current = false;
       setLoading(false);
     }
   }, []);
   
-  // useFocusEffect runs the fetch logic every time the screen comes into view.
   useFocusEffect(
     useCallback(() => {
       fetchData();
     }, [fetchData])
   );
 
-  // This effect sets up the real-time subscription.
   useEffect(() => {
     const channel = supabase
       .channel('public:Property')
       .on('postgres_changes', { event: '*', schema: 'public' }, () => {
-        // When the database changes, re-run the guarded fetch logic.
         fetchData();
       })
       .subscribe();
@@ -127,7 +115,8 @@ const PropertyListScreen = ({ navigation }) => {
     return (
       <TouchableOpacity
         style={styles.propertyCard}
-        onPress={() => navigation.navigate('PropertyDetails', { propertyId: item.id })}
+        // When navigating, pass 'isOwner: true' so the next screen knows the user's role.
+        onPress={() => navigation.navigate('PropertyDetails', { propertyId: item.id, isOwner: true })}
       >
         <Image source={{ uri: imageUrl }} style={styles.propertyImage} />
         <View style={styles.propertyInfo}>

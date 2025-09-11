@@ -1,11 +1,13 @@
+import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { Info, LayoutGrid, Users } from 'lucide-react-native';
+import { Info, LayoutGrid, Users, Bell } from 'lucide-react-native';
 
-// Import the screens for the tabs
-import PropertyGeneral from '../screens/property/PropertyGeneral';
-import PropertyDetails from '../screens/property/PropertyDetails';
-import Role from '../screens/property/Role';
+// Import all the necessary screens for the tabs
+import PropertyGeneralScreen from '../screens/property/PropertyGeneral';
+import PropertyDetailsScreen from '../screens/property/PropertyDetails';
+import PropertyRequestsScreen from '../screens/property/PropertyRequest';
+import Role from '../screens/property/Role'; // This is your Authority screen
 
 const Tab = createBottomTabNavigator();
 
@@ -31,51 +33,48 @@ function PropertyControlNavigator({ route }) {
         tabBarInactiveTintColor: PALETTE.textSecondary,
         tabBarStyle: styles.tabBar,
         tabBarLabelStyle: styles.tabBarLabel,
-        tabBarIndicatorStyle: styles.tabBarIndicator,
       }}
     >
       {/* Each screen receives the propertyId to fetch its own data. */}
       <Tab.Screen 
         name="General"
-        component={PropertyGeneral}
+        component={PropertyGeneralScreen}
         initialParams={{ propertyId }}
         options={{
-          tabBarIcon: ({ color, size, focused }) => (
-            <View style={styles.tabIconContainer}>
-              {focused && <View style={styles.activeIndicator} />}
-              <Info color={color} size={size} />
-            </View>
-          ),
+          tabBarIcon: ({ color, size }) => <Info color={color} size={size} />,
         }}
       />
       
       <Tab.Screen 
         name="Details"
-        component={PropertyDetails}
-        initialParams={{ propertyId }}
+        component={PropertyDetailsScreen}
+        initialParams={{ propertyId, isOwner }}
         options={{
-          tabBarIcon: ({ color, size, focused }) => (
-            <View style={styles.tabIconContainer}>
-              {focused && <View style={styles.activeIndicator} />}
-              <LayoutGrid color={color} size={size} />
-            </View>
-          ),
+          tabBarIcon: ({ color, size }) => <LayoutGrid color={color} size={size} />,
         }}
       />
       
-      <Tab.Screen 
-        name="Authority"
-        component={Role}
-        initialParams={{ propertyId, isOwner }}
-        options={{
-          tabBarIcon: ({ color, size, focused }) => (
-            <View style={styles.tabIconContainer}>
-              {focused && <View style={styles.activeIndicator} />}
-              <Users color={color} size={size} />
-            </View>
-          ),
-        }}
-      />
+      {/* The "Requests" and "Authority" tabs are only shown to the property owner. */}
+      {isOwner && (
+        <>
+          <Tab.Screen 
+            name="Requests"
+            component={PropertyRequestsScreen}
+            initialParams={{ propertyId }}
+            options={{
+              tabBarIcon: ({ color, size }) => <Bell color={color} size={size} />,
+            }}
+          />
+          <Tab.Screen 
+            name="Authority"
+            component={Role}
+            initialParams={{ propertyId, isOwner }}
+            options={{
+              tabBarIcon: ({ color, size }) => <Users color={color} size={size} />,
+            }}
+          />
+        </>
+      )}
     </Tab.Navigator>
   );
 }
@@ -93,17 +92,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '500',
     marginTop: 4,
-  },
-  tabIconContainer: {
-    alignItems: 'center',
-    width: '100%',
-  },
-  activeIndicator: {
-    position: 'absolute',
-    top: -11, // Position it right above the icon, aligning with the tab bar's top border.
-    height: 2,
-    width: 40,
-    backgroundColor: PALETTE.primary,
   },
 });
 

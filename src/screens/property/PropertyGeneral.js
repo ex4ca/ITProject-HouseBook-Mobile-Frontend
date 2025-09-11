@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -7,111 +7,128 @@ import {
   SafeAreaView,
   ScrollView,
   Image,
-  Modal,
   FlatList,
   Dimensions,
   ActivityIndicator,
 } from 'react-native';
-import { COLORS, FONTS, STYLES } from '../../components/styles/constants';
+import { useFocusEffect } from '@react-navigation/native';
 import { supabase } from '../../api/supabaseClient';
+import { ChevronLeft, Bed, Bath, Home as HomeIcon, Maximize, Square, Car } from 'lucide-react-native';
 
-const PropertyGeneral = ({ route, navigation }) => {
-  const propertyId = route.params?.propertyId;
+// Consistent color palette for the Notion-like design.
+const PALETTE = {
+  background: '#F8F9FA',
+  card: '#FFFFFF',
+  textPrimary: '#111827',
+  textSecondary: '#6B7280',
+  primary: '#111827',
+  border: '#E5E7EB',
+};
+
+const { width } = Dimensions.get('window');
+
+// Main screen component for the "General" property tab.
+const PropertyGeneralScreen = ({ route, navigation }) => {
+  const { propertyId } = route.params || {};
 
   const [loading, setLoading] = useState(true);
   const [property, setProperty] = useState(null);
   const [propertyImages, setPropertyImages] = useState([]);
-  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
-  const [isImageModalVisible, setIsImageModalVisible] = useState(false);
+  const [spaceCounts, setSpaceCounts] = useState({});
 
-  useEffect(() => {
-    if (propertyId) {
-      fetchPropertyGeneralData();
-    } else {
-      setLoading(false);
-    }
-  }, [propertyId]);
+  useFocusEffect(
+    useCallback(() => {
+      if (propertyId) {
+        fetchPropertyGeneralData();
+      } else {
+        setLoading(false);
+      }
+    }, [propertyId])
+  );
 
   const fetchPropertyGeneralData = async () => {
+    setLoading(true);
     try {
-      setLoading(true);
-      
-      // Fetch both property details and images in parallel
+      // Fetches property details, including its spaces and images.
       const { data: propertyData, error: propertyError } = await supabase
         .from('Property')
-        .select('address') // Add more fields here once they are in your DB
+        .select(`
+          name,
+          address,
+          description,
+          total_floor_area,
+          Spaces ( type ),
+          PropertyImages ( image_link, image_name )
+        `)
         .eq('property_id', propertyId)
         .single();
         
       if (propertyError) throw propertyError;
 
-      const { data: imagesData, error: imagesError } = await supabase
-        .from('PropertyImages')
-        .select('image_link, description, image_name')
-        .eq('property_id', propertyId);
+      if (propertyData) {
+        setProperty(propertyData);
+        
+        // Groups spaces by type and counts them.
+        const counts = (propertyData.Spaces || []).reduce((acc, space) => {
+          const type = space.type.toLowerCase();
+          acc[type] = (acc[type] || 0) + 1;
+          return acc;
+        }, {});
+        setSpaceCounts(counts);
 
-      if (imagesError) throw imagesError;
-
-      setProperty(propertyData);
-      
-      // Format the images data for the FlatList
-      const formattedImages = imagesData.map((img, index) => ({
-          id: index + 1,
+        const formattedImages = (propertyData.PropertyImages || []).map((img, index) => ({
+          id: `${propertyId}-${index}`,
           uri: img.image_link,
           title: img.image_name,
-          type: img.description, // Assuming description can be 'floorplan', 'exterior', etc.
-      }));
-      setPropertyImages(formattedImages.length > 0 ? formattedImages : getPlaceholderImages());
-
+        }));
+        setPropertyImages(formattedImages.length > 0 ? formattedImages : getPlaceholderImages());
+      }
     } catch (err) {
       console.error("Error fetching general property data:", err.message);
-      // Fallback to placeholder data on error
-      setProperty({ address: 'Error loading data' });
-      setPropertyImages(getPlaceholderImages());
+      setPropertyImages(getPlaceholderImages()); // Show placeholders on error
     } finally {
       setLoading(false);
     }
   };
   
-  // Helper to generate placeholder images if none are found in the DB
+  // Provides placeholder images if none exist in the database.
   const getPlaceholderImages = () => [
-    { id: 1, type: 'exterior', uri: null, title: 'Exterior View' },
-    { id: 2, type: 'floorplan', uri: null, title: 'Floor Plan' },
-    { id: 3, type: 'interior', uri: null, title: 'Living Room' },
+    { id: 'placeholder-1', uri: null, title: 'Exterior View' },
+    { id: 'placeholder-2', uri: null, title: 'Interior View' },
   ];
-
-  // Most of the rendering logic below remains the same, but it now uses the 'property' state
-  // --- UI and Rendering Logic (largely unchanged) ---
-  const { width } = Dimensions.get('window');
-  const flatListRef = useRef(null);
   
-  const handleImageScroll = (event) => {
-    const scrollPosition = event.nativeEvent.contentOffset.x;
-    const imageIndex = Math.round(scrollPosition / width);
-    setSelectedImageIndex(imageIndex);
-  };
-  
-  const openImagePreview = () => setIsImageModalVisible(true);
+  // A memoized component mapping space types to icons and labels.
+  const PropertyStats = useMemo(() => {
+    const iconMap = {
+      bedroom: <Bed color={PALETTE.primary} size={20} />,
+      bathroom: <Bath color={PALETTE.primary} size={20} />,
+      kitchen: <HomeIcon color={PALETTE.primary} size={20} />, // Placeholder icon
+      garage: <Car color={PALETTE.primary} size={20} />,
+      living: <HomeIcon color={PALETTE.primary} size={20} />,
+    };
 
-  const renderImageItem = ({ item }) => {
-    const isFloorPlan = item.type === 'floorplan';
-    return (
-      <TouchableOpacity style={styles.imageSlide} onPress={openImagePreview}>
-        <View style={styles.imageContainer}>
-          {item.uri ? (
-            <Image source={{ uri: item.uri }} style={styles.propertyImage} />
-          ) : (
-            <View style={styles.imagePlaceholder}>{/* Placeholder UI */}</View>
-          )}
-        </View>
-      </TouchableOpacity>
-    );
-  };
+    const stats = Object.entries(spaceCounts).map(([type, count]) => ({
+      icon: iconMap[type] || <HomeIcon color={PALETTE.primary} size={20} />,
+      label: `${type.charAt(0).toUpperCase() + type.slice(1)}s`,
+      value: count,
+    }));
+    
+    // Add floor area if available.
+    if (property?.total_floor_area) {
+      stats.push({
+        icon: <Maximize color={PALETTE.primary} size={20} />,
+        label: 'Floor Area',
+        value: `${property.total_floor_area} m²`,
+      });
+    }
+    
+    return stats;
+  }, [spaceCounts, property]);
 
   if (loading) {
     return (
-      <SafeAreaView style={[styles.container, {justifyContent: 'center', alignItems: 'center'}]}>
-        <ActivityIndicator size="large" color={COLORS.primary} />
+      <SafeAreaView style={styles.centerContainer}>
+        <ActivityIndicator size="large" color={PALETTE.primary} />
       </SafeAreaView>
     );
   }
@@ -121,213 +138,176 @@ const PropertyGeneral = ({ route, navigation }) => {
       <SafeAreaView style={styles.container}>
         <View style={styles.header}>
             <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-              <Text style={styles.backButtonText}>←</Text>
+              <ChevronLeft size={24} color={PALETTE.textPrimary} />
             </TouchableOpacity>
         </View>
-        <View style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
-            <Text>Property not found.</Text>
+        <View style={styles.centerContainer}>
+            <Text style={styles.emptyText}>Property not found.</Text>
         </View>
       </SafeAreaView>
     );
   }
 
-  // NOTE: The stats and details below are placeholders until you add these columns to your 'Property' table.
-  const stats = { bedrooms: property.bedrooms || '3', bathrooms: property.bathrooms || '2', livingAreas: property.livingAreas || '2', garageSpaces: property.garageSpaces || '2' };
-  const details = { description: property.description || 'Spacious living areas', garage: property.garage || 'Double garage', blockSize: property.blockSize || '620 m²' };
-
-  const PropertyStat = ({ icon, value, isLast = false }) => (
-     <View style={styles.statContainer}>
-       <View style={styles.statContent}><Text style={styles.statIcon}>{icon}</Text><Text style={styles.statValue}>{value}</Text></View>
-       {!isLast && <View style={styles.statDivider} />}
-     </View>
-   );
-
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Text style={styles.backButtonText}>←</Text>
+          <ChevronLeft size={24} color={PALETTE.textPrimary} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>{property?.address?.split(',')[0] || 'Property'}</Text>
-        <View style={styles.headerSpacer} />
+        <Text style={styles.headerTitle} numberOfLines={1}>{property?.name || 'Property'}</Text>
+        <View style={{ width: 40 }} />
       </View>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={styles.imagesSection}>
+      <ScrollView showsVerticalScrollIndicator={false}>
+        <View style={styles.imageSection}>
           <FlatList
-            ref={flatListRef}
             data={propertyImages}
-            renderItem={renderImageItem}
-            keyExtractor={(item) => item.id.toString()}
+            renderItem={({ item }) => (
+              <View style={styles.imageSlide}>
+                <Image source={{ uri: item.uri }} style={styles.propertyImage} />
+              </View>
+            )}
+            keyExtractor={(item) => item.id}
             horizontal
             pagingEnabled
             showsHorizontalScrollIndicator={false}
-            onMomentumScrollEnd={handleImageScroll}
           />
         </View>
 
-        <View style={styles.detailsSection}>
+        <View style={styles.detailsContainer}>
+          <Text style={styles.propertyName}>{property.name}</Text>
           <Text style={styles.propertyAddress}>{property.address}</Text>
-          <View style={styles.statsContainer}>
-             <PropertyStat icon="🛏️" value={stats.bedrooms} />
-             <PropertyStat icon="🛁" value={stats.bathrooms} />
-             <PropertyStat icon="🏠" value={stats.livingAreas} />
-             <PropertyStat icon="🚗" value={stats.garageSpaces} isLast={true} />
-           </View>
-          <View style={styles.generalDetails}>
-            <Text style={styles.sectionTitle}>General details</Text>
-            <View style={styles.detailItem}><Text style={styles.detailLabel}>• Bedrooms: </Text><Text style={styles.detailValue}>{stats.bedrooms}</Text></View>
-            <View style={styles.detailItem}><Text style={styles.detailLabel}>• Bathrooms: </Text><Text style={styles.detailValue}>{stats.bathrooms}</Text></View>
-            <View style={styles.detailItem}><Text style={styles.detailLabel}>• Living Areas: </Text><Text style={styles.detailValue}>{stats.livingAreas} ({details.description})</Text></View>
-            <View style={styles.detailItem}><Text style={styles.detailLabel}>• Garage: </Text><Text style={styles.detailValue}>{details.garage}</Text></View>
-            <View style={styles.detailItem}><Text style={styles.detailLabel}>• Block Size: </Text><Text style={styles.detailValue}>{details.blockSize}</Text></View>
+
+          <View style={styles.detailsCard}>
+            <Text style={styles.cardTitle}>Property Details</Text>
+            <View style={styles.statsGrid}>
+              {PropertyStats.map((stat, index) => (
+                <View key={index} style={styles.statItem}>
+                  {stat.icon}
+                  <View style={styles.statTextContainer}>
+                    <Text style={styles.statLabel}>{stat.label}</Text>
+                    <Text style={styles.statValue}>{stat.value}</Text>
+                  </View>
+                </View>
+              ))}
+            </View>
           </View>
+
+          {property.description && (
+             <View style={styles.detailsCard}>
+                <Text style={styles.cardTitle}>Description</Text>
+                <Text style={styles.descriptionText}>{property.description}</Text>
+             </View>
+          )}
         </View>
       </ScrollView>
-
-      {/* Modal is unchanged */}
     </SafeAreaView>
   );
 };
 
-const { width } = Dimensions.get('window');
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.white,
+    backgroundColor: PALETTE.card,
+  },
+  centerContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: STYLES.spacing.lg,
-    paddingTop: STYLES.spacing.sm,
-    paddingBottom: STYLES.spacing.md,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.textfield,
-    backgroundColor: COLORS.white,
-    ...STYLES.shadow,
+    borderBottomColor: PALETTE.border,
   },
   backButton: {
-    padding: 5,
-  },
-  backButtonText: {
-    ...FONTS.commonText,
-    fontSize: 24,
+    padding: 8,
   },
   headerTitle: {
-    ...FONTS.screenTitle,
     fontSize: 18,
-    flex: 1,
+    fontWeight: '600',
+    color: PALETTE.textPrimary,
     textAlign: 'center',
-  },
-  headerSpacer: {
-    width: 34,
-  },
-  content: {
     flex: 1,
+    marginHorizontal: 8,
   },
-  imagesSection: {
-    backgroundColor: COLORS.terciary,
-    paddingVertical: STYLES.spacing.lg,
+  imageSection: {
     height: 250,
+    backgroundColor: PALETTE.border,
   },
   imageSlide: {
     width: width,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  imageContainer: {
-    width: width - (STYLES.spacing.lg * 2),
-    height: 180,
-    borderRadius: STYLES.borderRadius.medium,
-    overflow: 'hidden',
-    backgroundColor: COLORS.white,
-    ...STYLES.shadow,
+    height: '100%',
   },
   propertyImage: {
     width: '100%',
     height: '100%',
-    resizeMode: 'cover',
   },
-  imagePlaceholder: {
-    width: '100%',
-    height: '100%',
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: COLORS.textfield,
+  detailsContainer: {
+    padding: 20,
+    backgroundColor: PALETTE.background,
   },
-   detailsSection: {
-     paddingHorizontal: 20,
-     paddingBottom: 30,
-     paddingTop: STYLES.spacing.xxl,
-   },
-  propertyAddress: {
-    fontSize: 22,
+  propertyName: {
+    fontSize: 28,
     fontWeight: 'bold',
-    color: '#333',
-    marginBottom: STYLES.spacing.lg,
-    textAlign: 'center',
+    color: PALETTE.textPrimary,
   },
-     statsContainer: {
-     flexDirection: 'row',
-     alignItems: 'center',
-     marginBottom: 30,
-     backgroundColor: '#f8f8f8',
-     borderRadius: 12,
-     paddingVertical: STYLES.spacing.md,
-   },
-   statContainer: {
-     flexDirection: 'row',
-     alignItems: 'center',
-     flex: 1,
-   },
-   statContent: {
-     flexDirection: 'row',
-     alignItems: 'center',
-     flex: 1,
-     justifyContent: 'center',
-   },
-   statDivider: {
-     width: 1,
-     height: 20,
-     backgroundColor: COLORS.black,
-     opacity: 0.2,
-   },
-  statIcon: {
-    fontSize: 20,
-    marginRight: 8,
+  propertyAddress: {
+    fontSize: 16,
+    color: PALETTE.textSecondary,
+    marginTop: 4,
+    marginBottom: 24,
+  },
+  detailsCard: {
+    backgroundColor: PALETTE.card,
+    borderRadius: 12,
+    padding: 20,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: PALETTE.border,
+  },
+  cardTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: PALETTE.textPrimary,
+    marginBottom: 16,
+  },
+  statsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+  },
+  statItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    width: '48%', // Two items per row with a small gap
+    marginBottom: 16,
+  },
+  statTextContainer: {
+    marginLeft: 12,
+  },
+  statLabel: {
+    fontSize: 14,
+    color: PALETTE.textSecondary,
   },
   statValue: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '600',
-    color: '#333',
+    color: PALETTE.textPrimary,
   },
-  generalDetails: {
-    marginTop: STYLES.spacing.lg,
+  descriptionText: {
+    fontSize: 16,
+    color: PALETTE.textSecondary,
+    lineHeight: 24,
   },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 15,
-  },
-  detailItem: {
-    flexDirection: 'row',
-    marginBottom: 8,
-    flexWrap: 'wrap',
-  },
-  detailLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#333',
-  },
-  detailValue: {
-    fontSize: 14,
-    color: '#666',
-    flex: 1,
+  emptyText: {
+      fontSize: 16,
+      color: PALETTE.textSecondary,
   },
 });
 
-export default PropertyGeneral;
+export default PropertyGeneralScreen;

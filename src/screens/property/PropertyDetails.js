@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -11,25 +11,39 @@ import {
   Platform,
   UIManager,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
+import { ChevronDown, ChevronRight, ChevronLeft } from 'lucide-react-native';
 import { DropField } from '../../components/common';
-import { COLORS, FONTS, STYLES } from '../../components/styles/constants';
 import { supabase } from '../../api/supabaseClient';
 
+// Enables LayoutAnimation on Android.
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
+// Consistent color palette for the Notion-like design.
+const PALETTE = {
+  background: '#F8F9FA', // A very light grey for contrast
+  card: '#FFFFFF',
+  textPrimary: '#111827',
+  textSecondary: '#6B7280',
+  primary: '#111827',
+  border: '#E5E7EB',
+};
+
+// Renders a block of key-value pairs for asset specifications.
 const SpecificationDetails = ({ specifications }) => (
   <View style={styles.specificationsBox}>
     {Object.entries(specifications).map(([key, value]) => (
       <View key={key} style={styles.specPair}>
-        <Text style={styles.specKey}>{key.replace(/_/g, ' ')}:</Text>
+        <Text style={styles.specKey}>{key.replace(/_/g, ' ')}</Text>
         <Text style={styles.specValue}>{String(value)}</Text>
       </View>
     ))}
   </View>
 );
 
+// An accordion component to display an asset and its change history.
 const AssetAccordion = ({ asset, isExpanded, onToggle }) => {
   const [expandedHistoryId, setExpandedHistoryId] = useState(null);
   const latestChange = asset.ChangeLog?.[0] || null;
@@ -48,38 +62,35 @@ const AssetAccordion = ({ asset, isExpanded, onToggle }) => {
     <View style={styles.assetContainer}>
       <TouchableOpacity style={styles.assetHeader} onPress={toggleAsset}>
         <Text style={styles.assetTitle}>{asset.name}</Text>
-        <Text style={styles.assetToggleIcon}>{isExpanded ? '−' : '+'}</Text>
+        {isExpanded ? <ChevronDown color={PALETTE.textPrimary} size={20} /> : <ChevronRight color={PALETTE.textPrimary} size={20} />}
       </TouchableOpacity>
       
       {isExpanded && (
         <View style={styles.assetContent}>
           {latestChange ? (
             <>
-              <Text style={styles.changelogSectionTitle}>Current Specifications:</Text>
+              <Text style={styles.contentSectionTitle}>Current Specifications</Text>
               <SpecificationDetails specifications={latestChange.specifications} />
               
               {asset.ChangeLog.length > 1 && (
                 <>
-                  <Text style={styles.changelogSectionTitle}>History:</Text>
-                  {asset.ChangeLog.map((entry, index) => (
+                  <Text style={styles.contentSectionTitle}>History</Text>
+                  {asset.ChangeLog.slice(1).map((entry) => (
                     <View key={entry.id} style={styles.historyItemContainer}>
                       <TouchableOpacity 
-                        style={[styles.changelogEntry, index === 0 && styles.latestChangelog]}
+                        style={styles.historyEntry}
                         onPress={() => toggleHistoryEntry(entry.id)}
                       >
                         <View style={styles.historyHeader}>
-                            <Text style={styles.changelogDate}>
-                                {new Date(entry.created_at).toLocaleString()}
-                                {index === 0 && ' (Latest)'}
-                            </Text>
-                            <Text style={styles.historyToggleIcon}>{expandedHistoryId === entry.id ? '↓' : '→'}</Text>
+                          <Text style={styles.historyDate}>{new Date(entry.created_at).toLocaleString()}</Text>
+                          {expandedHistoryId === entry.id ? <ChevronDown color={PALETTE.textSecondary} size={16} /> : <ChevronRight color={PALETTE.textSecondary} size={16} />}
                         </View>
-                        <Text style={styles.changelogDescription}>“{entry.change_description}”</Text>
-                        <Text style={styles.changelogAuthor}>- by: {entry.changed_by_user_id?.split('-')[0] || 'System'}</Text>
+                        <Text style={styles.historyDescription}>“{entry.change_description}”</Text>
+                        <Text style={styles.historyAuthor}>By: {entry.User ? `${entry.User.first_name} ${entry.User.last_name}` : 'System'}</Text>
                       </TouchableOpacity>
                       {expandedHistoryId === entry.id && (
                         <View style={styles.historySpecBox}>
-                            <SpecificationDetails specifications={entry.specifications} />
+                          <SpecificationDetails specifications={entry.specifications} />
                         </View>
                       )}
                     </View>
@@ -88,7 +99,7 @@ const AssetAccordion = ({ asset, isExpanded, onToggle }) => {
               )}
             </>
           ) : (
-            <Text style={styles.placeholderText}>No specifications or history found.</Text>
+            <Text style={styles.emptyText}>No specifications found for this asset.</Text>
           )}
         </View>
       )}
@@ -96,45 +107,44 @@ const AssetAccordion = ({ asset, isExpanded, onToggle }) => {
   );
 };
 
-
-const PropertyDetails = ({ route, navigation }) => {
-  const propertyId = route.params?.propertyId;
+// Main screen component for displaying property details.
+const PropertyDetailsScreen = ({ route, navigation }) => {
+  const { propertyId } = route.params || {};
 
   const [loading, setLoading] = useState(true);
-  const [propertyAddress, setPropertyAddress] = useState('');
   const [spaces, setSpaces] = useState([]);
   const [assetsBySpace, setAssetsBySpace] = useState({});
   const [selectedSpace, setSelectedSpace] = useState(null);
   const [expandedAssetId, setExpandedAssetId] = useState(null);
 
-  useEffect(() => {
-    if (propertyId) {
-      fetchPropertyData();
-    } else {
-      setLoading(false);
-    }
-  }, [propertyId]);
+  useFocusEffect(
+    useCallback(() => {
+      if (propertyId) {
+        fetchPropertyData();
+      } else {
+        setLoading(false);
+      }
+    }, [propertyId])
+  );
 
   const fetchPropertyData = async () => {
+    setLoading(true);
     try {
-      setLoading(true);
       const { data, error } = await supabase
         .from('Property')
         .select(`
-          address,
-          Spaces (
-            id,
-            name,
-            type,
-            Assets (
-              id,
-              name,
-              ChangeLog (
-                id,
-                specifications,
-                change_description,
+          Spaces ( 
+            id, 
+            name, 
+            Assets ( 
+              id, 
+              name, 
+              ChangeLog ( 
+                id, 
+                specifications, 
+                change_description, 
                 created_at,
-                changed_by_user_id
+                User ( first_name, last_name )
               )
             )
           )
@@ -144,10 +154,8 @@ const PropertyDetails = ({ route, navigation }) => {
 
       if (error) throw error;
 
-      if (data) {
-        setPropertyAddress(data.address);
+      if (data && data.Spaces) {
         setSpaces(data.Spaces);
-
         const assetsMap = {};
         data.Spaces.forEach(space => {
           const sortedAssets = space.Assets.map(asset => ({
@@ -163,7 +171,7 @@ const PropertyDetails = ({ route, navigation }) => {
         }
       }
     } catch (err) {
-      console.error("Error fetching property details: ", err.message);
+      console.error("Error fetching property details:", err.message);
     } finally {
       setLoading(false);
     }
@@ -174,23 +182,22 @@ const PropertyDetails = ({ route, navigation }) => {
 
   if (loading) {
     return (
-      <SafeAreaView style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
-        <ActivityIndicator size="large" color={COLORS.primary} />
-        <Text>Loading Details...</Text>
+      <SafeAreaView style={styles.centerContainer}>
+        <ActivityIndicator size="large" color={PALETTE.primary} />
       </SafeAreaView>
     );
   }
 
-  if (!propertyId) {
+  if (!propertyId || spaces.length === 0) {
     return (
        <SafeAreaView style={styles.container}>
          <View style={styles.header}>
             <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-              <Text style={styles.backButtonText}>←</Text>
+              <ChevronLeft size={24} color={PALETTE.textPrimary} />
             </TouchableOpacity>
          </View>
-        <View style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
-            <Text style={styles.placeholderText}>No property selected.</Text>
+        <View style={styles.centerContainer}>
+            <Text style={styles.emptyText}>No details found for this property.</Text>
         </View>
       </SafeAreaView>
     );
@@ -200,7 +207,7 @@ const PropertyDetails = ({ route, navigation }) => {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Text style={styles.backButtonText}>←</Text>
+          <ChevronLeft size={24} color={PALETTE.textPrimary} />
         </TouchableOpacity>
         
         <View style={styles.dropdownContainer}>
@@ -214,18 +221,16 @@ const PropertyDetails = ({ route, navigation }) => {
                 setExpandedAssetId(null);
               }
             }}
-            placeholder="Select a Space"
             style={styles.dropdown}
             textStyle={styles.dropdownText}
           />
         </View>
-        <View style={styles.headerRightPlaceholder} />
+        <View style={{ width: 40 }} />
       </View>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={styles.sectionContent}>
-          <Text style={styles.sectionTitle}>{selectedSpaceName}</Text>
-          
+      <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator={false}>
+        <Text style={styles.pageTitle}>{selectedSpaceName}</Text>
+        <View style={styles.contentContainer}>
           {currentAssets.length > 0 ? (
             currentAssets.map(asset => (
               <AssetAccordion
@@ -236,8 +241,8 @@ const PropertyDetails = ({ route, navigation }) => {
               />
             ))
           ) : (
-            <View style={styles.placeholderContent}>
-                <Text style={styles.placeholderText}>No assets found in this space.</Text>
+            <View style={styles.centerContainer}>
+                <Text style={styles.emptyText}>No assets found in this space.</Text>
             </View>
           )}
         </View>
@@ -249,162 +254,153 @@ const PropertyDetails = ({ route, navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.white,
+    backgroundColor: PALETTE.card,
+  },
+  scrollContainer: {
+    backgroundColor: PALETTE.background,
+  },
+  centerContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+    minHeight: 200, // Ensure empty state has some height
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: STYLES.spacing.lg,
-    paddingVertical: STYLES.spacing.sm,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.textfield,
-    backgroundColor: COLORS.white,
+    borderBottomColor: PALETTE.border,
+    backgroundColor: PALETTE.card,
   },
   backButton: {
-    padding: STYLES.spacing.sm,
-  },
-  backButtonText: {
-    fontSize: 24,
-    color: COLORS.primary,
+    padding: 8,
   },
   dropdownContainer: {
     flex: 1,
-    marginHorizontal: STYLES.spacing.sm,
+    marginHorizontal: 8,
   },
+  // Styles for the DropField component
   dropdown: {
-    width: '100%',
-    height: 45,
+    backgroundColor: PALETTE.card,
+    borderColor: PALETTE.border,
+    borderWidth: 1,
   },
   dropdownText: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: COLORS.black,
+    color: PALETTE.textPrimary,
   },
-  headerRightPlaceholder: {
-    width: 40, 
-  },
-  content: {
-    flex: 1,
-    backgroundColor: COLORS.textfield,
-  },
-  sectionContent: {
-    padding: STYLES.spacing.lg,
-  },
-  sectionTitle: {
-    ...FONTS.screenTitle,
+  pageTitle: {
     fontSize: 28,
-    textAlign: 'center',
-    marginBottom: STYLES.spacing.xl,
+    fontWeight: 'bold',
+    color: PALETTE.textPrimary,
+    paddingHorizontal: 20,
+    paddingTop: 24,
+    paddingBottom: 16,
   },
-  placeholderContent: {
-    marginTop: 40,
-    padding: STYLES.spacing.xl,
-    backgroundColor: COLORS.white,
-    borderRadius: STYLES.borderRadius.medium,
-    alignItems: 'center',
+  contentContainer: {
+    paddingHorizontal: 20,
+    paddingBottom: 20,
   },
-  placeholderText: {
+  emptyText: {
     textAlign: 'center',
-    color: COLORS.grey,
+    color: PALETTE.textSecondary,
+    fontSize: 16,
   },
   assetContainer: {
-    backgroundColor: COLORS.white,
-    borderRadius: STYLES.borderRadius.medium,
-    marginBottom: STYLES.spacing.md,
-    ...STYLES.shadow,
+    backgroundColor: PALETTE.card,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: PALETTE.border,
+    marginBottom: 12,
     overflow: 'hidden',
   },
   assetHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: STYLES.spacing.md,
-    backgroundColor: '#f9f9f9',
+    padding: 16,
   },
   assetTitle: {
-    ...FONTS.title,
     fontSize: 18,
-  },
-  assetToggleIcon: {
-    fontSize: 24,
-    color: COLORS.primary,
-    fontWeight: 'bold',
+    fontWeight: '600',
+    color: PALETTE.textPrimary,
+    flex: 1,
   },
   assetContent: {
-    paddingHorizontal: STYLES.spacing.md,
-    paddingBottom: STYLES.spacing.md,
+    paddingHorizontal: 16,
+    paddingBottom: 16,
   },
-  changelogSectionTitle: {
-    ...FONTS.title,
-    fontSize: 16,
-    marginTop: STYLES.spacing.md,
-    marginBottom: STYLES.spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.textfield,
-    paddingBottom: STYLES.spacing.xs,
+  contentSectionTitle: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: PALETTE.textSecondary,
+    marginTop: 16,
+    marginBottom: 8,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   specificationsBox: {
-    backgroundColor: '#f0f4f8',
-    borderRadius: STYLES.borderRadius.small,
-    padding: STYLES.spacing.md,
-    marginBottom: STYLES.spacing.sm,
+    backgroundColor: PALETTE.background,
+    borderRadius: 6,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: PALETTE.border,
   },
   specPair: {
     flexDirection: 'row',
-    marginBottom: STYLES.spacing.xs,
+    paddingVertical: 4,
   },
   specKey: {
-    fontWeight: 'bold',
+    fontWeight: '500',
     textTransform: 'capitalize',
     width: '40%',
+    color: PALETTE.textSecondary,
   },
   specValue: {
     flex: 1,
+    color: PALETTE.textPrimary,
   },
-  // History Item Styles
   historyItemContainer: {
-    marginBottom: STYLES.spacing.sm,
+    marginTop: 8,
   },
-  changelogEntry: {
-    borderLeftWidth: 3,
-    borderLeftColor: COLORS.grey,
-    padding: STYLES.spacing.sm,
-    backgroundColor: '#fdfdfd',
-    borderRadius: STYLES.borderRadius.small,
-  },
-  latestChangelog: {
-    borderLeftColor: COLORS.primary,
-    backgroundColor: '#fefefe',
+  historyEntry: {
+    padding: 12,
+    backgroundColor: PALETTE.card,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: PALETTE.border,
   },
   historyHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  changelogDate: {
+  historyDate: {
     fontSize: 12,
-    color: COLORS.grey,
-    marginBottom: STYLES.spacing.xs,
+    color: PALETTE.textSecondary,
   },
-  historyToggleIcon: {
-    fontSize: 16,
-    color: COLORS.grey,
-  },
-  changelogDescription: {
+  historyDescription: {
     fontStyle: 'italic',
-    marginBottom: STYLES.spacing.xs,
+    color: PALETTE.textPrimary,
+    marginTop: 8,
   },
-  changelogAuthor: {
+  historyAuthor: {
     fontSize: 12,
-    fontWeight: 'bold',
+    color: PALETTE.textSecondary,
+    marginTop: 8,
+    textAlign: 'right',
   },
   historySpecBox: {
-    // Indent the historical specs slightly
-    paddingLeft: STYLES.spacing.md,
-    paddingTop: STYLES.spacing.sm,
-    borderLeftWidth: 3,
-    borderLeftColor: COLORS.textfield,
+    paddingTop: 12,
+    paddingLeft: 12,
+    borderLeftWidth: 2,
+    borderLeftColor: PALETTE.border,
+    marginTop: 12, 
+    marginLeft: 16, 
   },
 });
 
-export default PropertyDetails;
+export default PropertyDetailsScreen;
+

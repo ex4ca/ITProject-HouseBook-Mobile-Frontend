@@ -1,157 +1,229 @@
-import React from 'react';
+import React, {useState, useCallback } from 'react';
 import {
   View,
   Text,
   TouchableOpacity,
   StyleSheet,
   SafeAreaView,
+  ActivityIndicator,
+  Alert,
 } from 'react-native';
-import { Button } from '../../components/common';
-import { COLORS, FONTS, STYLES } from '../../components/styles/constants';
+import { useFocusEffect } from '@react-navigation/native';
+import { supabase } from '../../api/supabaseClient';
+import { User, LogOut } from 'lucide-react-native';
 
-const Account = ({ navigation }) => {
-  const handleExitAccount = () => {
-    // Navigate back to login screen
-    navigation.reset({
-      index: 0,
-      routes: [{ name: 'Login' }],
-    });
+// Consistent color palette for the Notion-like design.
+const PALETTE = {
+  background: '#F8F9FA',
+  card: '#FFFFFF',
+  textPrimary: '#111827',
+  textSecondary: '#6B7280',
+  primary: '#111827',
+  border: '#E5E7EB',
+  danger: '#DC2626',
+};
+
+// Main component for the user's account screen.
+const AccountScreen = () => {
+  const [loading, setLoading] = useState(true);
+  const [userProfile, setUserProfile] = useState(null);
+  const [userRole, setUserRole] = useState('');
+
+  // Fetches data every time the screen comes into view.
+  useFocusEffect(
+    useCallback(() => {
+      const fetchData = async () => {
+        setLoading(true);
+        try {
+          const { data: { user } } = await supabase.auth.getUser();
+          if (!user) throw new Error("No user logged in.");
+
+          // Fetch user profile and role in parallel.
+          const [profile, role] = await Promise.all([
+            fetchUserProfile(user.id),
+            fetchUserRole(user.id)
+          ]);
+
+          setUserProfile(profile);
+          setUserRole(role);
+
+        } catch (error) {
+          console.error("Error fetching account data:", error.message);
+          setUserProfile(null);
+          setUserRole('');
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      fetchData();
+    }, [])
+  );
+
+  // Fetches the user's first name, last name, and email.
+  const fetchUserProfile = async (userId) => {
+    const { data, error } = await supabase
+      .from('User')
+      .select('first_name, last_name, email')
+      .eq('user_id', userId)
+      .single();
+    if (error) throw error;
+    return data;
   };
+
+  // Determines if the user is an owner or a tradie.
+  const fetchUserRole = async (userId) => {
+    const { data: ownerData } = await supabase.from('Owner').select('user_id').eq('user_id', userId).single();
+    if (ownerData) return 'Property Owner';
+
+    const { data: tradieData } = await supabase.from('Tradesperson').select('user_id').eq('user_id', userId).single();
+    if (tradieData) return 'Tradesperson';
+
+    return 'User';
+  };
+
+  // Handles the sign-out process.
+  const handleSignOut = async () => {
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      Alert.alert('Sign Out Error', error.message);
+    }
+    // The onAuthStateChange listener in App.js will handle navigation.
+  };
+
+  if (loading) {
+    return (
+      <View style={styles.centerContainer}>
+        <ActivityIndicator size="large" color={PALETTE.primary} />
+      </View>
+    );
+  }
+  
+  const initials = userProfile
+    ? `${userProfile.first_name.charAt(0)}${userProfile.last_name.charAt(0)}`
+    : '';
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Account</Text>
-        
-        {/* Exit Button */}
-        <View style={styles.exitContainer}>
-          <Button
-            text="Exit"
-            onPress={handleExitAccount}
-            style={styles.exitButton}
-            textStyle={styles.exitButtonText}
-          />
-        </View>
       </View>
 
-      {/* Content Area with gray background (matching PropertyListScreen) */}
-      <View style={styles.contentArea}>
-        <View style={styles.content}>
-          {/* Profile Section */}
-          <View style={styles.profileSection}>
-            {/* Profile Picture */}
-            <View style={styles.profilePicture}>
-              <Text style={styles.profilePictureText}>👤</Text>
-            </View>
-
-            {/* User Information */}
-            <View style={styles.userInfo}>
-              <Text style={styles.fullName}>Antonio</Text>
-              <Text style={styles.phoneNumber}>+61123213</Text>
-              <Text style={styles.email}>xyz.com</Text>
-            </View>
+      <View style={styles.content}>
+        <View style={styles.profileCard}>
+          <View style={styles.avatar}>
+            <Text style={styles.avatarText}>{initials}</Text>
           </View>
+          {userProfile && (
+            <>
+              <Text style={styles.userName}>{`${userProfile.first_name} ${userProfile.last_name}`}</Text>
+              <Text style={styles.userEmail}>{userProfile.email}</Text>
+              <View style={styles.roleBadge}>
+                <Text style={styles.roleText}>{userRole}</Text>
+              </View>
+            </>
+          )}
         </View>
+        
+        <TouchableOpacity style={styles.actionButton} onPress={handleSignOut}>
+          <LogOut size={20} color={PALETTE.danger} />
+          <Text style={styles.actionButtonText}>Sign Out</Text>
+        </TouchableOpacity>
       </View>
     </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  // Main Container
   container: {
     flex: 1,
-    backgroundColor: COLORS.white,
+    backgroundColor: PALETTE.background,
   },
-  
-  // Header Section (matching PropertyListScreen)
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  centerContainer: {
+    flex: 1,
+    justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: STYLES.spacing.lg,
-    paddingTop: STYLES.spacing.lg,
-    paddingBottom: STYLES.spacing.md,
-    backgroundColor: COLORS.white,
+    backgroundColor: PALETTE.background,
+  },
+  header: {
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    backgroundColor: PALETTE.card,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.textfield,
-    ...STYLES.shadow,
+    borderBottomColor: PALETTE.border,
+    alignItems: 'center',
   },
   headerTitle: {
-    ...FONTS.screenTitle,
-    flex: 1,
-  },
-  exitContainer: {
-    alignItems: 'flex-end',
-  },
-  
-  // Content Area with gray background (matching PropertyListScreen)
-  contentArea: {
-    flex: 1,
-    paddingHorizontal: STYLES.spacing.lg,
-    paddingTop: STYLES.spacing.md,
-    backgroundColor: COLORS.textfield,
+    fontSize: 20,
+    fontWeight: '600',
+    color: PALETTE.textPrimary,
   },
   content: {
     flex: 1,
-    paddingTop: STYLES.spacing.lg,
+    padding: 20,
   },
-
-  // Profile Section
-  profileSection: {
+  profileCard: {
+    backgroundColor: PALETTE.card,
+    borderRadius: 12,
+    padding: 24,
     alignItems: 'center',
-    marginBottom: STYLES.spacing.xxl * 3,
+    borderWidth: 1,
+    borderColor: PALETTE.border,
+    marginBottom: 24,
   },
-  profilePicture: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: COLORS.secondary,
+  avatar: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: PALETTE.border,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: STYLES.spacing.xl,
-    ...STYLES.shadow,
+    marginBottom: 16,
   },
-  profilePictureText: {
-    fontSize: 60,
+  avatarText: {
+    fontSize: 40,
+    fontWeight: 'bold',
+    color: PALETTE.textSecondary,
+    textTransform: 'uppercase',
   },
-  userInfo: {
-    alignItems: 'center',
-  },
-  fullName: {
-    ...FONTS.screenTitle,
+  userName: {
     fontSize: 24,
-    marginBottom: STYLES.spacing.sm,
+    fontWeight: 'bold',
+    color: PALETTE.textPrimary,
   },
-  phoneNumber: {
-    ...FONTS.commonText,
+  userEmail: {
     fontSize: 16,
-    color: COLORS.black,
-    opacity: 0.7,
-    marginBottom: STYLES.spacing.xs,
+    color: PALETTE.textSecondary,
+    marginTop: 4,
+    marginBottom: 16,
   },
-  email: {
-    ...FONTS.commonText,
-    fontSize: 16,
-    color: COLORS.black,
-    opacity: 0.7,
+  roleBadge: {
+    backgroundColor: PALETTE.primary,
+    borderRadius: 16,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
   },
-
-  // Exit Button (matching dropdown field size)
-  exitButton: {
-    backgroundColor: 'transparent',
-    borderWidth: 1,
-    borderColor: '#FF3B30',
-    width: 60,
-    height: 35,
-    borderRadius: STYLES.borderRadius.medium,
-  },
-  exitButtonText: {
-    color: '#FF3B30',
+  roleText: {
+    color: PALETTE.card,
     fontSize: 14,
+    fontWeight: '500',
+  },
+  actionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: PALETTE.card,
+    borderRadius: 12,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: PALETTE.border,
+  },
+  actionButtonText: {
+    fontSize: 16,
     fontWeight: '600',
+    color: PALETTE.danger,
+    marginLeft: 12,
   },
 });
 
-export default Account;
+export default AccountScreen;

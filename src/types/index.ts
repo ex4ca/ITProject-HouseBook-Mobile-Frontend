@@ -54,3 +54,34 @@ export interface UserProfile {
 export interface Tradie extends UserProfile {
   status: string;
 }
+
+// This new type defines the shape of data for the PropertyGeneral screen.
+export type PropertyGeneral = {
+  name: string;
+  address: string;
+  description: string | null;
+  total_floor_area: number | null;
+  Spaces: { type: string }[];
+  PropertyImages: { image_link: string; image_name: string }[];
+};
+
+export interface PendingRequest {
+  id: string;
+  change_description: string;
+  specifications: Record<string, any>; 
+  created_at: string;
+  User: {
+    first_name: string;
+    last_name: string;
+  } | null; 
+  Assets: {
+    description: string;
+    Spaces: {
+      name: string;
+      Property: {
+        name: string;
+        property_id: string;
+      };
+    };
+  };
+}

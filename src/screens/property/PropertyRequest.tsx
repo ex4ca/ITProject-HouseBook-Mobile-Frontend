@@ -1,0 +1,150 @@
+import React, { useState, useCallback } from 'react';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  SafeAreaView,
+  FlatList,
+  ActivityIndicator,
+  Alert,
+  LayoutAnimation,
+} from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
+import { CheckCircle, XCircle, ChevronDown, ChevronRight, ChevronLeft } from 'lucide-react-native';
+import { fetchPendingRequests, updateRequestStatus } from '../../services/Request';
+import { propertyRequestsStyles as styles } from '../../styles/requestStyles';
+import { PALETTE } from '../../styles/palette';
+import type { PendingRequest } from '../../types';
+
+// Renders the specification details for a change request.
+const SpecificationDetails = ({ specifications }: { specifications: Record<string, any> }) => (
+  <View style={styles.specificationsBox}>
+    {Object.entries(specifications).map(([key, value]) => (
+      <View key={key} style={styles.specPair}>
+        <Text style={styles.specKey}>{key.replace(/_/g, ' ')}</Text>
+        <Text style={styles.specValue}>{String(value)}</Text>
+      </View>
+    ))}
+  </View>
+);
+
+// Renders a single pending request card.
+const RequestCard = ({ item, onUpdateStatus }: { item: PendingRequest; onUpdateStatus: (id: string, status: 'ACCEPTED' | 'DECLINED') => void }) => {
+  const [isExpanded, setIsExpanded] = useState(false);
+  
+  const toggleExpand = () => {
+      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+      setIsExpanded(!isExpanded);
+  }
+
+  // Safely displays the user's name or defaults to "System".
+  const submittedByText = item.User 
+    ? `${item.User.first_name} ${item.User.last_name}` 
+    : 'System';
+
+  return (
+    <View style={styles.card}>
+      <TouchableOpacity onPress={toggleExpand}>
+        <View style={styles.cardHeader}>
+            <View style={styles.cardHeaderText}>
+                <Text style={styles.propertyName}>{item.Assets.Spaces.Property.name}</Text>
+                <Text style={styles.assetName}>{item.Assets.Spaces.name} / {item.Assets.description}</Text>
+            </View>
+            {isExpanded ? <ChevronDown size={20} color={PALETTE.textSecondary} /> : <ChevronRight size={20} color={PALETTE.textSecondary} />}
+        </View>
+        <Text style={styles.descriptionText}>“{item.change_description}”</Text>
+        <Text style={styles.submittedBy}>Submitted by: {submittedByText}</Text>
+      </TouchableOpacity>
+      
+      {isExpanded && (
+          <View style={styles.expandedContent}>
+              <Text style={styles.detailsTitle}>Requested Specifications</Text>
+              <SpecificationDetails specifications={item.specifications} />
+          </View>
+      )}
+
+      <View style={styles.actionButtons}>
+        <TouchableOpacity style={[styles.statusButton, styles.declineButton]} onPress={() => onUpdateStatus(item.id, 'DECLINED')}>
+            <XCircle size={18} color={PALETTE.danger} />
+            <Text style={[styles.statusButtonText, { color: PALETTE.danger }]}>Decline</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={[styles.statusButton, styles.acceptButton]} onPress={() => onUpdateStatus(item.id, 'ACCEPTED')}>
+            <CheckCircle size={18} color={PALETTE.success} />
+            <Text style={[styles.statusButtonText, { color: PALETTE.success }]}>Accept</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+};
+
+const PropertyRequestsScreen = ({ route, navigation }: { route: any; navigation: any }) => {
+  const { propertyId } = route.params || {};
+  const [loading, setLoading] = useState(true);
+  const [requests, setRequests] = useState<PendingRequest[]>([]);
+
+  useFocusEffect(
+    useCallback(() => {
+      const loadRequests = async () => {
+        if (!propertyId) {
+            setLoading(false);
+            return;
+        };
+        setLoading(true);
+        try {
+          const data = await fetchPendingRequests(propertyId);
+          setRequests(data);
+        } catch (err: any) {
+          console.error(err.message);
+          setRequests([]);
+        } finally {
+          setLoading(false);
+        }
+      };
+      
+      loadRequests();
+    }, [propertyId])
+  );
+
+  const handleUpdateStatus = async (id: string, status: 'ACCEPTED' | 'DECLINED') => {
+    try {
+        await updateRequestStatus(id, status);
+        // Refresh the list by filtering out the updated item.
+        setRequests(prevRequests => prevRequests.filter(req => req.id !== id));
+    } catch (error: any) {
+        Alert.alert('Error', error.message);
+    }
+  };
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.centerContainer}>
+        <ActivityIndicator size="large" color={PALETTE.primary} />
+      </SafeAreaView>
+    );
+  }
+
+  return (
+    <SafeAreaView style={styles.container}>
+        <View style={styles.header}>
+            <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+              <ChevronLeft size={24} color={PALETTE.textPrimary} />
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>Pending Requests</Text>
+            <View style={{ width: 40 }} />
+        </View>
+      <FlatList
+        data={requests}
+        renderItem={({ item }) => <RequestCard item={item} onUpdateStatus={handleUpdateStatus} />}
+        keyExtractor={(item) => item.id}
+        contentContainerStyle={styles.listContent}
+        ListEmptyComponent={
+          <View style={styles.centerContainer}>
+            <Text style={styles.emptyText}>No pending requests for this property.</Text>
+          </View>
+        }
+      />
+    </SafeAreaView>
+  );
+};
+
+export default PropertyRequestsScreen;

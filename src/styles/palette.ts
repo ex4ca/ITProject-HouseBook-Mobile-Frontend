@@ -9,5 +9,7 @@ export const PALETTE = {
   secondaryForeground: '#374151',
   border: '#D1D5DB',
   ring: '#3B82F6',
+  danger: '#DC2626',
+  success: '#16A34A',
 };
 

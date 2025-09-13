@@ -16,8 +16,8 @@ import {
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { ChevronDown, ChevronRight, ChevronLeft, PlusCircle, X, Trash2 } from 'lucide-react-native';
-import { DropField } from '../../components/common';
-import { supabase } from '../../api/supabaseClient';
+import { DropField } from '../../components';
+import { supabase } from '../../config/supabaseClient';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);

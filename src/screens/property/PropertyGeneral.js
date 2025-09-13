@@ -12,7 +12,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
-import { supabase } from '../../api/supabaseClient';
+import { supabase } from '../../config/supabaseClient';
 import { ChevronLeft, Bed, Bath, Home as HomeIcon, Maximize, Square, Car } from 'lucide-react-native';
 
 // Consistent color palette for the Notion-like design.

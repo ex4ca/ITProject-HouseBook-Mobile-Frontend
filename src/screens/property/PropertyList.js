@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Home } from 'lucide-react-native';
-import { supabase } from '../../api/supabaseClient';
+import { supabase } from '../../config/supabaseClient';
 
 const PALETTE = {
   background: '#F8F9FA',

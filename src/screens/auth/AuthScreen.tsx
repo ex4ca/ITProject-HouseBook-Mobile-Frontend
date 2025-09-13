@@ -1,0 +1,135 @@
+import React, { useState } from 'react';
+import {
+  View,
+  Text,
+  SafeAreaView,
+  TouchableOpacity,
+  Alert,
+  ScrollView,
+  KeyboardAvoidingView,
+  Platform,
+  ActivityIndicator,
+} from 'react-native';
+import { Home, Wrench } from 'lucide-react-native';
+import { Button, TextField, Checkbox } from '../../components';
+
+import { loginUser, signupUser } from '../../services/AuthService';
+import { authStyles as styles } from '../../styles/authStyles';
+import { PALETTE } from '../../styles/palette';
+import type { UserRole } from '../../types';
+
+const AuthScreen = ({ navigation }: { navigation: any }) => {
+  const [activeTab, setActiveTab] = useState('login');
+  const [userType, setUserType] = useState<UserRole>('owner');
+
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [phone, setPhone] = useState('');
+
+  const [agreeToTerms, setAgreeToTerms] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const handleLogin = async () => {
+    if (!email || !password) {
+      Alert.alert('Error', 'Please enter both an email and password.');
+      return;
+    }
+    setLoading(true);
+    try {
+      await loginUser(email, password);
+    } catch (error: any) {
+      Alert.alert('Login Error', error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSignUp = async () => {
+    if (!firstName || !lastName || !email || !password || !confirmPassword || !phone) {
+      Alert.alert('Missing Information', 'Please fill in all fields.');
+      return;
+    }
+    if (password !== confirmPassword) {
+      Alert.alert('Password Mismatch', 'Passwords do not match.');
+      return;
+    }
+    if (!agreeToTerms) {
+      Alert.alert('Terms and Conditions', 'You must agree to the terms to continue.');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await signupUser({
+        email,
+        password,
+        first_name: firstName,
+        last_name: lastName,
+        userType,
+        phone,
+      });
+      Alert.alert('Success!', 'Your account has been created. Please check your email for a confirmation link.');
+      setActiveTab('login');
+    } catch (error: any) {
+      Alert.alert('Sign Up Error', error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const renderLoginForm = () => (
+    <View style={styles.formContainer}>
+      <View style={styles.inputGroup}><Text style={styles.label}>Email</Text><TextField placeholder="you@example.com" value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" /></View>
+      <View style={styles.inputGroup}><Text style={styles.label}>Password</Text><TextField placeholder="••••••••" value={password} onChangeText={setPassword} secureTextEntry /></View>
+      <Button text={loading ? 'Signing In...' : 'Sign In'} onPress={handleLogin} disabled={loading} style={styles.submitButton} textStyle={styles.submitButtonText} />
+    </View>
+  );
+
+  const renderSignUpForm = () => (
+    <View style={styles.formContainer}>
+      <View style={styles.nameContainer}>
+        <View style={[styles.inputGroup, { flex: 1 }]}><Text style={styles.label}>First Name</Text><TextField placeholder="John" value={firstName} onChangeText={setFirstName} /></View>
+        <View style={{ width: 16 }} />
+        <View style={[styles.inputGroup, { flex: 1 }]}><Text style={styles.label}>Last Name</Text><TextField placeholder="Appleseed" value={lastName} onChangeText={setLastName} /></View>
+      </View>
+      <View style={styles.inputGroup}><Text style={styles.label}>Email</Text><TextField placeholder="you@example.com" value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" /></View>
+      <View style={styles.inputGroup}><Text style={styles.label}>Phone</Text><TextField placeholder="Your phone number" value={phone} onChangeText={setPhone} keyboardType="phone-pad" /></View>
+      <View style={styles.inputGroup}><Text style={styles.label}>Password</Text><TextField placeholder="Create a strong password" value={password} onChangeText={setPassword} secureTextEntry /></View>
+      <View style={styles.inputGroup}><Text style={styles.label}>Confirm Password</Text><TextField placeholder="Confirm your password" value={confirmPassword} onChangeText={setConfirmPassword} secureTextEntry /></View>
+      <Checkbox checked={agreeToTerms} onPress={() => setAgreeToTerms(!agreeToTerms)} label={<Text style={styles.termsText}>I agree to the <Text style={styles.linkText}>Terms & Policy</Text></Text>} />
+      <Button text={loading ? 'Creating Account...' : 'Create Account'} onPress={handleSignUp} disabled={loading} style={styles.submitButton} textStyle={styles.submitButtonText} />
+    </View>
+  );
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+        <ScrollView contentContainerStyle={styles.scrollContainer}>
+          <View style={styles.header}><Text style={styles.appName}>Housebook</Text><Text style={styles.subtitle}>Property management made simple.</Text></View>
+          <View style={styles.card}>
+            <View style={styles.roleSelector}>
+              <TouchableOpacity style={[styles.roleBadge, userType === 'owner' ? styles.activeRoleBadge : {}]} onPress={() => setUserType('owner')}>
+                <Home size={16} color={userType === 'owner' ? PALETTE.primary : PALETTE.textSecondary} />
+                <Text style={[styles.roleText, userType === 'owner' ? styles.activeRoleText : {}]}>Owner</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.roleBadge, userType === 'tradie' ? styles.activeRoleBadge : {}]} onPress={() => setUserType('tradie')}>
+                <Wrench size={16} color={userType === 'tradie' ? PALETTE.primary : PALETTE.textSecondary} />
+                <Text style={[styles.roleText, userType === 'tradie' ? styles.activeRoleText : {}]}>Tradie</Text>
+              </TouchableOpacity>
+            </View>
+            <View style={styles.tabContainer}>
+              <TouchableOpacity style={[styles.tab, activeTab === 'login' ? styles.activeTab : {}]} onPress={() => setActiveTab('login')}><Text style={[styles.tabText, activeTab === 'login' ? styles.activeTabText : {}]}>Sign In</Text></TouchableOpacity>
+              <TouchableOpacity style={[styles.tab, activeTab === 'signup' ? styles.activeTab : {}]} onPress={() => setActiveTab('signup')}><Text style={[styles.tabText, activeTab === 'signup' ? styles.activeTabText : {}]}>Sign Up</Text></TouchableOpacity>
+            </View>
+            {loading ? <ActivityIndicator size="large" color={PALETTE.primary} /> : (activeTab === 'login' ? renderLoginForm() : renderSignUpForm())}
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
+  );
+};
+
+export default AuthScreen;

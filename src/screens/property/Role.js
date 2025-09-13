@@ -7,7 +7,7 @@ import {
   SafeAreaView,
   ScrollView,
 } from 'react-native';
-import { Button } from '../../components/common';
+import { Button } from '../../components';
 import { COLORS, FONTS, STYLES } from '../../components/styles/constants';
 import { mockUsers } from '../../constants/mockData';
 

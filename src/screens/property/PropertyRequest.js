@@ -11,7 +11,7 @@ import {
   LayoutAnimation,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
-import { supabase } from '../../api/supabaseClient';
+import { supabase } from '../../config/supabaseClient';
 import { CheckCircle, XCircle, ChevronDown, ChevronRight, ChevronLeft } from 'lucide-react-native';
 
 const PALETTE = {

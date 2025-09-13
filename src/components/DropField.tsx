@@ -1,16 +1,30 @@
-import { useState, useRef } from 'react';
-import { TouchableOpacity, Text, View, StyleSheet, Modal, FlatList, SafeAreaView } from 'react-native';
+import React, { useState, useRef } from 'react';
+import {
+  TouchableOpacity,
+  Text,
+  View,
+  StyleSheet,
+  Modal,
+  FlatList,
+  SafeAreaView,
+  ViewStyle,
+  TextStyle,
+} from 'react-native';
 import { ChevronsUpDown } from 'lucide-react-native';
 
-// Consistent color palette for the Notion-like design.
-const PALETTE = {
-  background: '#F8F9FA',
-  card: '#FFFFFF',
-  textPrimary: '#111827',
-  textSecondary: '#6B7280',
-  primary: '#111827',
-  border: '#E5E7EB',
-};
+import { PALETTE } from '../styles/palette';
+import { STYLES } from '../styles/globalStyles';
+
+// Defines the shape of the props that this component accepts.
+interface DropFieldProps {
+  options: string[];
+  placeholder?: string;
+  selectedValue?: string;
+  onSelect: (option: string) => void;
+  style?: ViewStyle | ViewStyle[];
+  textStyle?: TextStyle | TextStyle[];
+  disabled?: boolean;
+}
 
 const DropField = ({
   options = [],
@@ -20,10 +34,10 @@ const DropField = ({
   style = {},
   textStyle = {},
   disabled = false,
-}) => {
+}: DropFieldProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [dropdownPosition, setDropdownPosition] = useState({ x: 0, y: 0, width: 0 });
-  const dropdownRef = useRef(null);
+  const dropdownRef = useRef<TouchableOpacity>(null);
 
   const toggleDropdown = () => {
     if (disabled) return;
@@ -42,7 +56,7 @@ const DropField = ({
     }
   };
 
-  const selectOption = (option) => {
+  const selectOption = (option: string) => {
     onSelect(option);
     setIsOpen(false);
   };
@@ -62,7 +76,7 @@ const DropField = ({
     textStyle,
   ];
 
-  const renderOption = ({ item, index }) => (
+  const renderOption = ({ item, index }: { item: string; index: number }) => (
     <TouchableOpacity
       style={[
         styles.option,
@@ -127,8 +141,8 @@ const DropField = ({
 const styles = StyleSheet.create({
   container: {
     backgroundColor: PALETTE.card,
-    borderRadius: 8,
-    paddingHorizontal: 16,
+    borderRadius: STYLES.borderRadius.small,
+    paddingHorizontal: STYLES.spacing.md,
     height: 58,
     flexDirection: 'row',
     alignItems: 'center',
@@ -153,19 +167,15 @@ const styles = StyleSheet.create({
   dropdown: {
     position: 'absolute',
     backgroundColor: PALETTE.card,
-    borderRadius: 8,
+    borderRadius: STYLES.borderRadius.medium,
     maxHeight: 220,
     borderWidth: 1,
     borderColor: PALETTE.border,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 5,
+    ...STYLES.shadow,
   },
   option: {
-    paddingHorizontal: 16,
-    paddingVertical: 16,
+    paddingHorizontal: STYLES.spacing.md,
+    paddingVertical: STYLES.spacing.md,
     borderBottomWidth: 1,
     borderBottomColor: PALETTE.border,
   },

@@ -40,3 +40,17 @@ export interface OnboardingFormData {
   floorPlans: File[]; 
   buildingPlans: File[];
 }
+
+// Defines the shape of a user profile used in the Authority/Role screen.
+export interface UserProfile {
+  id: string;
+  name: string;
+  phone: string | null;
+  email: string;
+  roles: string[];
+}
+
+// Extends the UserProfile with a status for connected tradies.
+export interface Tradie extends UserProfile {
+  status: string;
+}

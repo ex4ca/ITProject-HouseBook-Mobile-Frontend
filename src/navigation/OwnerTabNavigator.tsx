@@ -1,6 +1,6 @@
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Home, User } from 'lucide-react-native';
-import { PALETTE } from '../styles/pallete'
+import { PALETTE } from '../styles/palette'
 import { globalStyles } from '../styles/globalStyles';
 
 // Screens

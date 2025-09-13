@@ -1,6 +1,6 @@
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Briefcase, User } from 'lucide-react-native';
-import { PALETTE } from '../styles/pallete';
+import { PALETTE } from '../styles/palette';
 import { globalStyles } from '../styles/globalStyles';
 
 import PropertyList from '../screens/property/PropertyList'; // Placeholder for JobBoard

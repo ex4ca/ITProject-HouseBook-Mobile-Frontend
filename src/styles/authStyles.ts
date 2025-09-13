@@ -1,5 +1,5 @@
 import { StyleSheet } from 'react-native';
-import { PALETTE } from './pallete';
+import { PALETTE } from './palette';
 
 export const authStyles = StyleSheet.create({
   container: {

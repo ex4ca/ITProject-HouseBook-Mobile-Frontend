@@ -1,5 +1,5 @@
 import { supabase } from '../config/supabaseClient';
-import { UserProfile, Tradie } from '../types';
+import { UserProfile, Tradie, Property } from '../types';
 
 // Fetches the profile of the currently logged-in user.
 export const fetchMyProfile = async (): Promise<UserProfile | null> => {
@@ -87,3 +87,44 @@ export const fetchPropertyOwner = async (propertyId: string): Promise<UserProfil
     };
 };
 
+// Fetches all properties owned by a specific user.
+export const getPropertiesByOwner = async (userId: string): Promise<Property[] | null> => {
+    const { data, error } = await supabase
+        .from('Owner')
+        .select(`
+            OwnerProperty (
+                Property ( property_id, name, address, description, pin, created_at )
+            )
+        `)
+        .eq('user_id', userId);
+
+    if (error) {
+        console.error("Error fetching properties:", error.message);
+        return null;
+    }
+    
+    if (!data) return [];
+
+    const properties: Property[] = data
+        .flatMap(owner => owner.OwnerProperty)
+        .flatMap(op => op.Property);
+
+    return properties;
+}
+
+export const fetchMyFirstName = async (): Promise<string | null> => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return null;
+
+    const { data, error } = await supabase
+        .from('User')
+        .select('first_name')
+        .eq('user_id', user.id)
+        .single();
+
+    if (error) {
+        console.error("Error fetching user's first name:", error.message);
+        return null;
+    }
+    return data?.first_name || null;
+}

@@ -1,12 +1,12 @@
 export type UserRole = 'owner' | 'tradie' | 'admin';
 
 export type Property = {
+  created_at: any;
   property_id: string;
   address: string;
   description: string;
   pin: string;
   name: string;
-  // Optional fields
   type?: string;
   status?: string;
   lastUpdated?: string;

@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef } from "react";
 import {
   TouchableOpacity,
   Text,
@@ -9,11 +9,11 @@ import {
   SafeAreaView,
   ViewStyle,
   TextStyle,
-} from 'react-native';
-import { ChevronsUpDown } from 'lucide-react-native';
+} from "react-native";
+import { ChevronsUpDown } from "lucide-react-native";
 
-import { PALETTE } from '../styles/palette';
-import { STYLES } from '../styles/globalStyles';
+import { PALETTE } from "../styles/palette";
+import { STYLES } from "../styles/globalStyles";
 
 // Defines the shape of the props that this component accepts.
 interface DropFieldProps {
@@ -28,7 +28,7 @@ interface DropFieldProps {
 
 const DropField = ({
   options = [],
-  placeholder = 'Select an option',
+  placeholder = "Select an option",
   selectedValue,
   onSelect,
   style = {},
@@ -36,12 +36,16 @@ const DropField = ({
   disabled = false,
 }: DropFieldProps) => {
   const [isOpen, setIsOpen] = useState(false);
-  const [dropdownPosition, setDropdownPosition] = useState({ x: 0, y: 0, width: 0 });
+  const [dropdownPosition, setDropdownPosition] = useState({
+    x: 0,
+    y: 0,
+    width: 0,
+  });
   const dropdownRef = useRef<TouchableOpacity>(null);
 
   const toggleDropdown = () => {
     if (disabled) return;
-    
+
     if (isOpen) {
       setIsOpen(false);
     } else {
@@ -78,10 +82,7 @@ const DropField = ({
 
   const renderOption = ({ item, index }: { item: string; index: number }) => (
     <TouchableOpacity
-      style={[
-        styles.option,
-        index === options.length - 1 && styles.lastOption
-      ]}
+      style={[styles.option, index === options.length - 1 && styles.lastOption]}
       onPress={() => selectOption(item)}
     >
       <Text style={styles.optionText}>{item}</Text>
@@ -114,14 +115,14 @@ const DropField = ({
           onPress={() => setIsOpen(false)}
         >
           <SafeAreaView>
-            <View 
+            <View
               style={[
-                styles.dropdown, 
+                styles.dropdown,
                 {
                   top: dropdownPosition.y,
                   left: dropdownPosition.x,
                   width: dropdownPosition.width,
-                }
+                },
               ]}
             >
               <FlatList
@@ -144,9 +145,9 @@ const styles = StyleSheet.create({
     borderRadius: STYLES.borderRadius.small,
     paddingHorizontal: STYLES.spacing.md,
     height: 58,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     borderWidth: 1,
     borderColor: PALETTE.border,
   },
@@ -165,7 +166,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   dropdown: {
-    position: 'absolute',
+    position: "absolute",
     backgroundColor: PALETTE.card,
     borderRadius: STYLES.borderRadius.medium,
     maxHeight: 220,

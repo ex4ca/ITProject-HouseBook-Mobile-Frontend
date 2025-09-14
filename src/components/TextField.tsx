@@ -1,11 +1,19 @@
-import React, { useState } from 'react';
-import { TextInput, View, StyleSheet, ViewStyle, TextStyle, KeyboardTypeOptions, Platform, TextInputProps } from 'react-native';
+import React, { useState } from "react";
+import {
+  TextInput,
+  View,
+  StyleSheet,
+  ViewStyle,
+  TextStyle,
+  KeyboardTypeOptions,
+  Platform,
+  TextInputProps,
+} from "react-native";
 
-import { PALETTE } from '../styles/palette';
-import { STYLES } from '../styles/globalStyles';
+import { PALETTE } from "../styles/palette";
+import { STYLES } from "../styles/globalStyles";
 
 // Defines the shape of the props that this component accepts.
-// It now includes the 'autoCapitalize' prop.
 interface TextFieldProps {
   placeholder?: string;
   value: string;
@@ -16,7 +24,7 @@ interface TextFieldProps {
   keyboardType?: KeyboardTypeOptions;
   multiline?: boolean;
   editable?: boolean;
-  autoCapitalize?: TextInputProps['autoCapitalize']; // Added this line
+  autoCapitalize?: TextInputProps["autoCapitalize"];
 }
 
 const TextField = ({
@@ -26,10 +34,10 @@ const TextField = ({
   style = {},
   inputStyle = {},
   secureTextEntry = false,
-  keyboardType = 'default',
+  keyboardType = "default",
   multiline = false,
   editable = true,
-  autoCapitalize = 'sentences', // Default value
+  autoCapitalize = "sentences", // Default value
 }: TextFieldProps) => {
   const [isFocused, setIsFocused] = useState(false);
 
@@ -40,10 +48,7 @@ const TextField = ({
     style,
   ];
 
-  const textInputStyles = [
-    styles.textInput,
-    inputStyle,
-  ];
+  const textInputStyles = [styles.textInput, inputStyle];
 
   return (
     <View style={containerStyles}>
@@ -59,8 +64,8 @@ const TextField = ({
         keyboardType={keyboardType}
         multiline={multiline}
         editable={editable}
-        autoCapitalize={autoCapitalize} // Pass the prop here
-        textAlignVertical={multiline ? 'top' : 'center'}
+        autoCapitalize={autoCapitalize}
+        textAlignVertical={multiline ? "top" : "center"}
       />
     </View>
   );
@@ -73,7 +78,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: PALETTE.border,
     paddingHorizontal: STYLES.spacing.md,
-    justifyContent: 'center',
+    justifyContent: "center",
     minHeight: 58,
   },
   containerFocused: {
@@ -86,9 +91,8 @@ const styles = StyleSheet.create({
   textInput: {
     color: PALETTE.textPrimary,
     fontSize: 16,
-    paddingVertical: Platform.OS === 'ios' ? 16 : 12,
+    paddingVertical: Platform.OS === "ios" ? 16 : 12,
   },
 });
 
 export default TextField;
-

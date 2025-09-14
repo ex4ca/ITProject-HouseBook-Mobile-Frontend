@@ -1,24 +1,26 @@
-import React from 'react';
-import { View, StyleSheet } from 'react-native';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { RouteProp } from '@react-navigation/native';
-import { Info, LayoutGrid, Users, Bell } from 'lucide-react-native';
+import React from "react";
+import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
+import { RouteProp } from "@react-navigation/native";
+import { Info, LayoutGrid, Users, Bell } from "lucide-react-native";
 
 // Import types for navigation
-import type { RootStackParamList, PropertyControlTabParamList } from './types';
+import type { RootStackParamList, PropertyControlTabParamList } from "./types";
 
 // Import styles and screens
-import { PALETTE } from '../styles/palette';
-import { globalStyles } from '../styles/globalStyles';
-import PropertyGeneral from '../screens/property/PropertyGeneral';
-import PropertyDetails from '../screens/property/PropertyDetails';
-import PropertyRequestsScreen from '../screens/property/PropertyRequest';
-import Role from '../screens/property/Role';
+import { PALETTE } from "../styles/palette";
+import { globalStyles } from "../styles/globalStyles";
+import PropertyGeneral from "../screens/property/PropertyGeneral";
+import PropertyDetails from "../screens/property/PropertyDetails";
+import PropertyRequestsScreen from "../screens/property/PropertyRequest";
+import Role from "../screens/property/Role";
 
 const Tab = createBottomTabNavigator<PropertyControlTabParamList>();
 
 // Define the type for the route props passed to this navigator.
-type PropertyControlNavigatorRouteProp = RouteProp<RootStackParamList, 'PropertyDetails'>;
+type PropertyControlNavigatorRouteProp = RouteProp<
+  RootStackParamList,
+  "PropertyDetails"
+>;
 type Props = {
   route: PropertyControlNavigatorRouteProp;
 };
@@ -38,7 +40,7 @@ const PropertyControlNavigator = ({ route }: Props) => {
         tabBarLabelStyle: globalStyles.tabBarLabel,
       }}
     >
-      <Tab.Screen 
+      <Tab.Screen
         name="General"
         component={PropertyGeneral}
         initialParams={{ propertyId }}
@@ -46,38 +48,44 @@ const PropertyControlNavigator = ({ route }: Props) => {
           tabBarIcon: ({ color, size }) => <Info color={color} size={size} />,
         }}
       />
-      
-      <Tab.Screen 
+
+      <Tab.Screen
         name="Details"
         component={PropertyDetails}
         initialParams={{ propertyId, isOwner }}
         options={{
-          tabBarIcon: ({ color, size }) => <LayoutGrid color={color} size={size} />,
+          tabBarIcon: ({ color, size }) => (
+            <LayoutGrid color={color} size={size} />
+          ),
         }}
       />
-      
+
       {isOwner && (
         <>
-          <Tab.Screen 
+          <Tab.Screen
             name="Requests"
             component={PropertyRequestsScreen}
             initialParams={{ propertyId }}
             options={{
-              tabBarIcon: ({ color, size }) => <Bell color={color} size={size} />,
+              tabBarIcon: ({ color, size }) => (
+                <Bell color={color} size={size} />
+              ),
             }}
           />
-          <Tab.Screen 
+          <Tab.Screen
             name="Authority"
             component={Role}
             initialParams={{ propertyId, isOwner }}
             options={{
-              tabBarIcon: ({ color, size }) => <Users color={color} size={size} />,
+              tabBarIcon: ({ color, size }) => (
+                <Users color={color} size={size} />
+              ),
             }}
           />
         </>
       )}
     </Tab.Navigator>
   );
-}
+};
 
 export default PropertyControlNavigator;

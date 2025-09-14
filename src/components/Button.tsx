@@ -1,6 +1,12 @@
-import { TouchableOpacity, Text, StyleSheet, ViewStyle, TextStyle } from 'react-native';
-import { PALETTE } from '../styles/palette';
-import { STYLES } from '../styles/globalStyles';
+import {
+  TouchableOpacity,
+  Text,
+  StyleSheet,
+  ViewStyle,
+  TextStyle,
+} from "react-native";
+import { PALETTE } from "../styles/palette";
+import { STYLES } from "../styles/globalStyles";
 
 // Defines the shape of the props that this component accepts.
 interface ButtonProps {
@@ -11,7 +17,6 @@ interface ButtonProps {
   disabled?: boolean;
 }
 
-// This updated syntax directly types the props object and avoids the 'FC' error.
 const Button = ({
   text,
   onPress,
@@ -46,9 +51,9 @@ const Button = ({
 const styles = StyleSheet.create({
   button: {
     backgroundColor: PALETTE.primary,
-    borderRadius: STYLES.borderRadius.medium, // Using the global style
-    justifyContent: 'center',
-    alignItems: 'center',
+    borderRadius: STYLES.borderRadius.medium,
+    justifyContent: "center",
+    alignItems: "center",
     padding: 16,
     height: 58,
   },
@@ -57,9 +62,9 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     color: PALETTE.primaryForeground,
-    fontWeight: '600',
+    fontWeight: "600",
     fontSize: 16,
-    textAlign: 'center',
+    textAlign: "center",
   },
   disabledText: {
     color: PALETTE.textSecondary,
@@ -67,4 +72,3 @@ const styles = StyleSheet.create({
 });
 
 export default Button;
-

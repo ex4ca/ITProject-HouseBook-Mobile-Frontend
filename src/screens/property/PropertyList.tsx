@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef, useEffect } from 'react'; 
+import React, { useState, useCallback, useRef, useEffect } from "react";
 import {
   View,
   Text,
@@ -7,22 +7,25 @@ import {
   FlatList,
   Image,
   ActivityIndicator,
-} from 'react-native';
-import { useFocusEffect } from '@react-navigation/native';
-import { Home } from 'lucide-react-native';
-import { supabase } from '../../config/supabaseClient';
+} from "react-native";
+import { useFocusEffect } from "@react-navigation/native";
+import { Home } from "lucide-react-native";
+import { supabase } from "../../config/supabaseClient";
 
 // Import the new, separated logic and styles
-import { getPropertiesByOwner, fetchMyFirstName } from '../../services/FetchAuthority';
-import { propertyListStyles as styles } from '../../styles/propertyListStyles';
-import { PALETTE } from '../../styles/palette';
-import type { Property } from '../../types';
+import {
+  getPropertiesByOwner,
+  fetchMyFirstName,
+} from "../../services/FetchAuthority";
+import { propertyListStyles as styles } from "../../styles/propertyListStyles";
+import { PALETTE } from "../../styles/palette";
+import type { Property } from "../../types";
 
 const PropertyList = ({ navigation }: { navigation: any }) => {
   const [properties, setProperties] = useState<Property[]>([]);
-  const [userName, setUserName] = useState<string | null>('');
+  const [userName, setUserName] = useState<string | null>("");
   const [loading, setLoading] = useState(true);
-  
+
   const isFetching = useRef(false);
 
   const fetchData = useCallback(async () => {
@@ -32,10 +35,12 @@ const PropertyList = ({ navigation }: { navigation: any }) => {
       isFetching.current = true;
       setLoading(true);
 
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) {
         setProperties([]);
-        setUserName('');
+        setUserName("");
         return;
       }
 
@@ -47,11 +52,10 @@ const PropertyList = ({ navigation }: { navigation: any }) => {
 
       setUserName(firstName);
       setProperties(fetchedProperties || []);
-
     } catch (err: any) {
       console.error("Error fetching data: ", err.message);
       setProperties([]);
-      setUserName('');
+      setUserName("");
     } finally {
       isFetching.current = false;
       setLoading(false);
@@ -66,8 +70,8 @@ const PropertyList = ({ navigation }: { navigation: any }) => {
 
   useEffect(() => {
     const channel = supabase
-      .channel('public:Property')
-      .on('postgres_changes', { event: '*', schema: 'public' }, () => {
+      .channel("public:Property")
+      .on("postgres_changes", { event: "*", schema: "public" }, () => {
         fetchData();
       })
       .subscribe();
@@ -76,25 +80,34 @@ const PropertyList = ({ navigation }: { navigation: any }) => {
       supabase.removeChannel(channel);
     };
   }, [fetchData]);
-  
+
   const renderPropertyCard = ({ item }: { item: Property }) => {
-    const imageUrl = `https://placehold.co/600x400/E5E7EB/111827?text=${encodeURIComponent(item.name || 'Property')}`;
-      
+    const imageUrl = `https://placehold.co/600x400/E5E7EB/111827?text=${encodeURIComponent(
+      item.name || "Property"
+    )}`;
+
     return (
       <TouchableOpacity
         style={styles.propertyCard}
-        onPress={() => navigation.navigate('PropertyDetails', { propertyId: item.property_id, isOwner: true })}
+        onPress={() =>
+          navigation.navigate("PropertyDetails", {
+            propertyId: item.property_id,
+            isOwner: true,
+          })
+        }
       >
         <Image source={{ uri: imageUrl }} style={styles.propertyImage} />
         <View style={styles.propertyInfo}>
           <Text style={styles.propertyName}>{item.name}</Text>
-          <Text style={styles.propertyAddress} numberOfLines={2}>{item.address}</Text>
+          <Text style={styles.propertyAddress} numberOfLines={2}>
+            {item.address}
+          </Text>
           {/* Add a check for created_at before displaying */}
-          {item.created_at &&
+          {item.created_at && (
             <Text style={styles.propertyDate}>
               Listed: {new Date(item.created_at).toLocaleDateString()}
             </Text>
-          }
+          )}
         </View>
       </TouchableOpacity>
     );
@@ -103,8 +116,10 @@ const PropertyList = ({ navigation }: { navigation: any }) => {
   const ListHeader = () => (
     <>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Welcome, {userName || 'Owner'}</Text>
-        <Text style={styles.headerSubtitle}>Here is your property overview.</Text>
+        <Text style={styles.headerTitle}>Welcome, {userName || "Owner"}</Text>
+        <Text style={styles.headerSubtitle}>
+          Here is your property overview.
+        </Text>
       </View>
       <View style={styles.overviewCard}>
         <Home size={24} color={PALETTE.primary} />
@@ -135,7 +150,9 @@ const PropertyList = ({ navigation }: { navigation: any }) => {
         ListEmptyComponent={
           !loading ? (
             <View style={styles.centerContainer}>
-              <Text style={styles.emptyListText}>You haven't added any properties yet.</Text>
+              <Text style={styles.emptyListText}>
+                You haven't added any properties yet.
+              </Text>
             </View>
           ) : null
         }

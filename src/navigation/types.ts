@@ -1,5 +1,3 @@
-
-// Add these types to your existing file.
 export type RootStackParamList = {
   Main: undefined;
   PropertyDetails: { propertyId: string; isOwner: boolean };

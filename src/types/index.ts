@@ -19,6 +19,7 @@ export interface AssetFeature {
 }
 
 export interface Asset {
+  id: any;
   typeId: string;
   name: string; // Used for display in the frontend during onboarding
   description: string; // This is stored in the database
@@ -84,4 +85,63 @@ export interface PendingRequest {
       };
     };
   };
+}
+
+export interface HistoryEntry {
+  id: string;
+  created_at: string;
+  change_description: string;
+  specifications: Record<string, any>;
+  User: {
+    first_name: string;
+    last_name: string;
+  } | null;
+}
+
+export interface AssetDetails {
+  id: string;
+  description: string;
+  ChangeLog: HistoryEntry[];
+  Spaces: {
+      name: string;
+      Property: {
+          name: string;
+      }
+  }
+}
+
+// Add these new types to your existing index.ts file.
+
+export interface ChangelogEntry {
+    id: string;
+    specifications: Record<string, any>;
+    change_description: string;
+    created_at: string;
+    status: 'ACCEPTED' | 'PENDING' | 'DECLINED';
+    User: {
+        first_name: string;
+        last_name: string;
+    } | null;
+}
+
+export interface AssetWithChangelog {
+    id: string;
+    description: string;
+    ChangeLog: ChangelogEntry[];
+}
+
+export interface SpaceWithAssets {
+    id: string;
+    name: string;
+    Assets: AssetWithChangelog[];
+}
+
+export interface PropertyDetailsData {
+    Spaces: SpaceWithAssets[];
+}
+
+export interface EditableSpec {
+    id: number;
+    key: string;
+    value: string;
 }

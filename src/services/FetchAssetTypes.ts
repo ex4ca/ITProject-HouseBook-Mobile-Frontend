@@ -1,6 +1,6 @@
 import {supabase} from "../config/supabaseClient";
 
-export const fetchAssetTypes = async (): Promise<{ id: string; name: string }[]> => {
+export const fetchAssetTypes = async (): Promise<{ id: number; name: string }[]> => {
   const { data, error } = await supabase
     .from("AssetTypes")
     .select("id, name");

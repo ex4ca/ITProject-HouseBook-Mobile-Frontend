@@ -9,8 +9,8 @@ import PropertyControlNavigator from './PropertyControlNavigator';
 
 // Screens
 import ComponentDetails from '../screens/property/ComponentDetails';
-import QRScanner from '../screens/scanner/QRScanner';
-import PinEntry from '../screens/scanner/PinEntry';
+// import QRScanner from '../screens/scanner/QRScanner';
+// import PinEntry from '../screens/scanner/PinEntry';
 
 const Stack = createStackNavigator();
 
@@ -26,8 +26,8 @@ function AppNavigator({ userRole }: AppNavigatorProps) {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="Main" component={MainTabNavigator} />
-      <Stack.Screen name="Scanner" component={QRScanner} />
-      <Stack.Screen name="PinEntry" component={PinEntry} />
+      {/* <Stack.Screen name="Scanner" component={QRScanner} />
+      <Stack.Screen name="PinEntry" component={PinEntry} /> */}
       <Stack.Screen name="PropertyDetails" component={PropertyControlNavigator} />
       <Stack.Screen name="ComponentDetails" component={ComponentDetails} />
     </Stack.Navigator>

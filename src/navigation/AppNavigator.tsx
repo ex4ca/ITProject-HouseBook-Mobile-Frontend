@@ -8,7 +8,6 @@ import TradieTabNavigator from './TradieTabNavigator';
 import PropertyControlNavigator from './PropertyControlNavigator';
 
 // Screens
-import PropertyEdit from '../screens/property/PropertyEdit';
 import ComponentDetails from '../screens/property/ComponentDetails';
 import QRScanner from '../screens/scanner/QRScanner';
 import PinEntry from '../screens/scanner/PinEntry';
@@ -30,7 +29,6 @@ function AppNavigator({ userRole }: AppNavigatorProps) {
       <Stack.Screen name="Scanner" component={QRScanner} />
       <Stack.Screen name="PinEntry" component={PinEntry} />
       <Stack.Screen name="PropertyDetails" component={PropertyControlNavigator} />
-      <Stack.Screen name="PropertyEdit" component={PropertyEdit} />
       <Stack.Screen name="ComponentDetails" component={ComponentDetails} />
     </Stack.Navigator>
   );

@@ -1,6 +1,15 @@
 {
   "compilerOptions": {
-    "moduleResolution": "bundler"
+    "target": "es2019",
+    "module": "esnext",
+    "lib": ["es2019", "dom"],
+    "jsx": "react-native",
+    "moduleResolution": "node",
+    "allowJs": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "skipLibCheck": true,
+    "noEmit": true,
   },
-  "extends": "expo/tsconfig.base"
+  "include": ["src"]
 }

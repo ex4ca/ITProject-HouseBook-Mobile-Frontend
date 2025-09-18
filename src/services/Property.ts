@@ -27,8 +27,22 @@ export const fetchPropertyGeneralData = async (propertyId: string): Promise<Prop
           address,
           description,
           total_floor_area,
-          Spaces ( type ),
-          PropertyImages ( image_link, image_name )
+          PropertyImages ( image_link, image_name ),
+          Spaces (
+            id,
+            name,
+            type,
+            Assets (
+              id,
+              description,
+              AssetTypes ( discipline ),
+              ChangeLog ( 
+                specifications, 
+                status,
+                created_at
+              )
+            )
+          )
         `)
         .eq('property_id', propertyId)
         .single();

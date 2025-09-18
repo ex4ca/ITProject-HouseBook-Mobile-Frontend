@@ -9,7 +9,7 @@ export type Property = {
   name: string;
   type?: string;
   status?: string;
-  lastUpdated?: string;
+  last_updated?: string;
   completionStatus?: number;
 };
 

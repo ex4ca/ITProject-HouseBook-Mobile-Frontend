@@ -11,8 +11,6 @@ import {
 import { useFocusEffect } from "@react-navigation/native";
 import { Home } from "lucide-react-native";
 import { supabase } from "../../config/supabaseClient";
-
-// Import the new, separated logic and styles
 import {
   getPropertiesByOwner,
   fetchMyFirstName,
@@ -85,6 +83,8 @@ const PropertyList = ({ navigation }: { navigation: any }) => {
     const imageUrl = `https://placehold.co/600x400/E5E7EB/111827?text=${encodeURIComponent(
       item.name || "Property"
     )}`;
+    
+    const isInProgress = item.status && item.status.toLowerCase().includes('progress');
 
     return (
       <TouchableOpacity
@@ -98,16 +98,24 @@ const PropertyList = ({ navigation }: { navigation: any }) => {
       >
         <Image source={{ uri: imageUrl }} style={styles.propertyImage} />
         <View style={styles.propertyInfo}>
-          <Text style={styles.propertyName}>{item.name}</Text>
-          <Text style={styles.propertyAddress} numberOfLines={2}>
-            {item.address}
-          </Text>
-          {/* Add a check for created_at before displaying */}
-          {item.created_at && (
-            <Text style={styles.propertyDate}>
-              Listed: {new Date(item.created_at).toLocaleDateString()}
+          {/* Top row with Name and Status Badge */}
+          <View style={styles.propertyHeader}>
+            <Text style={styles.propertyName} numberOfLines={1}>
+              {item.name}
             </Text>
-          )}
+            {isInProgress && (
+              <View style={styles.statusBadge}>
+                <Text style={styles.statusBadgeText}>In Progress</Text>
+              </View>
+            )}
+          </View>
+          
+          {/* Address */}
+          <Text style={styles.propertyAddress} numberOfLines={2}>
+             📍 {item.address}
+          </Text>
+
+          {/* Owner text has been removed */}
         </View>
       </TouchableOpacity>
     );

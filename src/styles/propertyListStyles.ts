@@ -67,27 +67,29 @@ export const propertyListStyles = StyleSheet.create({
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: PALETTE.border,
+    minHeight: 120, 
   },
   propertyImage: {
     width: 100,
-    height: '100%',
+    height: '100%', 
     backgroundColor: PALETTE.border,
   },
   propertyInfo: {
     flex: 1,
-    padding: 16,
-    justifyContent: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    justifyContent: 'space-around', 
   },
-  propertyName: {
+    propertyName: {
     fontSize: 18,
     fontWeight: '600',
     color: PALETTE.textPrimary,
-    marginBottom: 4,
+    flexShrink: 1, 
   },
   propertyAddress: {
     fontSize: 14,
     color: PALETTE.textSecondary,
-    marginBottom: 8,
+    marginBottom: 4,
   },
   propertyDate: {
     fontSize: 12,
@@ -99,4 +101,27 @@ export const propertyListStyles = StyleSheet.create({
     color: PALETTE.textSecondary,
     textAlign: 'center',
   },
+  propertyHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  statusBadge: {
+    backgroundColor: '#111827',
+    borderRadius: 12,
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+    marginLeft: 8,
+  },
+  statusBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  ownerText: {
+    fontSize: 13,
+    color: PALETTE.textSecondary,
+    marginBottom: 6,
+  }
 });

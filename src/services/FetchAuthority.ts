@@ -29,7 +29,6 @@ export const fetchMyProfile = async (): Promise<UserProfile | null> => {
 
 // Fetches the list of all tradies connected to a specific property.
 export const fetchPropertyTradies = async (propertyId: string): Promise<Tradie[]> => {
-    // Corrected: Using an explicit join hint to resolve ambiguity.
     const { data, error } = await supabase
         .from('PropertyTradies')
         .select(`
@@ -61,7 +60,6 @@ export const fetchPropertyTradies = async (propertyId: string): Promise<Tradie[]
 
 // Fetches the profile of the owner of a specific property.
 export const fetchPropertyOwner = async (propertyId: string): Promise<UserProfile | null> => {
-    // Corrected: Using an explicit join hint for consistency and robustness.
     const { data, error } = await supabase
         .from('OwnerProperty')
         .select(`
@@ -93,7 +91,15 @@ export const getPropertiesByOwner = async (userId: string): Promise<Property[] |
         .from('Owner')
         .select(`
             OwnerProperty (
-                Property ( property_id, name, address, description, pin, created_at )
+                Property ( 
+                    property_id, 
+                    name, 
+                    address, 
+                    description, 
+                    pin, 
+                    created_at,
+                    status 
+                )
             )
         `)
         .eq('user_id', userId);

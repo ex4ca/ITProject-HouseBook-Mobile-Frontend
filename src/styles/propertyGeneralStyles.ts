@@ -108,8 +108,6 @@ export const propertyGeneralStyles = StyleSheet.create({
       fontSize: 16,
       color: PALETTE.textSecondary,
   },
-
-  // UPDATED AND NEW STYLES
   specGroup: {
     marginBottom: 16,
   },
@@ -117,7 +115,6 @@ export const propertyGeneralStyles = StyleSheet.create({
     backgroundColor: PALETTE.background,
     borderRadius: STYLES.borderRadius.small,
     padding: 12,
-    marginBottom: 12,
     borderWidth: 1,
     borderColor: PALETTE.border,
   },
@@ -143,10 +140,28 @@ export const propertyGeneralStyles = StyleSheet.create({
     textAlign: 'right',
     marginLeft: 10,
   },
-  assetLocation: {
+  
+  // NEW STYLES FOR QR CODE
+  cardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  cardTitleWithIcon: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: PALETTE.textPrimary,
+    marginLeft: 10,
+  },
+  qrCodeContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginVertical: 16,
+  },
+  qrCodeDescription: {
     fontSize: 14,
     color: PALETTE.textSecondary,
-    lineHeight: 22,
-    paddingLeft: 8,
+    textAlign: 'center',
+    marginTop: 12,
   },
 });

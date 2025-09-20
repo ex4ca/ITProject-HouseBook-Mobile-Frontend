@@ -18,7 +18,9 @@ import {
   Home as HomeIcon,
   Maximize,
   Car,
+  QrCode,
 } from "lucide-react-native";
+import QRCode from 'react-native-qrcode-svg'; 
 
 // Import the new, separated logic and styles
 import { fetchPropertyGeneralData } from "../../services/Property";
@@ -28,7 +30,6 @@ import type { PropertyGeneral } from "../../types";
 
 const { width } = Dimensions.get("window");
 
-// Define a type for our processed discipline data
 type DisciplineGroup = {
   [discipline: string]: {
     [specKey: string]: {
@@ -42,7 +43,6 @@ type DisciplineGroup = {
 };
 
 
-// Define the shape of the navigation props
 interface PropertyGeneralScreenProps {
   route: { params?: { propertyId?: string } };
   navigation: any;
@@ -213,6 +213,7 @@ const PropertyGeneralScreen = ({
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.backButton}
@@ -227,6 +228,7 @@ const PropertyGeneralScreen = ({
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false}>
+        {/* Image Section */}
         <View style={styles.imageSection}>
           <FlatList
             data={propertyImages}
@@ -247,6 +249,8 @@ const PropertyGeneralScreen = ({
         <View style={styles.detailsContainer}>
           <Text style={styles.propertyName}>{property?.name}</Text>
           <Text style={styles.propertyAddress}>{property?.address}</Text>
+          
+          {/* Property Details Card */}
           <View style={styles.detailsCard}>
             <Text style={styles.cardTitle}>Property Details</Text>
             <View style={styles.statsGrid}>
@@ -262,6 +266,7 @@ const PropertyGeneralScreen = ({
             </View>
           </View>
 
+          {/* Description Card */}
           {property?.description && (
             <View style={styles.detailsCard}>
               <Text style={styles.cardTitle}>Description</Text>
@@ -269,6 +274,28 @@ const PropertyGeneralScreen = ({
             </View>
           )}
           
+          {/* QR Code Card */}
+          {propertyId && (
+            <View style={styles.detailsCard}>
+              <View style={styles.cardHeader}>
+                 <QrCode size={20} color={PALETTE.textPrimary} />
+                 <Text style={styles.cardTitleWithIcon}>Property QR Code</Text>
+              </View>
+              <View style={styles.qrCodeContainer}>
+                 <QRCode
+                    value={propertyId}
+                    size={180}
+                    color={PALETTE.textPrimary}
+                    backgroundColor="white"
+                 />
+              </View>
+              <Text style={styles.qrCodeDescription}>
+                Scan this code to quickly access property details.
+              </Text>
+            </View>
+          )}
+
+          {/* Discipline Cards */}
           {Object.entries(disciplineData).map(([discipline, specGroups]) => (
             <View key={discipline} style={styles.detailsCard}>
               <Text style={styles.cardTitle}>{discipline}</Text>

@@ -62,7 +62,10 @@ export type PropertyGeneral = {
   address: string;
   description: string | null;
   total_floor_area: number | null;
-  Spaces: { type: string }[];
+  Spaces: {
+    Assets: any;
+    name: string; type: string 
+}[];
   PropertyImages: { image_link: string; image_name: string }[];
 };
 

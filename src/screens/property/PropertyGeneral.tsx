@@ -28,6 +28,20 @@ import type { PropertyGeneral } from "../../types";
 
 const { width } = Dimensions.get("window");
 
+// Define a type for our processed discipline data
+type DisciplineGroup = {
+  [discipline: string]: {
+    [specKey: string]: {
+      specifications: Record<string, any>;
+      locations: {
+        spaceName: string;
+        assetDescription: string;
+      }[];
+    };
+  };
+};
+
+
 // Define the shape of the navigation props
 interface PropertyGeneralScreenProps {
   route: { params?: { propertyId?: string } };
@@ -46,6 +60,55 @@ const PropertyGeneralScreen = ({
     { id: string; uri: string | null; title: string }[]
   >([]);
   const [spaceCounts, setSpaceCounts] = useState<Record<string, number>>({});
+
+  const disciplineData = useMemo<DisciplineGroup>(() => {
+    if (!property?.Spaces) return {};
+
+    const groups: DisciplineGroup = {};
+
+    property.Spaces.forEach(space => {
+      space.Assets?.forEach(asset => {
+        const discipline = asset.AssetTypes?.discipline || 'General';
+        const latestLog = asset.ChangeLog
+          ?.filter(log => log.status === 'ACCEPTED')
+          .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
+        
+        const specifications = latestLog?.specifications || {};
+        
+        // Skip assets that have no specifications
+        if (Object.keys(specifications).length === 0) {
+            return;
+        }
+
+        // Sort keys to create a consistent, unique key from the spec object
+        const sortedSpec = Object.keys(specifications).sort().reduce(
+          (obj, key) => { 
+            obj[key] = specifications[key]; 
+            return obj;
+          }, 
+          {} as Record<string, any>
+        );
+        const specKey = JSON.stringify(sortedSpec);
+
+        if (!groups[discipline]) {
+          groups[discipline] = {};
+        }
+        if (!groups[discipline][specKey]) {
+          groups[discipline][specKey] = {
+            specifications: specifications,
+            locations: [],
+          };
+        }
+
+        groups[discipline][specKey].locations.push({
+          spaceName: space.name,
+          assetDescription: asset.description,
+        });
+      });
+    });
+
+    return groups;
+  }, [property]);
 
   useFocusEffect(
     useCallback(() => {
@@ -182,8 +245,8 @@ const PropertyGeneralScreen = ({
           />
         </View>
         <View style={styles.detailsContainer}>
-          <Text style={styles.propertyName}>{property.name}</Text>
-          <Text style={styles.propertyAddress}>{property.address}</Text>
+          <Text style={styles.propertyName}>{property?.name}</Text>
+          <Text style={styles.propertyAddress}>{property?.address}</Text>
           <View style={styles.detailsCard}>
             <Text style={styles.cardTitle}>Property Details</Text>
             <View style={styles.statsGrid}>
@@ -198,12 +261,32 @@ const PropertyGeneralScreen = ({
               ))}
             </View>
           </View>
-          {property.description && (
+
+          {property?.description && (
             <View style={styles.detailsCard}>
               <Text style={styles.cardTitle}>Description</Text>
               <Text style={styles.descriptionText}>{property.description}</Text>
             </View>
           )}
+          
+          {Object.entries(disciplineData).map(([discipline, specGroups]) => (
+            <View key={discipline} style={styles.detailsCard}>
+              <Text style={styles.cardTitle}>{discipline}</Text>
+              {Object.values(specGroups).map((group, index) => (
+                <View key={index} style={styles.specGroup}>
+                  <View style={styles.specificationsBox}>
+                    {Object.entries(group.specifications).map(([key, value]) => (
+                      <View key={key} style={styles.specPair}>
+                        <Text style={styles.specKey}>{key.replace(/_/g, " ")}</Text>
+                        <Text style={styles.specValue}>{String(value)}</Text>
+                      </View>
+                    ))}
+                  </View>
+                </View>
+              ))}
+            </View>
+          ))}
+
         </View>
       </ScrollView>
     </SafeAreaView>

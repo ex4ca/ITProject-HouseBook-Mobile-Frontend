@@ -3,7 +3,7 @@ import { Briefcase, User } from "lucide-react-native";
 import { PALETTE } from "../styles/palette";
 import { globalStyles } from "../styles/globalStyles";
 
-import PropertyList from "../screens/property/PropertyList"; // Placeholder for JobBoard
+import JobBoard from "../screens/tradie/JobBoard";
 import Account from "../screens/profile/Account";
 
 const Tab = createBottomTabNavigator();
@@ -21,8 +21,8 @@ function TradieTabNavigator() {
       }}
     >
       <Tab.Screen
-        name="Jobs"
-        component={PropertyList} // Placeholder: Replace with your JobBoardScreen
+  name="Jobs"
+  component={JobBoard}
         options={{
           tabBarIcon: ({ color, size }) => (
             <Briefcase color={color} size={size} />

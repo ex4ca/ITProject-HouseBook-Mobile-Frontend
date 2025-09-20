@@ -31,32 +31,37 @@ export default function App() {
 
   // This function checks the database to determine if a user is an 'owner' or 'tradie'.
   const fetchUserRole = async (user: User): Promise<UserRole | null> => {
-    // Check the Owner table first.
-    const { count: ownerCount, error: ownerError } = await supabase
-      .from('Owner')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', user.id);
+    // Prefer Tradesperson check first so users who have both records aren't forced to owner flow.
+    try {
+      const { count: tradieCount, error: tradieError } = await supabase
+        .from('Tradesperson')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id);
 
-    if (ownerError) {
-      console.error("Error checking owner table:", ownerError);
+      if (tradieError) {
+        console.error('Error checking tradie table:', tradieError);
+      }
+      if (tradieCount && tradieCount > 0) {
+        console.debug(`fetchUserRole: user ${user.id} is a tradie (count=${tradieCount})`);
+        return 'tradie';
+      }
+
+      // If not a tradie, check Owner table next.
+      const { count: ownerCount, error: ownerError } = await supabase
+        .from('Owner')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id);
+
+      if (ownerError) {
+        console.error('Error checking owner table:', ownerError);
+      }
+      if (ownerCount && ownerCount > 0) {
+        console.debug(`fetchUserRole: user ${user.id} is an owner (count=${ownerCount})`);
+        return 'owner';
+      }
+    } catch (err) {
+      console.error('fetchUserRole unexpected error:', err);
       return null;
-    }
-    if (ownerCount && ownerCount > 0) {
-      return 'owner';
-    }
-
-    // If not an owner, check the Tradesperson table.
-    const { count: tradieCount, error: tradieError } = await supabase
-      .from('Tradesperson')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', user.id);
-
-    if (tradieError) {
-      console.error("Error checking tradie table:", tradieError);
-      return null;
-    }
-    if (tradieCount && tradieCount > 0) {
-      return 'tradie';
     }
 
     return null;
@@ -85,6 +90,8 @@ export default function App() {
 
     fetchRoleAndSetLoading();
   }, [session]); 
+
+  // (debug logging removed)
 
   if (loading) {
     return null;

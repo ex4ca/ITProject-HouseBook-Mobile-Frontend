@@ -43,6 +43,12 @@ export async function signupUser(signupData: {
       .from("Admin")
       .insert([{ user_id: userId }]);
     if (adminError) throw new Error(adminError.message);
+  } else if (signupData.userType === "tradie") {
+    // Create a Tradesperson record for tradie signups so the app can detect their role
+    const { error: tradieError } = await supabase
+      .from("Tradesperson")
+      .insert([{ user_id: userId }]);
+    if (tradieError) throw new Error(tradieError.message);
   }
 
   return { email: signupData.email, userType: signupData.userType , userId};
@@ -69,19 +75,38 @@ export async function loginUser(email: string, password: string) {
   if (profileError) throw new Error(profileError.message);
 
   // 3. Determine role
-  const { data: ownerData } = await supabase
+  const { data: ownerData, error: ownerError } = await supabase
     .from("Owner")
-    .select("user_id, owner_id")
+    .select("user_id")
     .eq("user_id", userId)
     .maybeSingle();
 
-  const { data: adminData } = await supabase
+  const { data: adminData, error: adminError } = await supabase
     .from("Admin")
     .select("user_id")
     .eq("user_id", userId)
     .maybeSingle();
 
-  const userType: "owner" | "admin" = adminData ? "admin" : "owner";
+  // Also check Tradesperson table
+  const { data: tradieData, error: tradieError } = await supabase
+    .from("Tradesperson")
+    .select("user_id")
+    .eq("user_id", userId)
+    .maybeSingle();
 
-  return { email: profile.email, userType , userId};
+  // (debug logging removed)
+
+  // Determine role with explicit priority: tradie -> owner -> admin
+  // Start with null so we don't accidentally return a default before checks run.
+  let userType: "owner" | "admin" | "tradie" | null = null;
+  if (tradieData) {
+    userType = "tradie";
+  } else if (ownerData) {
+    userType = "owner";
+  } else if (adminData) {
+    userType = "admin";
+  }
+
+  // Fallback to 'owner' if no specific role found to preserve existing behavior.
+  return { email: profile.email, userType: userType ?? 'owner', userId };
 }

@@ -14,6 +14,7 @@ import { Home, Wrench } from "lucide-react-native";
 import { Button, TextField, Checkbox } from "../../components";
 
 import { loginUser, signupUser } from "../../services/AuthService";
+import { supabase } from '../../config/supabaseClient';
 import { authStyles as styles } from "../../styles/authStyles";
 import { PALETTE } from "../../styles/palette";
 import type { UserRole } from "../../types";
@@ -39,7 +40,7 @@ const AuthScreen = ({ navigation }: { navigation: any }) => {
     }
     setLoading(true);
     try {
-      await loginUser(email, password);
+      const result = await loginUser(email, password);
     } catch (error: any) {
       Alert.alert("Login Error", error.message);
     } finally {
@@ -306,6 +307,7 @@ const AuthScreen = ({ navigation }: { navigation: any }) => {
             ) : (
               renderSignUpForm()
             )}
+            {/* debug output removed */}
           </View>
         </ScrollView>
       </KeyboardAvoidingView>

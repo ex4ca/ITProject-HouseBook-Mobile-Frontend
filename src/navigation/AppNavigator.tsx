@@ -24,6 +24,7 @@ function AppNavigator({ userRole }: AppNavigatorProps) {
   const MainTabNavigator =
     userRole === "owner" ? OwnerTabNavigator : TradieTabNavigator;
 
+
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="Main" component={MainTabNavigator} />

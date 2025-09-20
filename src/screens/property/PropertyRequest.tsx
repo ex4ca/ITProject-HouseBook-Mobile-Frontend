@@ -66,11 +66,12 @@ const RequestCard = ({
       <TouchableOpacity onPress={toggleExpand}>
         <View style={styles.cardHeader}>
           <View style={styles.cardHeaderText}>
+            {/* UPDATED: Display space and asset on separate lines with different styles */}
             <Text style={styles.propertyName}>
-              {item.Assets.Spaces.Property.name}
+              {item.Assets.Spaces.name}
             </Text>
             <Text style={styles.assetName}>
-              {item.Assets.Spaces.name} / {item.Assets.description}
+              {item.Assets.description}
             </Text>
           </View>
           {isExpanded ? (
@@ -113,6 +114,8 @@ const RequestCard = ({
     </View>
   );
 };
+
+// --- MAIN SCREEN COMPONENT (No changes) ---
 
 const PropertyRequestsScreen = ({
   route,

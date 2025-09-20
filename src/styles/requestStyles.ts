@@ -121,10 +121,10 @@ export const propertyRequestsStyles = StyleSheet.create({
     marginLeft: 8,
   },
   declineButton: {
-      backgroundColor: '#FEF2F2',
+      backgroundColor: PALETTE.dangerBackground,
   },
   acceptButton: {
-      backgroundColor: '#F0FDF4',
+      backgroundColor: PALETTE.successBackground,
   },
   statusButtonText: {
     marginLeft: 6,

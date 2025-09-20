@@ -17,7 +17,6 @@ export const fetchMyProfile = async (): Promise<UserProfile | null> => {
         return null;
     }
 
-    // This is a placeholder for now. In the future, you would fetch skills.
     return {
         id: data.user_id,
         name: `${data.first_name} ${data.last_name}`,
@@ -27,13 +26,15 @@ export const fetchMyProfile = async (): Promise<UserProfile | null> => {
     };
 };
 
-// Fetches the list of all tradies connected to a specific property.
+// Fetches the list of all tradies and correctly maps to the Tradie type
 export const fetchPropertyTradies = async (propertyId: string): Promise<Tradie[]> => {
     const { data, error } = await supabase
         .from('PropertyTradies')
         .select(`
+            id, 
             status,
-            Tradesperson!inner(
+            Tradesperson!property_tradies_tradie_id_fkey(
+                tradie_id,
                 User!Tradesperson_user_id_fkey(user_id, first_name, last_name, phone, email)
             )
         `)
@@ -44,10 +45,13 @@ export const fetchPropertyTradies = async (propertyId: string): Promise<Tradie[]
         return [];
     }
     
-    // Format the data to match our Tradie interface.
-    return data.map(item => {
-        const user = item.Tradesperson[0].User[0];
+    // Using 'any' to bypass Supabase's complex type inference issues
+    const anyData = data as any[];
+
+    return anyData.map(item => {
+        const user = item.Tradesperson.User;
         return {
+            connectionId: item.id,
             id: user.user_id,
             name: `${user.first_name} ${user.last_name}`,
             phone: user.phone,
@@ -56,6 +60,22 @@ export const fetchPropertyTradies = async (propertyId: string): Promise<Tradie[]
             roles: [], 
         }
     });
+};
+
+// Updates the status of a tradie's connection to a property.
+export const updateTradieStatus = async (
+  rowId: string,
+  status: 'approved' | 'revoked'
+): Promise<void> => {
+  const { error } = await supabase
+    .from('PropertyTradies')
+    .update({ status })
+    .eq('id', rowId);
+
+  if (error) {
+    console.error("Error updating tradie status:", error.message);
+    throw new Error('Could not update the tradie status.');
+  }
 };
 
 // Fetches the profile of the owner of a specific property.
@@ -85,7 +105,6 @@ export const fetchPropertyOwner = async (propertyId: string): Promise<UserProfil
     };
 };
 
-// Fetches all properties owned by a specific user.
 export const getPropertiesByOwner = async (userId: string): Promise<Property[] | null> => {
     const { data, error } = await supabase
         .from('Owner')

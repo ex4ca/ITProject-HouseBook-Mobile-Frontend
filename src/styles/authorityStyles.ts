@@ -87,7 +87,8 @@ export const authorityStyles = StyleSheet.create({
   userInfo: {
     flexDirection: 'row',
     alignItems: 'center',
-    flex: 1,
+    flexShrink: 1,
+    marginRight: STYLES.spacing.md,
   },
   smallAvatar: {
     width: 40,
@@ -114,5 +115,38 @@ export const authorityStyles = StyleSheet.create({
   settingsButton: {
     padding: 8,
   },
+  emptyText: {
+    fontSize: 14,
+    color: PALETTE.textSecondary,
+    textAlign: 'center',
+    paddingVertical: STYLES.spacing.md,
+  },
+  
+  // --- UPDATED & NEW STYLES for Pending Requests ---
+  actionButtons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  statusButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 20, 
+    marginLeft: 8,
+    borderWidth: 1, 
+  },
+  declineButton: {
+    backgroundColor: PALETTE.dangerBackground,
+    borderColor: PALETTE.danger,
+  },
+  acceptButton: {
+    backgroundColor: PALETTE.successBackground,
+    borderColor: PALETTE.success,
+  },
+  statusButtonText: {
+    marginLeft: 6,
+    fontSize: 14,
+    fontWeight: '600',
+  },
 });
-

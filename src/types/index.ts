@@ -13,6 +13,49 @@ export type Property = {
   completionStatus?: number;
 };
 
+// Defines the shape of a user profile. The 'id' here is the user_id.
+export interface UserProfile {
+  id: string; 
+  name: string;
+  phone: string | null;
+  email: string;
+  roles: string[];
+}
+
+export interface Tradie extends UserProfile {
+  connectionId: string; // The unique ID from the PropertyTradies table row
+  status: string;
+}
+
+type GeneralAsset = {
+  id: string;
+  description: string;
+  AssetTypes: {
+    discipline: string;
+  } | null;
+  ChangeLog: {
+    specifications: Record<string, any>;
+    status: string;
+    created_at: string;
+  }[];
+};
+
+type GeneralSpace = {
+  id: string;
+  name: string;
+  type: string;
+  Assets: GeneralAsset[];
+};
+
+export type PropertyGeneral = {
+  name: string;
+  address: string;
+  description: string | null;
+  total_floor_area: number | null;
+  Spaces: GeneralSpace[];
+  PropertyImages: { image_link: string; image_name: string }[];
+};
+
 export interface AssetFeature {
   name: string;
   value: string;
@@ -21,8 +64,8 @@ export interface AssetFeature {
 export interface Asset {
   id: any;
   typeId: string;
-  name: string; // Used for display in the frontend during onboarding
-  description: string; // This is stored in the database
+  name: string;
+  description: string;
   features: AssetFeature[];
 }
 
@@ -32,42 +75,13 @@ export interface Space {
   assets: Asset[];
 }
 
-// Represents the data structure for onboarding a new property.
 export interface OnboardingFormData {
   propertyName: string;
   propertyDescription: string;
   address: string;
-  // Note: React Native handles file uploads differently. This might become an array of strings (URIs).
   floorPlans: File[]; 
   buildingPlans: File[];
 }
-
-// Defines the shape of a user profile used in the Authority/Role screen.
-export interface UserProfile {
-  id: string;
-  name: string;
-  phone: string | null;
-  email: string;
-  roles: string[];
-}
-
-// Extends the UserProfile with a status for connected tradies.
-export interface Tradie extends UserProfile {
-  status: string;
-}
-
-// This new type defines the shape of data for the PropertyGeneral screen.
-export type PropertyGeneral = {
-  name: string;
-  address: string;
-  description: string | null;
-  total_floor_area: number | null;
-  Spaces: {
-    Assets: any;
-    name: string; type: string 
-}[];
-  PropertyImages: { image_link: string; image_name: string }[];
-};
 
 export interface PendingRequest {
   id: string;
@@ -112,8 +126,6 @@ export interface AssetDetails {
       }
   }
 }
-
-// Add these new types to your existing index.ts file.
 
 export interface ChangelogEntry {
     id: string;

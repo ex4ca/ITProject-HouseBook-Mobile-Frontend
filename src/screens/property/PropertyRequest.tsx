@@ -134,21 +134,8 @@ const PropertyRequestsScreen = ({
   // If no propertyId is provided, show the Add Property (QR scan) UI
   if (!propertyId) {
     const handleSimulateScan = () => {
-      Alert.alert(
-        "Simulate QR Scan",
-        "This will simulate scanning a property's QR code and open a sample property.",
-        [
-          { text: "Cancel", style: "cancel" },
-          {
-            text: "Open Sample",
-            onPress: () =>
-              navigation.navigate("PropertyDetails", {
-                propertyId: "sample-property-id",
-                isOwner: false,
-              }),
-          },
-        ]
-      );
+      // Open the PIN entry page with a hard-coded scanned property text
+      navigation.navigate('PropertyPin', { scannedText: 'Property: 456 Collins Street, Melbourne' });
     };
 
     return (

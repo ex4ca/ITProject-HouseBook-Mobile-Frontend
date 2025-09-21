@@ -153,3 +153,31 @@ export const fetchMyFirstName = async (): Promise<string | null> => {
     }
     return data?.first_name || null;
 }
+
+// Fetch jobs (properties) assigned to the currently logged-in tradie.
+export const getJobsForTradie = async (tradieUserId: string): Promise<any[] | null> => {
+    const { data, error } = await supabase
+        .from('PropertyTradies')
+        .select(`
+            id,
+            status,
+            Property ( property_id, name, address, status ),
+            Property!inner(OwnerProperty(Owner(User(user_id, first_name, last_name, email))))
+        `)
+        .eq('tradie_user_id', tradieUserId);
+
+    if (error) {
+        console.error('Error fetching jobs for tradie:', error.message);
+        return null;
+    }
+
+    if (!data) return [];
+
+    // Map to Property[] shape (approximate)
+    return data.map((row: any) => ({
+        property_id: row.Property?.property_id || row.id,
+        name: row.Property?.name || 'Property',
+        address: row.Property?.address || '',
+        status: row.status || row.Property?.status || '',
+    }));
+}

@@ -51,5 +51,6 @@ export const fetchPropertyGeneralData = async (propertyId: string): Promise<Prop
           console.error("Error fetching general property data:", error.message);
           return null;
       }
-      return data;
+  // Supabase returns a loose shape; cast to PropertyGeneral to satisfy TypeScript.
+  return data as unknown as PropertyGeneral;
 }

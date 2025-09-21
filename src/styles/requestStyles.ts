@@ -134,4 +134,47 @@ export const propertyRequestsStyles = StyleSheet.create({
     fontSize: 16,
     color: PALETTE.textSecondary,
   },
+  // Add property (QR scan) UI styles
+  scanCard: {
+    backgroundColor: PALETTE.card,
+    borderRadius: STYLES.borderRadius.medium,
+    padding: 16,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: PALETTE.border,
+  },
+  scanTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: PALETTE.textPrimary,
+    marginBottom: 12,
+  },
+  dottedBox: {
+    width: '100%',
+    aspectRatio: 1,
+    borderStyle: 'dashed',
+    borderWidth: 2,
+    borderColor: PALETTE.border,
+    borderRadius: 8,
+    backgroundColor: '#F6F6F8',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  qrImage: {
+    width: 120,
+    height: 120,
+    resizeMode: 'contain',
+  },
+  simulateButton: {
+    marginTop: 16,
+    backgroundColor: PALETTE.primary,
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  simulateButtonText: {
+    color: PALETTE.primaryForeground,
+    fontWeight: '600',
+  },
 });

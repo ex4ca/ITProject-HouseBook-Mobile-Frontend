@@ -82,7 +82,8 @@ export default function JobBoard() {
         style={styles.propertyCard}
         onPress={() =>
           navigation.navigate("PropertyDetails", {
-            propertyId: item.id,
+            // PropertyDetails expects the property_id from the Property row
+            propertyId: item.property_id || item.id,
             isOwner: false,
           })
         }
@@ -120,7 +121,7 @@ export default function JobBoard() {
         <View style={{ width: 24, height: 24, borderRadius: 6, backgroundColor: PALETTE.primary }} />
         <View style={styles.overviewTextContainer}>
           <Text style={styles.overviewLabel}>Total Jobs</Text>
-          <Text style={styles.overviewValue}>{sampleJobs.length}</Text>
+          <Text style={styles.overviewValue}>{jobs.length}</Text>
         </View>
       </View>
 

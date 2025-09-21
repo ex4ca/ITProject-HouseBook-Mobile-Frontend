@@ -8,6 +8,8 @@ import {
   ActivityIndicator,
   Alert,
   LayoutAnimation,
+  Image,
+  ScrollView,
 } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import {
@@ -125,8 +127,72 @@ const PropertyRequestsScreen = ({
   navigation: any;
 }) => {
   const { propertyId } = route.params || {};
+  const [simulating, setSimulating] = useState(false);
   const [loading, setLoading] = useState(true);
   const [requests, setRequests] = useState<PendingRequest[]>([]);
+
+  // If no propertyId is provided, show the Add Property (QR scan) UI
+  if (!propertyId) {
+    const handleSimulateScan = () => {
+      Alert.alert(
+        "Simulate QR Scan",
+        "This will simulate scanning a property's QR code and open a sample property.",
+        [
+          { text: "Cancel", style: "cancel" },
+          {
+            text: "Open Sample",
+            onPress: () =>
+              navigation.navigate("PropertyDetails", {
+                propertyId: "sample-property-id",
+                isOwner: false,
+              }),
+          },
+        ]
+      );
+    };
+
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.header}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}
+          >
+            <ChevronLeft size={24} color={PALETTE.textPrimary} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Add Property</Text>
+          <View style={{ width: 40 }} />
+        </View>
+        <ScrollView
+          contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.scanCard}>
+            <Text style={styles.scanTitle}>Scan QR Code</Text>
+            <View style={styles.dottedBox}>
+              <Image
+                source={{ uri: 'https://placehold.co/240x240/EFEFF4/111827?text=QR' }}
+                style={styles.qrImage}
+              />
+              <Text style={{ marginTop: 12, color: PALETTE.textSecondary }}>
+                Point camera at QR code
+              </Text>
+            </View>
+            <Text style={[styles.emptyText, { marginTop: 12, textAlign: 'center' }]}> 
+              Scan the QR code provided by the property owner to access the property details.
+            </Text>
+
+            <TouchableOpacity
+              style={styles.simulateButton}
+              onPress={handleSimulateScan}
+            >
+              <Text style={styles.simulateButtonText}>Simulate QR Scan</Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      </SafeAreaView>
+    );
+  }
 
   useFocusEffect(
     useCallback(() => {

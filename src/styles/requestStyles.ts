@@ -138,7 +138,7 @@ export const propertyRequestsStyles = StyleSheet.create({
   scanCard: {
     backgroundColor: PALETTE.card,
     borderRadius: STYLES.borderRadius.medium,
-    padding: 16,
+    padding: 12,
     alignItems: 'center',
     borderWidth: 1,
     borderColor: PALETTE.border,
@@ -150,7 +150,8 @@ export const propertyRequestsStyles = StyleSheet.create({
     marginBottom: 12,
   },
   dottedBox: {
-    width: '100%',
+    width: '70%',
+    maxWidth: 220,
     aspectRatio: 1,
     borderStyle: 'dashed',
     borderWidth: 2,
@@ -159,10 +160,11 @@ export const propertyRequestsStyles = StyleSheet.create({
     backgroundColor: '#F6F6F8',
     justifyContent: 'center',
     alignItems: 'center',
+    padding: 8,
   },
   qrImage: {
-    width: 120,
-    height: 120,
+    width: 88,
+    height: 88,
     resizeMode: 'contain',
   },
   simulateButton: {

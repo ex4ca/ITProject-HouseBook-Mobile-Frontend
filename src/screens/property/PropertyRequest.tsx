@@ -164,6 +164,7 @@ const PropertyRequestsScreen = ({
           <View style={{ width: 40 }} />
         </View>
         <ScrollView
+          style={{ flex: 1 }}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
         >

@@ -19,26 +19,29 @@ export const fetchPendingRequests = async (propertyId: string): Promise<PendingR
         )
       `)
       .eq('status', 'PENDING')
-      .eq('Assets.Spaces.property_id', propertyId);
+      .eq('Assets.Spaces.Property.property_id', propertyId);
 
     if (error) {
         console.error("Error fetching requests:", error.message);
         return [];
     }
 
-    // Transform the response to match PendingRequest with proper error handling
-    return (data || []).map(item => {
-        // Safely extract nested data with fallbacks
-        const asset = item.Assets?.[0];
-        const space = asset?.Spaces?.[0];
-        const property = space?.Property?.[0];
+    // Using 'any' to bypass Supabase's complex type inference issues
+    const anyData = data as any[];
+
+    // CORRECTED: This mapping now expects nested objects instead of arrays,
+    // which matches the data structure returned by the '!inner' join.
+    return (anyData || []).map(item => {
+        const asset = item.Assets;
+        const space = asset?.Spaces;
+        const property = space?.Property;
         
         return {
             id: item.id,
             change_description: item.change_description,
             specifications: item.specifications,
             created_at: item.created_at,
-            User: item.User?.[0] || null,
+            User: item.User, // User is also a direct object
             Assets: {
                 description: asset?.description || 'No description',
                 Spaces: {

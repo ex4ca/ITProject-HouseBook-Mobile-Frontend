@@ -25,7 +25,6 @@ function AuthNavigator() {
 
 // The root component of the application.
 export default function App() {
-  // TypeScript can infer these types from the initial values (null and true).
   const [session, setSession] = useState<Session | null>(null);
   const [userRole, setUserRole] = useState<UserRole | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
@@ -64,36 +63,29 @@ export default function App() {
   };
 
   useEffect(() => {
-    // Check for an existing session on app startup.
-    const initializeApp = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
+    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
-      if (session?.user) {
-        const role = await fetchUserRole(session.user);
-        setUserRole(role);
-      }
-      setLoading(false);
-    };
-    initializeApp();
+    });
 
-    // Listen for authentication changes (sign in, sign out).
-    const { data: authListener } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      setSession(session);
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
+  }, []);
+
+  useEffect(() => {
+    const fetchRoleAndSetLoading = async () => {
       if (session?.user) {
         const role = await fetchUserRole(session.user);
         setUserRole(role);
       } else {
         setUserRole(null);
       }
-    });
-
-    // Cleanup the listener on component unmount.
-    return () => {
-      authListener.subscription.unsubscribe();
+      setLoading(false);
     };
-  }, []);
 
-  // Optionally, render a splash screen while loading.
+    fetchRoleAndSetLoading();
+  }, [session]); 
+
   if (loading) {
     return null;
   }

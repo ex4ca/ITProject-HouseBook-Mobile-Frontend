@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useMemo } from "react";
 import {
   View,
   Text,
@@ -6,14 +6,16 @@ import {
   SafeAreaView,
   ScrollView,
   ActivityIndicator,
+  Alert,
 } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
-import { ChevronLeft, Settings } from "lucide-react-native";
+import { ChevronLeft, Settings, CheckCircle, XCircle } from "lucide-react-native";
 
 import {
   fetchMyProfile,
   fetchPropertyOwner,
   fetchPropertyTradies,
+  updateTradieStatus,
 } from "../../services/FetchAuthority";
 import type { UserProfile, Tradie } from "../../types";
 import { authorityStyles as styles } from "../../styles/authorityStyles";
@@ -60,7 +62,7 @@ const AuthorityManagementCard = ({ tradies }: { tradies: Tradie[] }) => (
           .map((n) => n[0])
           .join("");
         return (
-          <View key={tradie.id} style={styles.userRow}>
+          <View key={tradie.connectionId} style={styles.userRow}>
             <View style={styles.userInfo}>
               <View style={styles.smallAvatar}>
                 <Text>{initials}</Text>
@@ -79,12 +81,71 @@ const AuthorityManagementCard = ({ tradies }: { tradies: Tradie[] }) => (
         );
       })
     ) : (
-      <Text>No tradies have been added to this property yet.</Text>
+      <Text style={styles.emptyText}>
+        No tradies have been approved for this property yet.
+      </Text>
     )}
   </View>
 );
 
-// --- MAIN SCREEN COMPONENT ---
+const PendingRequestsCard = ({
+  tradies,
+  onUpdate,
+}: {
+  tradies: Tradie[];
+  onUpdate: (rowId: string, status: "approved" | "revoked") => void;
+}) => {
+  if (tradies.length === 0) {
+    return null;
+  }
+
+  return (
+    <View style={styles.section}>
+      <Text style={styles.sectionTitle}>Pending Requests</Text>
+      {tradies.map((tradie) => {
+        const initials = tradie.name
+          .split(" ")
+          .map((n) => n[0])
+          .join("");
+        return (
+          // Use the 'userRow' style to place items on the same line
+          <View key={tradie.connectionId} style={styles.userRow}>
+            <View style={styles.userInfo}>
+              <View style={styles.smallAvatar}>
+                <Text>{initials}</Text>
+              </View>
+              <Text style={styles.userRowName}>{tradie.name}</Text>
+            </View>
+            {/* Action buttons are now direct children of the flex row */}
+            <View style={styles.actionButtons}>
+              <TouchableOpacity
+                style={[styles.statusButton, styles.declineButton]}
+                onPress={() => onUpdate(tradie.connectionId, "revoked")}
+              >
+                <XCircle size={18} color={PALETTE.danger} />
+                <Text style={[styles.statusButtonText, { color: PALETTE.danger }]}>
+                  Decline
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.statusButton, styles.acceptButton]}
+                onPress={() => onUpdate(tradie.connectionId, "approved")}
+              >
+                <CheckCircle size={18} color={PALETTE.success} />
+                <Text style={[styles.statusButtonText, { color: PALETTE.success }]}>
+                  Accept
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        );
+      })}
+    </View>
+  );
+};
+
+
+// --- MAIN SCREEN COMPONENT (No logic changes) ---
 
 const Role = ({ route, navigation }: { route: any; navigation: any }) => {
   const { propertyId, isOwner } = route.params || {};
@@ -94,24 +155,68 @@ const Role = ({ route, navigation }: { route: any; navigation: any }) => {
   const [propertyOwner, setPropertyOwner] = useState<UserProfile | null>(null);
   const [tradies, setTradies] = useState<Tradie[]>([]);
 
+  const approvedTradies = useMemo(
+    () => tradies.filter((t) => t.status === "approved"),
+    [tradies]
+  );
+  const pendingTradies = useMemo(
+    () => tradies.filter((t) => t.status === "pending_approval"),
+    [tradies]
+  );
+
   useFocusEffect(
     useCallback(() => {
       const fetchData = async () => {
         setLoading(true);
-        // Fetch all required data in parallel for performance.
-        const [profile, owner, tradieList] = await Promise.all([
-          fetchMyProfile(),
-          isOwner ? Promise.resolve(null) : fetchPropertyOwner(propertyId),
-          isOwner ? fetchPropertyTradies(propertyId) : Promise.resolve([]),
-        ]);
-        setMyProfile(profile);
-        setPropertyOwner(owner);
-        setTradies(tradieList);
-        setLoading(false);
+        try {
+          if (!propertyId) {
+             setTradies([]);
+             setPropertyOwner(null);
+             const profile = await fetchMyProfile();
+             setMyProfile(profile);
+             return;
+          }
+
+          const [profile, owner, tradieList] = await Promise.all([
+            fetchMyProfile(),
+            isOwner ? Promise.resolve(null) : fetchPropertyOwner(propertyId),
+            isOwner ? fetchPropertyTradies(propertyId) : Promise.resolve([]),
+          ]);
+          setMyProfile(profile);
+          setPropertyOwner(owner);
+          setTradies(tradieList || []); 
+        } catch (error) {
+          console.error("Failed to fetch authority data:", error);
+          Alert.alert("Error", "Could not load the authority data.");
+        } finally {
+          setLoading(false);
+        }
       };
+
       fetchData();
     }, [propertyId, isOwner])
   );
+
+  const handleUpdateStatus = async (
+    rowId: string,
+    status: "approved" | "revoked"
+  ) => {
+    try {
+      await updateTradieStatus(rowId, status);
+      if (status === "revoked") {
+        setTradies((prev) => prev.filter((t) => t.connectionId !== rowId));
+      } else {
+        setTradies((prev) =>
+          prev.map((t) => (t.connectionId === rowId ? { ...t, status: "approved" } : t))
+        );
+      }
+    } catch (error: any) {
+      Alert.alert(
+        "Error",
+        "Could not update the tradie's status. Please try again."
+      );
+    }
+  };
 
   if (loading) {
     return (
@@ -156,7 +261,15 @@ const Role = ({ route, navigation }: { route: any; navigation: any }) => {
 
         {!isOwner && <PropertyOwnerCard owner={propertyOwner} />}
 
-        {isOwner && <AuthorityManagementCard tradies={tradies} />}
+        {isOwner && (
+          <>
+            <PendingRequestsCard
+              tradies={pendingTradies}
+              onUpdate={handleUpdateStatus}
+            />
+            <AuthorityManagementCard tradies={approvedTradies} />
+          </>
+        )}
       </ScrollView>
     </SafeAreaView>
   );

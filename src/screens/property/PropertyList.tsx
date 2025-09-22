@@ -110,6 +110,11 @@ const PropertyList = ({ navigation }: { navigation: any }) => {
             )}
           </View>
           
+          {/* Activity Status */}
+          <Text style={styles.propertyAddress} numberOfLines={1}>
+            {item.isActive ? 'Active' : 'Inactive'}
+          </Text>
+          
           {/* Address */}
           <Text style={styles.propertyAddress} numberOfLines={2}>
              📍 {item.address}

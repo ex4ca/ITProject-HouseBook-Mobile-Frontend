@@ -11,6 +11,7 @@ export type Property = {
   status?: string;
   last_updated?: string;
   completionStatus?: number;
+  isActive?: boolean;
 };
 
 // Defines the shape of a user profile. The 'id' here is the user_id.

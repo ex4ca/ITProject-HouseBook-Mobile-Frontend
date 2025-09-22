@@ -11,6 +11,7 @@ export type Property = {
   status?: string;
   last_updated?: string;
   completionStatus?: number;
+  isActive?: boolean;
 };
 
 export interface AssetFeature {

@@ -1,7 +1,6 @@
 export type RootStackParamList = {
   Main: undefined;
   PropertyDetails: { propertyId: string; isOwner: boolean };
-  // Add other stack screens here...
   AssetAdd: undefined;
 };
 

@@ -4,72 +4,44 @@ import { createStackNavigator } from '@react-navigation/stack';
 import { StatusBar } from 'expo-status-bar';
 import { supabase } from './src/config/supabaseClient';
 import type { Session, User } from '@supabase/supabase-js';
-import type { UserRole } from './src/types/index';
+import type { UserRole } from './src/types';
 
 // Navigators
 import AppNavigator from './src/navigation/AppNavigator';
-
 // Screens
 import AuthScreen from './src/screens/auth/AuthScreen';
 
 const Stack = createStackNavigator();
 
-// Handles the authentication flow for unauthenticated users.
-function AuthNavigator() {
+function AuthNavigator({ onSuccessfulLogin }: { onSuccessfulLogin: (role: UserRole) => void }) {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="Auth" component={AuthScreen} />
+      <Stack.Screen name="Auth">
+        {(props) => <AuthScreen {...props} onSuccessfulLogin={onSuccessfulLogin} />}
+      </Stack.Screen>
     </Stack.Navigator>
   );
 }
 
-// The root component of the application.
 export default function App() {
   const [session, setSession] = useState<Session | null>(null);
   const [userRole, setUserRole] = useState<UserRole | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
 
-  // This function checks the database to determine if a user is an 'owner' or 'tradie'.
-  const fetchUserRole = async (user: User): Promise<UserRole | null> => {
-    // Prefer Tradesperson check first so users who have both records aren't forced to owner flow.
-    try {
-      const { count: tradieCount, error: tradieError } = await supabase
-        .from('Tradesperson')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', user.id);
-
-      if (tradieError) {
-        console.error('Error checking tradie table:', tradieError);
-      }
-      if (tradieCount && tradieCount > 0) {
-        console.debug(`fetchUserRole: user ${user.id} is a tradie (count=${tradieCount})`);
-        return 'tradie';
-      }
-
-      // If not a tradie, check Owner table next.
-      const { count: ownerCount, error: ownerError } = await supabase
-        .from('Owner')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', user.id);
-
-      if (ownerError) {
-        console.error('Error checking owner table:', ownerError);
-      }
-      if (ownerCount && ownerCount > 0) {
-        console.debug(`fetchUserRole: user ${user.id} is an owner (count=${ownerCount})`);
-        return 'owner';
-      }
-    } catch (err) {
-      console.error('fetchUserRole unexpected error:', err);
-      return null;
-    }
-
-    return null;
-  };
-
   useEffect(() => {
+    const getInitialSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setSession(session);
+      setLoading(false);
+    };
+    
+    getInitialSession();
+
     const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
+      if (!session) {
+        setUserRole(null);
+      }
     });
 
     return () => {
@@ -77,21 +49,9 @@ export default function App() {
     };
   }, []);
 
-  useEffect(() => {
-    const fetchRoleAndSetLoading = async () => {
-      if (session?.user) {
-        const role = await fetchUserRole(session.user);
-        setUserRole(role);
-      } else {
-        setUserRole(null);
-      }
-      setLoading(false);
-    };
-
-    fetchRoleAndSetLoading();
-  }, [session]); 
-
-  // (debug logging removed)
+  const handleSuccessfulLogin = (role: UserRole) => {
+    setUserRole(role);
+  };
 
   if (loading) {
     return null;
@@ -103,7 +63,7 @@ export default function App() {
       {session && session.user && userRole ? (
         <AppNavigator userRole={userRole} />
       ) : (
-        <AuthNavigator />
+        <AuthNavigator onSuccessfulLogin={handleSuccessfulLogin} />
       )}
     </NavigationContainer>
   );

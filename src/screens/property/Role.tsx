@@ -108,7 +108,6 @@ const PendingRequestsCard = ({
           .map((n) => n[0])
           .join("");
         return (
-          // Use the 'userRow' style to place items on the same line
           <View key={tradie.connectionId} style={styles.userRow}>
             <View style={styles.userInfo}>
               <View style={styles.smallAvatar}>
@@ -116,7 +115,6 @@ const PendingRequestsCard = ({
               </View>
               <Text style={styles.userRowName}>{tradie.name}</Text>
             </View>
-            {/* Action buttons are now direct children of the flex row */}
             <View style={styles.actionButtons}>
               <TouchableOpacity
                 style={[styles.statusButton, styles.declineButton]}
@@ -145,7 +143,7 @@ const PendingRequestsCard = ({
 };
 
 
-// --- MAIN SCREEN COMPONENT (No logic changes) ---
+// --- MAIN SCREEN COMPONENT ---
 
 const Role = ({ route, navigation }: { route: any; navigation: any }) => {
   const { propertyId, isOwner } = route.params || {};

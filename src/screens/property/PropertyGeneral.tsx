@@ -1,3 +1,6 @@
+import * as ImagePicker from "expo-image-picker";
+import { uploadPropertyImagesRN, getPropertyImages } from "../../services/Property";
+
 import React, { useState, useCallback, useMemo } from "react";
 import {
   View,
@@ -20,7 +23,6 @@ import {
   Car,
 } from "lucide-react-native";
 
-// Import the new, separated logic and styles
 import { fetchPropertyGeneralData } from "../../services/Property";
 import { propertyGeneralStyles as styles } from "../../styles/propertyGeneralStyles";
 import { PALETTE } from "../../styles/palette";
@@ -28,16 +30,12 @@ import type { PropertyGeneral } from "../../types";
 
 const { width } = Dimensions.get("window");
 
-// Define the shape of the navigation props
 interface PropertyGeneralScreenProps {
   route: { params?: { propertyId?: string } };
   navigation: any;
 }
 
-const PropertyGeneralScreen = ({
-  route,
-  navigation,
-}: PropertyGeneralScreenProps) => {
+const PropertyGeneralScreen = ({ route, navigation }: PropertyGeneralScreenProps) => {
   const { propertyId } = route.params || {};
 
   const [loading, setLoading] = useState(true);
@@ -50,43 +48,41 @@ const PropertyGeneralScreen = ({
   useFocusEffect(
     useCallback(() => {
       const loadData = async () => {
-        if (propertyId) {
-          setLoading(true);
-          try {
-            const propertyData = await fetchPropertyGeneralData(propertyId);
-            if (propertyData) {
-              setProperty(propertyData);
+        if (!propertyId) {
+          setLoading(false);
+          return;
+        }
+        setLoading(true);
+        try {
+          const propertyData = await fetchPropertyGeneralData(propertyId);
+          if (propertyData) {
+            setProperty(propertyData);
 
-              const counts = (propertyData.Spaces || []).reduce(
-                (acc, space) => {
-                  const type = space.type.toLowerCase();
-                  acc[type] = (acc[type] || 0) + 1;
-                  return acc;
-                },
-                {} as Record<string, number>
-              );
-              setSpaceCounts(counts);
+            // Build space counts
+            const counts = (propertyData.Spaces || []).reduce((acc, s) => {
+              const type = (s.type || "").toLowerCase();
+              if (!type) return acc;
+              acc[type] = (acc[type] || 0) + 1;
+              return acc;
+            }, {} as Record<string, number>);
+            setSpaceCounts(counts);
 
-              const formattedImages = (propertyData.PropertyImages || []).map(
-                (img, index) => ({
-                  id: `${propertyId}-${index}`,
-                  uri: img.image_link,
-                  title: img.image_name,
-                })
-              );
-              setPropertyImages(
-                formattedImages.length > 0
-                  ? formattedImages
-                  : getPlaceholderImages()
-              );
-            }
-          } catch (err: any) {
-            console.error("Error loading general property data:", err.message);
-            setPropertyImages(getPlaceholderImages());
-          } finally {
-            setLoading(false);
+            // Map images -> FlatList items; fall back to placeholders if none
+            const formattedImages =
+              (propertyData.PropertyImages || []).map((img, index) => ({
+                id: img.id || `${propertyId}-${index}`,
+                uri: img.image_link || null,
+                title: img.image_name || `Image ${index + 1}`,
+              })) || [];
+
+            setPropertyImages(
+              formattedImages.length > 0 ? formattedImages : getPlaceholderImages()
+            );
           }
-        } else {
+        } catch (err: any) {
+          console.error("Error loading general property data:", err?.message || err);
+          setPropertyImages(getPlaceholderImages());
+        } finally {
           setLoading(false);
         }
       };
@@ -110,7 +106,7 @@ const PropertyGeneralScreen = ({
     const stats = Object.entries(spaceCounts).map(([type, count]) => ({
       icon: iconMap[type] || <HomeIcon color={PALETTE.primary} size={20} />,
       label: `${type.charAt(0).toUpperCase() + type.slice(1)}s`,
-      value: count.toString(),
+      value: String(count),
     }));
     if (property?.total_floor_area) {
       stats.push({
@@ -151,10 +147,7 @@ const PropertyGeneralScreen = ({
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
           <ChevronLeft size={24} color={PALETTE.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle} numberOfLines={1}>
@@ -164,26 +157,45 @@ const PropertyGeneralScreen = ({
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false}>
+        {/* Image carousel */}
         <View style={styles.imageSection}>
           <FlatList
             data={propertyImages}
             renderItem={({ item }) => (
               <View style={styles.imageSlide}>
-                <Image
-                  source={{ uri: item.uri }}
-                  style={styles.propertyImage}
-                />
+                {item.uri ? (
+                  <Image source={{ uri: item.uri }} style={styles.propertyImage} />
+                ) : (
+                  <View
+                    style={[
+                      styles.propertyImage,
+                      {
+                        alignItems: "center",
+                        justifyContent: "center",
+                        backgroundColor: "#eee",
+                      },
+                    ]}
+                  >
+                    <Text style={{ color: "#888" }}>{item.title}</Text>
+                  </View>
+                )}
               </View>
             )}
             keyExtractor={(item) => item.id}
             horizontal
             pagingEnabled
             showsHorizontalScrollIndicator={false}
+            snapToAlignment="center"
+            decelerationRate="fast"
+            snapToInterval={width}
           />
         </View>
+
+        {/* Details */}
         <View style={styles.detailsContainer}>
           <Text style={styles.propertyName}>{property.name}</Text>
           <Text style={styles.propertyAddress}>{property.address}</Text>
+
           <View style={styles.detailsCard}>
             <Text style={styles.cardTitle}>Property Details</Text>
             <View style={styles.statsGrid}>
@@ -198,7 +210,8 @@ const PropertyGeneralScreen = ({
               ))}
             </View>
           </View>
-          {property.description && (
+
+          {!!property.description && (
             <View style={styles.detailsCard}>
               <Text style={styles.cardTitle}>Description</Text>
               <Text style={styles.descriptionText}>{property.description}</Text>
@@ -210,4 +223,47 @@ const PropertyGeneralScreen = ({
   );
 };
 
+const handleAddImage = async () => {
+  const res = await ImagePicker.launchImageLibraryAsync({
+    allowsMultipleSelection: true,
+    mediaTypes: ImagePicker.MediaTypeOptions.Images,
+    quality: 0.9,
+  });
+
+  if (!res.canceled) {
+    const files = res.assets.map((a) => ({
+      uri: a.uri,
+      name: a.fileName ?? `img-${Date.now()}.png`,
+      type: a.mimeType ?? "image/png",
+    }));
+    await uploadPropertyImagesRN(propertyId, files);
+
+    // refresh UI after upload
+    const refreshed = await getPropertyImages(propertyId);
+    setPropertyImages(
+      refreshed.map((img) => ({
+        id: img.id,
+        uri: img.image_link,
+        title: img.image_name,
+      }))
+    );
+  }
+};
+
+<TouchableOpacity
+  style={{
+    margin: 16,
+    padding: 12,
+    backgroundColor: PALETTE.primary,
+    borderRadius: 8,
+    alignItems: "center",
+  }}
+  onPress={handleAddImage}
+>
+  <Text style={{ color: "white", fontWeight: "bold" }}>Add Property Image</Text>
+</TouchableOpacity>
+
+
+
 export default PropertyGeneralScreen;
+

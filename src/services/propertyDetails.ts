@@ -6,7 +6,7 @@ export const fetchPropertyDetails = async (propertyId: string): Promise<Property
     const { data, error } = await supabase
       .from('Property')
       .select(`
-        Spaces (id, name, Assets (id, description, ChangeLog (id, specifications, change_description, created_at, status, User!ChangeLog_changed_by_user_id_fkey(first_name, last_name))))
+        Spaces (id, name, Assets (id, description, asset_type_id, ChangeLog (id, specifications, change_description, created_at, status, User!ChangeLog_changed_by_user_id_fkey(first_name, last_name))))
       `)
       .eq('property_id', propertyId)
       .single();
@@ -15,7 +15,7 @@ export const fetchPropertyDetails = async (propertyId: string): Promise<Property
         console.error("Error fetching property details:", error.message);
         return null;
     }
-    return data;
+    return data as unknown as PropertyDetailsData;
 };
 
 // Adds a new space to a property.

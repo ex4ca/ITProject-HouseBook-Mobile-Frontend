@@ -51,4 +51,8 @@ export const propertyDetailsStyles = StyleSheet.create({
   removeRowButton: { padding: 6, flexShrink: 0 },
   addRowButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: 12, marginTop: 8 },
   addRowButtonText: { marginLeft: 8, color: PALETTE.primary, fontWeight: '500' },
+  sortModeButton: { paddingVertical: 8, paddingHorizontal: 12, backgroundColor: PALETTE.primary, borderRadius: STYLES.borderRadius.small },
+  sortModeButtonText: { color: PALETTE.card, fontSize: 14, fontWeight: '600' },
+  disciplineSpaceContainer: { marginBottom: 20 },
+  disciplineSpaceTitle: { fontSize: 20, fontWeight: '600', color: PALETTE.textPrimary, marginBottom: 12, paddingHorizontal: 4 },
 });

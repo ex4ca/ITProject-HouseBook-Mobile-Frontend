@@ -71,6 +71,14 @@ const AuthScreen = ({ onSuccessfulLogin }: AuthScreenProps) => {
       Alert.alert("Invalid Last Name", "Last name can only contain letters, spaces, hyphens, and apostrophes.");
       return;
     }
+    if (!email.match(/^[\w-]+(\.[\w-]+)*@([\w-]+\.)+[a-zA-Z]{2,7}$/)) {
+      Alert.alert("Invalid Email", "Please enter a valid email address.");
+      return;
+    }
+    if (!phone.match(/^[0-9]{2,4}[- ]?[0-9]{3,4}[- ]?[0-9]{3,4}$/)) {
+      Alert.alert("Invalid Phone Number", "Please enter a valid phone number.");
+      return;
+    }
 
     setLoading(true);
     try {

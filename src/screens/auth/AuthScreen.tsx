@@ -23,6 +23,7 @@ interface AuthScreenProps {
 }
 
 const AuthScreen = ({ onSuccessfulLogin }: AuthScreenProps) => {
+  const MINPASSWORDLEN = 6;
   const [activeTab, setActiveTab] = useState("login");
   const [userType, setUserType] = useState<UserRole>("owner");
   const [email, setEmail] = useState("");
@@ -79,6 +80,26 @@ const AuthScreen = ({ onSuccessfulLogin }: AuthScreenProps) => {
       Alert.alert("Invalid Phone Number", "Please enter a valid phone number.");
       return;
     }
+    if (password.length < MINPASSWORDLEN) {
+      Alert.alert("Weak Password", `Password must be at least ${MINPASSWORDLEN} characters long.`);
+      return;
+    }
+    if (!password.match(/[A-Z]/)) {
+      Alert.alert("Weak Password", "Password must contain at least one uppercase letter.");
+      return;
+    }
+    if (!password.match(/[a-z]/)) {
+      Alert.alert("Weak Password", "Password must contain at least one lowercase letter.");
+      return;
+    }
+    if (!password.match(/[0-9]/)) {
+      Alert.alert("Weak Password", "Password must contain at least one number.");
+      return;
+    }
+    if (!password.match(/[!@#$%^&*(),.?":{}|<>]/)) {
+      Alert.alert("Weak Password", "Password must contain at least one special character.");
+      return;
+    }
 
     setLoading(true);
     try {
@@ -99,7 +120,6 @@ const AuthScreen = ({ onSuccessfulLogin }: AuthScreenProps) => {
     }
   };
 
-  // ... rest of your component remains the same
   const renderLoginForm = () => (
     <View style={styles.formContainer}>
       <View style={styles.inputGroup}>

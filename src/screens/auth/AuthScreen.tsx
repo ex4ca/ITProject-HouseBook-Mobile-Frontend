@@ -24,6 +24,9 @@ interface AuthScreenProps {
 
 const AuthScreen = ({ onSuccessfulLogin }: AuthScreenProps) => {
   const MINPASSWORDLEN = 6;
+  const MAXEMAILLEN = 254;
+  const MAXNAMELEN = 50;
+  const MAXPASSWORDLEN = 128;
   const [activeTab, setActiveTab] = useState("login");
   const [userType, setUserType] = useState<UserRole>("owner");
   const [email, setEmail] = useState("");
@@ -98,6 +101,22 @@ const AuthScreen = ({ onSuccessfulLogin }: AuthScreenProps) => {
     }
     if (!password.match(/[!@#$%^&*(),.?":{}|<>]/)) {
       Alert.alert("Weak Password", "Password must contain at least one special character.");
+      return;
+    }
+    if (email.length > MAXEMAILLEN) {
+      Alert.alert("Input Too Long", `Email cannot exceed ${MAXEMAILLEN} characters.`);
+      return;
+    }
+    if (firstName.length > MAXNAMELEN) {
+      Alert.alert("Input Too Long", `First name cannot exceed ${MAXNAMELEN} characters.`);
+      return;
+    }
+    if (lastName.length > MAXNAMELEN) {
+      Alert.alert("Input Too Long", `Last name cannot exceed ${MAXNAMELEN} characters.`);
+      return;
+    }
+    if (password.length > MAXPASSWORDLEN) {
+      Alert.alert("Input Too Long", `Password cannot exceed ${MAXPASSWORDLEN} characters.`);
       return;
     }
 

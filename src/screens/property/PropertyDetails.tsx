@@ -335,7 +335,7 @@ const PropertyDetails = ({
     const specsArray = Object.entries(latestSpecs).map(
       ([key, value], index) => ({
         id: index,
-        key: value as string,
+        key: key.charAt(0).toUpperCase() + key.slice(1),
         value: value as string,
       })
     );

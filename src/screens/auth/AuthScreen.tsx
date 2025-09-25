@@ -22,17 +22,15 @@ interface AuthScreenProps {
   onSuccessfulLogin: (role: UserRole) => void;
 }
 
-const AuthScreen = ({ onSuccessfulLogin }: AuthScreenProps) => { // Remove navigation prop
+const AuthScreen = ({ onSuccessfulLogin }: AuthScreenProps) => {
   const [activeTab, setActiveTab] = useState("login");
   const [userType, setUserType] = useState<UserRole>("owner");
-
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [phone, setPhone] = useState("");
-
   const [agreeToTerms, setAgreeToTerms] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -63,6 +61,14 @@ const AuthScreen = ({ onSuccessfulLogin }: AuthScreenProps) => { // Remove navig
     }
     if (!agreeToTerms) {
       Alert.alert("Terms and Conditions", "You must agree to the terms to continue.");
+      return;
+    }
+    if (!firstName.match(/^[\p{L}]+(?:[\s'-][\p{L}]+)$/u)) {
+      Alert.alert("Invalid First Name", "First name can only contain letters, spaces, hyphens, and apostrophes.");
+      return;
+    }
+    if (!lastName.match(/^[\p{L}]+(?:[\s'-][\p{L}]+)$/u)) {
+      Alert.alert("Invalid Last Name", "Last name can only contain letters, spaces, hyphens, and apostrophes.");
       return;
     }
 

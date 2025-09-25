@@ -67,11 +67,11 @@ const AuthScreen = ({ onSuccessfulLogin }: AuthScreenProps) => {
       Alert.alert("Terms and Conditions", "You must agree to the terms to continue.");
       return;
     }
-    if (!firstName.match(/^[\p{L}]+(?:[\s'-][\p{L}]+)$/u)) {
+    if (!firstName.trim().match(/^[\p{L}]+(?:[\s'-][\p{L}]+)$/u)) {
       Alert.alert("Invalid First Name", "First name can only contain letters, spaces, hyphens, and apostrophes.");
       return;
     }
-    if (!lastName.match(/^[\p{L}]+(?:[\s'-][\p{L}]+)$/u)) {
+    if (!lastName.trim().match(/^[\p{L}]+(?:[\s'-][\p{L}]+)$/u)) {
       Alert.alert("Invalid Last Name", "Last name can only contain letters, spaces, hyphens, and apostrophes.");
       return;
     }

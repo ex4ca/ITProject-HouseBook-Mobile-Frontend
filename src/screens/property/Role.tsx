@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from "react";
+import React, { useState, useCallback } from "react";
 import {
   View,
   Text,
@@ -9,24 +9,21 @@ import {
   Alert,
 } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
-import { ChevronLeft, Settings, CheckCircle, XCircle } from "lucide-react-native";
+import { ChevronLeft, XCircle } from "lucide-react-native";
 
 import {
   fetchMyProfile,
   fetchPropertyOwner,
-  fetchPropertyTradies,
-  updateTradieStatus,
+  fetchActiveJobsForProperty,
+  endTradieJob,
 } from "../../services/FetchAuthority";
-import type { UserProfile, Tradie } from "../../types";
+import type { UserProfile, ActiveTradieJob } from "../../types";
 import { authorityStyles as styles } from "../../styles/authorityStyles";
 import { PALETTE } from "../../styles/palette";
 
 const MyProfileCard = ({ profile }: { profile: UserProfile | null }) => {
   if (!profile) return null;
-  const initials = profile.name
-    .split(" ")
-    .map((n) => n[0])
-    .join("");
+  const initials = profile.name.split(" ").map((n) => n[0]).join("");
   return (
     <View style={[styles.section, styles.userProfile]}>
       <View style={styles.avatar}>
@@ -52,137 +49,81 @@ const PropertyOwnerCard = ({ owner }: { owner: UserProfile | null }) => {
   );
 };
 
-const AuthorityManagementCard = ({ tradies }: { tradies: Tradie[] }) => (
+const AuthorityManagementCard = ({ 
+  jobs,
+  onEndSession 
+}: { 
+  jobs: ActiveTradieJob[],
+  onEndSession: (jobId: string, tradieName: string) => void,
+}) => (
   <View style={styles.section}>
-    <Text style={styles.sectionTitle}>Authority Management</Text>
-    {tradies.length > 0 ? (
-      tradies.map((tradie) => {
-        const initials = tradie.name
-          .split(" ")
-          .map((n) => n[0])
-          .join("");
+    <Text style={styles.sectionTitle}>Active on Property</Text>
+    {jobs.length > 0 ? (
+      jobs.map((job) => {
+        const initials = job.tradieName.split(" ").map((n) => n[0]).join("");
         return (
-          <View key={tradie.connectionId} style={styles.userRow}>
+          <View key={job.jobId} style={styles.userRow}>
             <View style={styles.userInfo}>
               <View style={styles.smallAvatar}>
                 <Text>{initials}</Text>
               </View>
               <View style={styles.userDetails}>
-                <Text style={styles.userRowName}>{tradie.name}</Text>
-                <Text style={styles.userStatus}>
-                  {tradie.status.replace("_", " ")}
-                </Text>
+                <Text style={styles.userRowName}>{job.tradieName}</Text>
+                <Text style={styles.userStatus}>Job: {job.jobTitle}</Text>
               </View>
             </View>
-            <TouchableOpacity style={styles.settingsButton}>
-              <Settings size={20} color={PALETTE.textSecondary} />
+            <TouchableOpacity 
+              style={[styles.statusButton, styles.endSessionButton]}
+              onPress={() => onEndSession(job.jobId, job.tradieName)}
+            >
+              <XCircle size={18} color={PALETTE.danger} />
+              <Text style={styles.endSessionButtonText}>End Session</Text>
             </TouchableOpacity>
           </View>
         );
       })
     ) : (
       <Text style={styles.emptyText}>
-        No tradies have been approved for this property yet.
+        No tradies are currently active on this property.
       </Text>
     )}
   </View>
 );
 
-const PendingRequestsCard = ({
-  tradies,
-  onUpdate,
-}: {
-  tradies: Tradie[];
-  onUpdate: (rowId: string, status: "approved" | "revoked") => void;
-}) => {
-  if (tradies.length === 0) {
-    return null;
-  }
-
-  return (
-    <View style={styles.section}>
-      <Text style={styles.sectionTitle}>Pending Requests</Text>
-      {tradies.map((tradie) => {
-        const initials = tradie.name
-          .split(" ")
-          .map((n) => n[0])
-          .join("");
-        return (
-          <View key={tradie.connectionId} style={styles.userRow}>
-            <View style={styles.userInfo}>
-              <View style={styles.smallAvatar}>
-                <Text>{initials}</Text>
-              </View>
-              <Text style={styles.userRowName}>{tradie.name}</Text>
-            </View>
-            <View style={styles.actionButtons}>
-              <TouchableOpacity
-                style={[styles.statusButton, styles.declineButton]}
-                onPress={() => onUpdate(tradie.connectionId, "revoked")}
-              >
-                <XCircle size={18} color={PALETTE.danger} />
-                <Text style={[styles.statusButtonText, { color: PALETTE.danger }]}>
-                  Decline
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.statusButton, styles.acceptButton]}
-                onPress={() => onUpdate(tradie.connectionId, "approved")}
-              >
-                <CheckCircle size={18} color={PALETTE.success} />
-                <Text style={[styles.statusButtonText, { color: PALETTE.success }]}>
-                  Accept
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        );
-      })}
-    </View>
-  );
-};
-
-
-// --- MAIN SCREEN COMPONENT ---
-
+/**
+ * The Role screen displays authority and management information for a property.
+ * Owners can see and manage active tradies, while tradies can see property owner details.
+ */
 const Role = ({ route, navigation }: { route: any; navigation: any }) => {
   const { propertyId, isOwner } = route.params || {};
 
   const [loading, setLoading] = useState(true);
   const [myProfile, setMyProfile] = useState<UserProfile | null>(null);
   const [propertyOwner, setPropertyOwner] = useState<UserProfile | null>(null);
-  const [tradies, setTradies] = useState<Tradie[]>([]);
+  const [activeJobs, setActiveJobs] = useState<ActiveTradieJob[]>([]);
 
-  const approvedTradies = useMemo(
-    () => tradies.filter((t) => t.status === "approved"),
-    [tradies]
-  );
-  const pendingTradies = useMemo(
-    () => tradies.filter((t) => t.status === "pending_approval"),
-    [tradies]
-  );
-
+  // Fetches all necessary data when the screen comes into focus.
   useFocusEffect(
     useCallback(() => {
       const fetchData = async () => {
         setLoading(true);
         try {
           if (!propertyId) {
-             setTradies([]);
+             setActiveJobs([]);
              setPropertyOwner(null);
              const profile = await fetchMyProfile();
              setMyProfile(profile);
              return;
           }
 
-          const [profile, owner, tradieList] = await Promise.all([
+          const [profile, owner, jobList] = await Promise.all([
             fetchMyProfile(),
             isOwner ? Promise.resolve(null) : fetchPropertyOwner(propertyId),
-            isOwner ? fetchPropertyTradies(propertyId) : Promise.resolve([]),
+            isOwner ? fetchActiveJobsForProperty(propertyId) : Promise.resolve([]),
           ]);
           setMyProfile(profile);
           setPropertyOwner(owner);
-          setTradies(tradieList || []); 
+          setActiveJobs(jobList || []); 
         } catch (error) {
           console.error("Failed to fetch authority data:", error);
           Alert.alert("Error", "Could not load the authority data.");
@@ -195,25 +136,31 @@ const Role = ({ route, navigation }: { route: any; navigation: any }) => {
     }, [propertyId, isOwner])
   );
 
-  const handleUpdateStatus = async (
-    rowId: string,
-    status: "approved" | "revoked"
-  ) => {
-    try {
-      await updateTradieStatus(rowId, status);
-      if (status === "revoked") {
-        setTradies((prev) => prev.filter((t) => t.connectionId !== rowId));
-      } else {
-        setTradies((prev) =>
-          prev.map((t) => (t.connectionId === rowId ? { ...t, status: "approved" } : t))
-        );
-      }
-    } catch (error: any) {
-      Alert.alert(
-        "Error",
-        "Could not update the tradie's status. Please try again."
-      );
-    }
+  /**
+   * Handles ending a tradie's session after owner confirmation.
+   * This will update the job's status in the database and remove it from the UI.
+   */
+  const handleEndSession = async (jobId: string, tradieName: string) => {
+    Alert.alert(
+      "End Session",
+      `Are you sure you want to end the session for ${tradieName}? This action cannot be undone.`,
+      [
+        { text: "Cancel", style: "cancel" },
+        { 
+          text: "End Session", 
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await endTradieJob(jobId);
+              // Optimistically remove the job from the local state for a responsive UI.
+              setActiveJobs((prevJobs) => prevJobs.filter((job) => job.jobId !== jobId));
+            } catch (error) {
+              Alert.alert("Error", "Could not end the session. Please try again.");
+            }
+          }
+        }
+      ]
+    );
   };
 
   if (loading) {
@@ -256,17 +203,12 @@ const Role = ({ route, navigation }: { route: any; navigation: any }) => {
         showsVerticalScrollIndicator={false}
       >
         <MyProfileCard profile={myProfile} />
-
         {!isOwner && <PropertyOwnerCard owner={propertyOwner} />}
-
         {isOwner && (
-          <>
-            <PendingRequestsCard
-              tradies={pendingTradies}
-              onUpdate={handleUpdateStatus}
-            />
-            <AuthorityManagementCard tradies={approvedTradies} />
-          </>
+          <AuthorityManagementCard 
+            jobs={activeJobs}
+            onEndSession={handleEndSession}
+          />
         )}
       </ScrollView>
     </SafeAreaView>

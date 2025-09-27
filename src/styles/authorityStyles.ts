@@ -112,9 +112,6 @@ export const authorityStyles = StyleSheet.create({
     color: PALETTE.textSecondary,
     textTransform: 'capitalize',
   },
-  settingsButton: {
-    padding: 8,
-  },
   emptyText: {
     fontSize: 14,
     color: PALETTE.textSecondary,
@@ -122,31 +119,23 @@ export const authorityStyles = StyleSheet.create({
     paddingVertical: STYLES.spacing.md,
   },
   
-  // --- UPDATED & NEW STYLES for Pending Requests ---
-  actionButtons: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
   statusButton: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 8,
     paddingHorizontal: 12,
-    borderRadius: 20, 
+    borderRadius: 8,
     marginLeft: 8,
-    borderWidth: 1, 
+    borderWidth: 1,
   },
-  declineButton: {
+  endSessionButton: {
     backgroundColor: PALETTE.dangerBackground,
     borderColor: PALETTE.danger,
   },
-  acceptButton: {
-    backgroundColor: PALETTE.successBackground,
-    borderColor: PALETTE.success,
-  },
-  statusButtonText: {
+  endSessionButtonText: {
     marginLeft: 6,
     fontSize: 14,
     fontWeight: '600',
+    color: PALETTE.danger,
   },
 });

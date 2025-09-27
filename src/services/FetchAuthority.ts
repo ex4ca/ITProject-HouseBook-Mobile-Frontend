@@ -1,5 +1,5 @@
 import { supabase } from '../config/supabaseClient';
-import { UserProfile, Tradie, Property } from '../types';
+import { UserProfile, Tradie, Property, ActiveTradieJob } from '../types';
 
 // Fetches the profile of the currently logged-in user.
 export const fetchMyProfile = async (): Promise<UserProfile | null> => {
@@ -24,6 +24,54 @@ export const fetchMyProfile = async (): Promise<UserProfile | null> => {
         email: data.email,
         roles: [], 
     };
+};
+
+export const fetchActiveJobsForProperty = async (propertyId: string): Promise<ActiveTradieJob[]> => {
+    const { data, error } = await supabase
+        .from('Jobs')
+        .select(`
+            id,
+            title,
+            status,
+            Tradesperson (
+                tradie_id,
+                User (
+                    first_name,
+                    last_name
+                )
+            )
+        `)
+        .eq('property_id', propertyId)
+        .eq('status', 'ACCEPTED'); 
+
+    if (error) {
+        console.error("Error fetching active jobs:", error.message);
+        return [];
+    }
+    
+    const anyData = data as any[];
+
+    return anyData.map(job => {
+        const user = job.Tradesperson.User;
+        return {
+            jobId: job.id,
+            jobTitle: job.title,
+            tradieId: job.Tradesperson.tradie_id,
+            tradieName: `${user.first_name} ${user.last_name}`,
+        }
+    });
+};
+
+export const endTradieJob = async (jobId: string): Promise<void> => {
+    const { error } = await supabase
+        .from('Jobs')
+        .update({ status: 'REVOKED' }) 
+        .eq('id', jobId);
+
+    if (error) {
+        console.error("Error ending tradie job:", error.message);
+        throw new Error('Could not end the tradie session.');
+    }
 };
 
 // Fetches the list of all tradies and correctly maps to the Tradie type
@@ -60,22 +108,6 @@ export const fetchPropertyTradies = async (propertyId: string): Promise<Tradie[]
             roles: [], 
         }
     });
-};
-
-// Updates the status of a tradie's connection to a property.
-export const updateTradieStatus = async (
-  rowId: string,
-  status: 'approved' | 'revoked'
-): Promise<void> => {
-  const { error } = await supabase
-    .from('PropertyTradies')
-    .update({ status })
-    .eq('id', rowId);
-
-  if (error) {
-    console.error("Error updating tradie status:", error.message);
-    throw new Error('Could not update the tradie status.');
-  }
 };
 
 // Fetches the profile of the owner of a specific property.

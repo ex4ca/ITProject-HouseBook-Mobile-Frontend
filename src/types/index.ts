@@ -27,6 +27,14 @@ export interface Tradie extends UserProfile {
   status: string;
 }
 
+// NEW: Defines the shape for a tradie with an active job
+export interface ActiveTradieJob {
+  jobId: string;
+  jobTitle: string;
+  tradieId: string;
+  tradieName: string;
+}
+
 type GeneralAsset = {
   id: string;
   description: string;

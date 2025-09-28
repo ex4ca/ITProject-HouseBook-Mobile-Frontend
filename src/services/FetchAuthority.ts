@@ -281,3 +281,95 @@ export const claimJobByPropertyId = async (propertyId: string): Promise<{ succes
 
   return { success: true, message: 'Job successfully added to your list!' };
 };
+
+/**
+ * Fetches comprehensive details for a single job, including property info
+ * and a filtered list of assets linked specifically to this job.
+ * @param jobId The ID of the job to fetch.
+ */
+export const fetchJobDetails = async (jobId: string): Promise<any | null> => {
+  const { data, error } = await supabase
+    .from('Jobs')
+    .select(`
+      id,
+      title,
+      status,
+      Property (
+        property_id,
+        name,
+        address
+      ),
+      JobAssets (
+        Assets (
+          id,
+          description,
+          Spaces (
+            name
+          )
+        )
+      )
+    `)
+    .eq('id', jobId)
+    .single();
+
+  if (error) {
+    console.error('Error fetching job details:', error.message);
+    return null;
+  }
+
+  // The query returns nested data, so we can simplify it for the UI.
+  // The assets are already filtered by the database through the JobAssets join.
+  const jobDetails = {
+    ...data,
+    // Flatten the assets array for easier rendering
+    assets: data.JobAssets.map((ja: any) => ({
+        ...ja.Assets,
+        spaceName: ja.Assets.Spaces.name,
+    }))
+  };
+
+  return jobDetails;
+};
+
+export const claimJobWithPin = async (propertyId: string, pin: string): Promise<{ success: boolean; message: string }> => {
+  // First, get the current user's tradie ID.
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('You must be logged in to claim a job.');
+  
+  const { data: tradie, error: tradieError } = await supabase
+    .from('Tradesperson')
+    .select('tradie_id')
+    .eq('user_id', user.id)
+    .single();
+  
+  if (tradieError || !tradie) {
+    throw new Error('Could not identify your tradie profile.');
+  }
+
+  // Find a pending job that matches the property, pin, has no tradie, and is not expired.
+  const { data: pendingJob, error: findError } = await supabase
+    .from('Jobs')
+    .select('id')
+    .eq('property_id', propertyId)
+    .eq('pin', pin)
+    .is('tradie_id', null) 
+    .eq('expired', false) 
+    .limit(1)
+    .single();
+
+  if (findError || !pendingJob) {
+    return { success: false, message: 'Invalid PIN, the job is expired, or it has already been claimed.' };
+  }
+  // If found, update the job with the tradie's ID and set the status to 'accepted'.
+  const { error: updateError } = await supabase
+    .from('Jobs')
+    .update({ tradie_id: tradie.tradie_id, status: 'ACCEPTED' })
+    .eq('id', pendingJob.id);
+
+  if (updateError) {
+    console.error('Error claiming job:', updateError.message);
+    return { success: false, message: 'Failed to claim job. Please try again.' };
+  }
+
+  return { success: true, message: 'Job successfully added to your list!' };
+};

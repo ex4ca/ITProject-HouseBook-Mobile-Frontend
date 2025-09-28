@@ -51,16 +51,15 @@ export default function JobBoard() {
       item.name || "Job"
     )}`;
     
-    // Check if the job status is 'accepted' or another active status.
     const isActive = item.status && (item.status.toLowerCase() === "accepted" || item.status.toLowerCase() === "in_progress");
 
     return (
       <TouchableOpacity
         style={styles.propertyCard}
+        // Navigate to the new details screen, passing the job_id
         onPress={() =>
-          navigation.navigate("PropertyDetails", {
-            propertyId: item.property_id,
-            isOwner: false, // Tradie is never the owner in this context
+          navigation.navigate("TradieJobDetails", {
+            jobId: item.job_id,
           })
         }
       >
@@ -78,7 +77,6 @@ export default function JobBoard() {
               </View>
             )}
           </View>
-
           <Text style={styles.propertyAddress} numberOfLines={2}>
             📍 {item.address}
           </Text>
@@ -100,12 +98,9 @@ export default function JobBoard() {
           <Text style={styles.overviewValue}>{jobs.length}</Text>
         </View>
       </View>
-
-      {/* This button now opens the QR code scanner */}
       <View style={{ marginVertical: 12 }}>
         <Button text="Scan to Add New Job" onPress={() => navigation.navigate("QRScannerScreen")} />
       </View>
-
       <Text style={styles.listTitle}>My Jobs</Text>
     </>
   );

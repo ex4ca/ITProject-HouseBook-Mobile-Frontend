@@ -11,8 +11,7 @@ import PropertyControlNavigator from "./PropertyControlNavigator";
 import ComponentDetails from "../screens/property/ComponentDetails";
 import PropertyRequestsScreen from "../screens/property/PropertyRequest";
 import PropertyPin from "../screens/property/PropertyPin";
-// import QRScanner from '../screens/scanner/QRScanner';
-// import PinEntry from '../screens/scanner/PinEntry';
+import QRScannerScreen from '../screens/scanner/QRScannerScreen';
 
 const Stack = createStackNavigator();
 
@@ -31,9 +30,16 @@ function AppNavigator({ userRole }: AppNavigatorProps) {
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="Main" component={MainTabNavigator} />
       <Stack.Screen name="PropertyRequest" component={PropertyRequestsScreen} />
-  <Stack.Screen name="PropertyPin" component={PropertyPin} />
-      {/* <Stack.Screen name="Scanner" component={QRScanner} />
-      <Stack.Screen name="PinEntry" component={PinEntry} /> */}
+      <Stack.Screen name="PropertyPin" component={PropertyPin} />
+      
+      {/* Add the QR Scanner screen to the navigation stack */}
+      <Stack.Screen 
+        name="QRScannerScreen" 
+        component={QRScannerScreen} 
+        options={{ headerShown: true, title: 'Scan to Claim Job' }} // Make header visible for this screen
+      />
+
+      {/* <Stack.Screen name="PinEntry" component={PinEntry} /> */}
       <Stack.Screen
         name="PropertyDetails"
         component={PropertyControlNavigator}

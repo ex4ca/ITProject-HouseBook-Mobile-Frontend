@@ -186,30 +186,98 @@ export const fetchMyFirstName = async (): Promise<string | null> => {
     return data?.first_name || null;
 }
 
-// Fetch jobs (properties) assigned to the currently logged-in tradie.
-export const getJobsForTradie = async (tradieUserId: string): Promise<any[] | null> => {
+/**
+ * Fetches all jobs assigned to the currently logged-in tradie.
+ * This query joins the Jobs, Property, and Owner tables to provide comprehensive
+ * details for the job board.
+ */
+export const getJobsForTradie = async (tradieUserId: string): Promise<any[]> => {
+    const { data: tradieData, error: tradieError } = await supabase
+      .from('Tradesperson')
+      .select('tradie_id')
+      .eq('user_id', tradieUserId)
+      .single();
+
+    if (tradieError || !tradieData) {
+        console.error('Error fetching tradie profile:', tradieError?.message);
+        return [];
+    }
+
     const { data, error } = await supabase
-        .from('PropertyTradies')
+        .from('Jobs')
         .select(`
             id,
+            title,
             status,
-            Property ( property_id, name, address, status ),
-            Property!inner(OwnerProperty(Owner(User(user_id, first_name, last_name, email))))
+            Property (
+                property_id,
+                name,
+                address
+            )
         `)
-        .eq('tradie_user_id', tradieUserId);
+        .eq('tradie_id', tradieData.tradie_id);
 
     if (error) {
         console.error('Error fetching jobs for tradie:', error.message);
-        return null;
+        return [];
     }
 
-    if (!data) return [];
-
-    // Map to Property[] shape (approximate)
-    return data.map((row: any) => ({
-        property_id: row.Property?.property_id || row.id,
-        name: row.Property?.name || 'Property',
-        address: row.Property?.address || '',
-        status: row.status || row.Property?.status || '',
+    // Map the data to a flat structure for easier use in the UI component.
+    return data.map((job: any) => ({
+        job_id: job.id,
+        title: job.title,
+        status: job.status,
+        property_id: job.Property.property_id,
+        name: job.Property.name,
+        address: job.Property.address,
     }));
-}
+};
+
+/**
+ * Allows a tradie to claim a pending job by scanning a property's QR code.
+ * It checks if a job is available and assigns it to the current user.
+ * @param propertyId The ID of the property scanned from the QR code.
+ * @returns An object indicating success and a corresponding message.
+ */
+export const claimJobByPropertyId = async (propertyId: string): Promise<{ success: boolean; message: string }> => {
+  // First, find a job that is pending for the given property.
+  const { data: pendingJob, error: findError } = await supabase
+    .from('Jobs')
+    .select('id, tradie_id')
+    .eq('property_id', propertyId)
+    .eq('status', 'PENDING')
+    .limit(1)
+    .single();
+
+  if (findError || !pendingJob) {
+    return { success: false, message: 'No pending job found for this property, or the job has already been taken.' };
+  }
+
+  // Then, get the current user's tradie ID.
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('You must be logged in to claim a job.');
+  
+  const { data: tradie, error: tradieError } = await supabase
+    .from('Tradesperson')
+    .select('tradie_id')
+    .eq('user_id', user.id)
+    .single();
+  
+  if (tradieError || !tradie) {
+    throw new Error('Could not identify your tradie profile.');
+  }
+
+  // Finally, attempt to update the job with the tradie's ID and set the status to 'accepted'.
+  const { error: updateError } = await supabase
+    .from('Jobs')
+    .update({ tradie_id: tradie.tradie_id, status: 'accepted' })
+    .eq('id', pendingJob.id)
+    .eq('status', 'PENDING'); // Ensures atomicity
+
+  if (updateError) {
+    console.error('Error claiming job:', updateError.message);
+    return { success: false, message: 'Failed to claim job. Another tradie may have just accepted it.' };
+  }
+
+  return { success: true, message: 'Job successfully added to your list!' };
+};

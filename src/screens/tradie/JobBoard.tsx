@@ -15,41 +15,16 @@ import { PALETTE } from "../../styles/palette";
 import { getJobsForTradie } from "../../services/FetchAuthority";
 import { supabase } from "../../config/supabaseClient";
 
-const sampleJobs = [
-  {
-    id: "1",
-    name: "Oak Street Residence",
-    address: "123 Oak Street, Melbourne VIC 3000",
-    owner: "John Smith",
-    status: "in progress",
-  },
-  {
-    id: "2",
-    name: "Collins Street Office",
-    address: "456 Collins Street, Melbourne VIC 3000",
-    owner: "Sarah Johnson",
-    status: "completed",
-  },
-  {
-    id: "3",
-    name: "Beach Road Townhouse",
-    address: "789 Beach Road, St Kilda VIC 3182",
-    owner: "Mike Wilson",
-    status: "scheduled",
-  },
-];
-
 export default function JobBoard() {
   const navigation: any = useNavigation();
   const [loading, setLoading] = useState<boolean>(true);
   const [jobs, setJobs] = useState<any[]>([]);
 
+  // Fetches jobs assigned to the current tradie from the 'Jobs' table.
   const fetchJobs = useCallback(async () => {
     setLoading(true);
     try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         setJobs([]);
         return;
@@ -64,6 +39,7 @@ export default function JobBoard() {
     }
   }, []);
 
+  // Refreshes the job list when the screen is focused.
   useFocusEffect(
     useCallback(() => {
       fetchJobs();
@@ -74,17 +50,17 @@ export default function JobBoard() {
     const imageUrl = `https://placehold.co/600x400/E5E7EB/111827?text=${encodeURIComponent(
       item.name || "Job"
     )}`;
-
-    const isInProgress = item.status && item.status.toLowerCase().includes("progress");
+    
+    // Check if the job status is 'accepted' or another active status.
+    const isActive = item.status && (item.status.toLowerCase() === "accepted" || item.status.toLowerCase() === "in_progress");
 
     return (
       <TouchableOpacity
         style={styles.propertyCard}
         onPress={() =>
           navigation.navigate("PropertyDetails", {
-            // PropertyDetails expects the property_id from the Property row
-            propertyId: item.property_id || item.id,
-            isOwner: false,
+            propertyId: item.property_id,
+            isOwner: false, // Tradie is never the owner in this context
           })
         }
       >
@@ -94,9 +70,11 @@ export default function JobBoard() {
             <Text style={styles.propertyName} numberOfLines={1}>
               {item.name}
             </Text>
-            {isInProgress && (
+            {isActive && (
               <View style={styles.statusBadge}>
-                <Text style={styles.statusBadgeText}>In Progress</Text>
+                <Text style={styles.statusBadgeText}>
+                  {item.status.charAt(0).toUpperCase() + item.status.slice(1)}
+                </Text>
               </View>
             )}
           </View>
@@ -104,8 +82,6 @@ export default function JobBoard() {
           <Text style={styles.propertyAddress} numberOfLines={2}>
             📍 {item.address}
           </Text>
-
-          <Text style={styles.ownerText}>Owner: {item.owner}</Text>
         </View>
       </TouchableOpacity>
     );
@@ -125,9 +101,9 @@ export default function JobBoard() {
         </View>
       </View>
 
-      {/* Add New Property button above the job list */}
+      {/* This button now opens the QR code scanner */}
       <View style={{ marginVertical: 12 }}>
-        <Button text="Add New Property" onPress={() => navigation.navigate("PropertyRequest")} />
+        <Button text="Scan to Add New Job" onPress={() => navigation.navigate("QRScannerScreen")} />
       </View>
 
       <Text style={styles.listTitle}>My Jobs</Text>
@@ -147,9 +123,15 @@ export default function JobBoard() {
       <FlatList
         data={jobs}
         renderItem={renderJobCard}
-        keyExtractor={(item) => item.property_id || item.id}
+        keyExtractor={(item) => item.job_id}
         ListHeaderComponent={ListHeader}
         contentContainerStyle={styles.listContentContainer}
+        ListEmptyComponent={
+            <View style={styles.centerContainer}>
+                <Text style={styles.emptyListText}>You have no assigned jobs.</Text>
+                <Text style={styles.emptyListText}>Scan a QR code to claim one.</Text>
+            </View>
+        }
       />
     </SafeAreaView>
   );

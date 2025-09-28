@@ -11,8 +11,9 @@ import PropertyControlNavigator from "./PropertyControlNavigator";
 import ComponentDetails from "../screens/property/ComponentDetails";
 import PropertyRequestsScreen from "../screens/property/PropertyRequest";
 import PropertyPin from "../screens/property/PropertyPin";
-// import QRScanner from '../screens/scanner/QRScanner';
-// import PinEntry from '../screens/scanner/PinEntry';
+import QRScannerScreen from '../screens/scanner/QRScannerScreen';
+import TradieJobDetails from '../screens/tradie/TradieJobDetails';
+import PinEntryScreen from '../screens/tradie/PinEntryScreen'; 
 
 const Stack = createStackNavigator();
 
@@ -31,9 +32,27 @@ function AppNavigator({ userRole }: AppNavigatorProps) {
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="Main" component={MainTabNavigator} />
       <Stack.Screen name="PropertyRequest" component={PropertyRequestsScreen} />
-  <Stack.Screen name="PropertyPin" component={PropertyPin} />
-      {/* <Stack.Screen name="Scanner" component={QRScanner} />
-      <Stack.Screen name="PinEntry" component={PinEntry} /> */}
+      <Stack.Screen name="PropertyPin" component={PropertyPin} />
+      
+      <Stack.Screen 
+        name="QRScannerScreen" 
+        component={QRScannerScreen} 
+        options={{ headerShown: true, title: 'Scan to Claim Job' }}
+      />
+      
+      {/* Add the Pin Entry screen to the stack */}
+      <Stack.Screen
+        name="PinEntryScreen"
+        component={PinEntryScreen}
+        options={{ headerShown: true, title: 'Enter Job PIN' }}
+      />
+
+      <Stack.Screen
+        name="TradieJobDetails"
+        component={TradieJobDetails}
+        options={{ headerShown: true, title: 'Job Details' }}
+      />
+
       <Stack.Screen
         name="PropertyDetails"
         component={PropertyControlNavigator}

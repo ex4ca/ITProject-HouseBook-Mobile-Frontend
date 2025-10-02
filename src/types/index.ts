@@ -150,6 +150,7 @@ export interface ChangelogEntry {
 export interface AssetWithChangelog {
     id: string;
     description: string;
+    asset_type_id: number;
     ChangeLog: ChangelogEntry[];
 }
 

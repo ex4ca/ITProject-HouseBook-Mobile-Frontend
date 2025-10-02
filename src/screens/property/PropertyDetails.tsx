@@ -205,11 +205,17 @@ const PropertyDetails = ({
 
   const [loading, setLoading] = useState(true);
   const [spaces, setSpaces] = useState<SpaceWithAssets[]>([]);
-  const [assetTypes, setAssetTypes] = useState<{ id: number; name: string }[]>(
+  const [assetTypes, setAssetTypes] = useState<{ id: number; name: string; discipline: string }[]>(
     []
   );
   const [selectedSpace, setSelectedSpace] = useState<string | null>(null);
   const [expandedAssetId, setExpandedAssetId] = useState<string | null>(null);
+  
+  // Sort mode state
+  const [sortMode, setSortMode] = useState<'space' | 'discipline'>('space');
+  const [selectedDiscipline, setSelectedDiscipline] = useState<string | null>(null);
+  const [availableDisciplines, setAvailableDisciplines] = useState<string[]>([]);
+  const [disciplineToSpacesMap, setDisciplineToSpacesMap] = useState<Record<string, SpaceWithAssets[]>>({});
 
   const [isAddSpaceModalVisible, setAddSpaceModalVisible] = useState(false);
   const [isAddAssetModalVisible, setAddAssetModalVisible] = useState(false);
@@ -240,6 +246,38 @@ const PropertyDetails = ({
     "Other",
   ];
 
+  // Extract disciplines using existing assetTypes data
+  const extractDisciplinesAndMapping = useCallback((spacesData: SpaceWithAssets[]) => {
+    const disciplinesSet = new Set<string>();
+    const mapping: Record<string, SpaceWithAssets[]> = {};
+
+    spacesData.forEach(space => {
+      space.Assets.forEach(asset => {
+        const assetType = assetTypes.find(type => type.id === asset.asset_type_id);
+        const discipline = assetType?.discipline || 'General';
+        
+        disciplinesSet.add(discipline);
+        
+        if (!mapping[discipline]) {
+          mapping[discipline] = [];
+        }
+        
+        const existingSpace = mapping[discipline].find(s => s.id === space.id);
+        if (!existingSpace) {
+          mapping[discipline].push(space);
+        }
+      });
+    });
+
+    const disciplines = Array.from(disciplinesSet).sort();
+    setAvailableDisciplines(disciplines);
+    setDisciplineToSpacesMap(mapping);
+    
+    if (sortMode === 'discipline' && !selectedDiscipline && disciplines.length > 0) {
+      setSelectedDiscipline(disciplines[0]);
+    }
+  }, [assetTypes, sortMode, selectedDiscipline]);
+
   useFocusEffect(
     useCallback(() => {
       const loadData = async () => {
@@ -266,6 +304,14 @@ const PropertyDetails = ({
 
       loadData();
     }, [propertyId, selectedSpace])
+  );
+
+  useFocusEffect(
+    useCallback(() => {
+      if (spaces.length > 0 && assetTypes.length > 0) {
+        extractDisciplinesAndMapping(spaces);
+      }
+    }, [spaces, assetTypes, extractDisciplinesAndMapping])
   );
 
   const handleAddSpace = async () => {
@@ -360,9 +406,24 @@ const PropertyDetails = ({
   const removeSpecRow = (id: number) =>
     setEditableSpecs((prev) => prev.filter((spec) => spec.id !== id));
 
+  const toggleSortMode = () => {
+    if (sortMode === 'space') {
+      setSortMode('discipline');
+      if (availableDisciplines.length > 0 && !selectedDiscipline) {
+        setSelectedDiscipline(availableDisciplines[0]);
+      }
+    } else {
+      setSortMode('space');
+      setSelectedDiscipline(null);
+    }
+  };
+
   const currentSpace = spaces.find((s) => s.id === selectedSpace);
   const currentAssets = currentSpace?.Assets || [];
   const selectedSpaceName = currentSpace?.name || "Select a Space";
+  
+  const currentDisciplineSpaces = selectedDiscipline ? disciplineToSpacesMap[selectedDiscipline] || [] : [];
+  const selectedDisciplineName = selectedDiscipline || "Select a Discipline";
 
   if (loading && !spaces.length) {
     return (
@@ -383,45 +444,104 @@ const PropertyDetails = ({
         </TouchableOpacity>
         <View style={styles.dropdownContainer}>
           <DropField
-            options={spaces.map((s) => s.name)}
-            selectedValue={selectedSpaceName}
+            options={sortMode === 'space' ? spaces.map((s) => s.name) : availableDisciplines}
+            selectedValue={sortMode === 'space' ? selectedSpaceName : selectedDisciplineName}
             onSelect={(name) => {
-              const space = spaces.find((s) => s.name === name);
-              if (space) {
-                setSelectedSpace(space.id);
+              if (sortMode === 'space') {
+                const space = spaces.find((s) => s.name === name);
+                if (space) {
+                  setSelectedSpace(space.id);
+                  setExpandedAssetId(null);
+                }
+              } else {
+                setSelectedDiscipline(name);
                 setExpandedAssetId(null);
               }
             }}
           />
         </View>
-        <View style={{ width: 40 }} />
+        <TouchableOpacity
+          style={styles.sortModeButton}
+          onPress={toggleSortMode}
+        >
+          <Text style={styles.sortModeButtonText}>
+            {sortMode === 'space' ? 'Space' : 'Discipline'}
+          </Text>
+        </TouchableOpacity>
       </View>
       <ScrollView
         style={styles.scrollContainer}
         showsVerticalScrollIndicator={false}
       >
-        <Text style={styles.pageTitle}>{selectedSpaceName}</Text>
+        <Text style={styles.pageTitle}>
+          {sortMode === 'space' ? selectedSpaceName : selectedDisciplineName}
+        </Text>
         <View style={styles.contentContainer}>
-          {currentAssets.length > 0 ? (
-            currentAssets.map((asset) => (
-              <AssetAccordion
-                key={asset.id}
-                asset={asset}
-                isExpanded={expandedAssetId === asset.id}
-                onToggle={() =>
-                  setExpandedAssetId((prev) =>
-                    prev === asset.id ? null : asset.id
-                  )
-                }
-                onAddHistory={openAddHistoryModal}
-              />
-            ))
+          {sortMode === 'space' ? (
+            // Space mode - show assets for selected space
+            currentAssets.length > 0 ? (
+              currentAssets.map((asset) => (
+                <AssetAccordion
+                  key={asset.id}
+                  asset={asset}
+                  isExpanded={expandedAssetId === asset.id}
+                  onToggle={() =>
+                    setExpandedAssetId((prev) =>
+                      prev === asset.id ? null : asset.id
+                    )
+                  }
+                  onAddHistory={openAddHistoryModal}
+                />
+              ))
+            ) : (
+              <View style={styles.centerContainer}>
+                <Text style={styles.emptyText}>
+                  No assets found in this space.
+                </Text>
+              </View>
+            )
           ) : (
-            <View style={styles.centerContainer}>
-              <Text style={styles.emptyText}>
-                No assets found in this space.
-              </Text>
-            </View>
+            // Discipline mode - show spaces with assets of selected discipline
+            currentDisciplineSpaces.length > 0 ? (
+              currentDisciplineSpaces.map((space) => {
+                const filteredAssets = space.Assets.filter((asset) => {
+                  const assetType = assetTypes.find(type => type.id === asset.asset_type_id);
+                  const discipline = assetType?.discipline || 'General';
+                  return discipline === selectedDiscipline;
+                });
+                
+                return (
+                  <View key={space.id} style={styles.disciplineSpaceContainer}>
+                    <Text style={styles.disciplineSpaceTitle}>{space.name}</Text>
+                    {filteredAssets.length > 0 ? (
+                      filteredAssets.map((asset) => (
+                        <AssetAccordion
+                          key={asset.id}
+                          asset={asset}
+                          isExpanded={expandedAssetId === asset.id}
+                          onToggle={() =>
+                            setExpandedAssetId((prev) =>
+                              prev === asset.id ? null : asset.id
+                            )
+                          }
+                          onAddHistory={openAddHistoryModal}
+                        />
+                      ))
+                    ) : (
+                      <Text style={styles.emptyText}>
+                        No {selectedDiscipline} assets in this space.
+                      </Text>
+                    )}
+                  </View>
+                );
+              })
+            ) : (
+              <View style={styles.centerContainer}>
+                <Text style={styles.emptyText}>
+                  No spaces found with {selectedDiscipline} assets.
+                </Text>
+              </View>
+            )
           )}
         </View>
       </ScrollView>

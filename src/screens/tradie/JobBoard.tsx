@@ -50,8 +50,6 @@ export default function JobBoard() {
     const imageUrl = `https://placehold.co/600x400/E5E7EB/111827?text=${encodeURIComponent(
       item.name || "Job"
     )}`;
-    
-    const isActive = item.status && (item.status.toLowerCase() === "accepted" || item.status.toLowerCase() === "in_progress");
 
     return (
       <TouchableOpacity
@@ -70,14 +68,13 @@ export default function JobBoard() {
             <Text style={styles.propertyName} numberOfLines={1}>
               {item.name}
             </Text>
-            {isActive && (
-              <View style={styles.statusBadge}>
-                <Text style={styles.statusBadgeText}>
-                  {item.status.charAt(0).toUpperCase() + item.status.slice(1)}
-                </Text>
-              </View>
-            )}
           </View>
+          
+          {/* Activity Status */}
+          <Text style={styles.propertyAddress} numberOfLines={1}>
+            {item.isActive ? 'Active' : 'Inactive'}
+          </Text>
+          
           <Text style={styles.propertyAddress} numberOfLines={2}>
             📍 {item.address}
           </Text>

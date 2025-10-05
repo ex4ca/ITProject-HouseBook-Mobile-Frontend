@@ -233,6 +233,7 @@ export const getJobsForTradie = async (tradieUserId: string): Promise<any[]> => 
             id,
             title,
             status,
+            expired,
             Property (
                 property_id,
                 name,
@@ -254,6 +255,7 @@ export const getJobsForTradie = async (tradieUserId: string): Promise<any[]> => 
         property_id: job.Property.property_id,
         name: job.Property.name,
         address: job.Property.address,
+        isActive: job.status === 'ACCEPTED' && !job.expired,
     }));
 };
 

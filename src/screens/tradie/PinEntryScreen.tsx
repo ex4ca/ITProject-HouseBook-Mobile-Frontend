@@ -32,13 +32,30 @@ export default function PinEntryScreen() {
     setLoading(true);
     try {
       const result = await claimJobWithPin(propertyId, pin);
+
       Alert.alert(
         result.success ? 'Success' : 'Failed',
         result.message,
-        [{ text: 'OK', onPress: () => navigation.navigate('Main', { screen: 'Jobs' }) }]
+        [{ 
+          text: 'OK', 
+          onPress: () => {
+            if (result.success) {
+              // On success, navigate to the main jobs screen
+              navigation.navigate('Main', { screen: 'Jobs' });
+            } else {
+              // On failure, just clear the PIN to allow a retry
+              setPin('');
+            }
+          } 
+        }]
       );
     } catch (error: any) {
-      Alert.alert('Error', error.message || 'An unexpected error occurred.');
+      Alert.alert(
+        'Error', 
+        error.message || 'An unexpected error occurred.',
+        // ✅ On a general error, also stay on the page and clear the PIN
+        [{ text: 'OK', onPress: () => setPin('') }]
+      );
     } finally {
       setLoading(false);
     }

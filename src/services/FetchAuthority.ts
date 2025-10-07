@@ -347,7 +347,19 @@ export const claimJobWithPin = async (propertyId: string, pin: string): Promise<
     throw new Error('Could not identify your tradie profile.');
   }
 
-  // Find a pending job that matches the property, pin, has no tradie, and is not expired.
+  // Step 1: Verify the property exists before looking for a job.
+  const { data: property, error: propertyError } = await supabase
+    .from('Property')
+    .select('property_id')
+    .eq('property_id', propertyId)
+    .single();
+
+  // If we get an error or no data, the property ID is invalid.
+  if (propertyError || !property) {
+    return { success: false, message: 'Oh, the property is not found.' };
+  }
+
+  // Step 2: Now that we know the property exists, find a matching pending job.
   const { data: pendingJob, error: findError } = await supabase
     .from('Jobs')
     .select('id')
@@ -362,6 +374,7 @@ export const claimJobWithPin = async (propertyId: string, pin: string): Promise<
   if (findError || !pendingJob) {
     return { success: false, message: 'Invalid PIN, the job is expired, or it has already been claimed.' };
   }
+  
   // If found, update the job with the tradie's ID and set the status to 'accepted'.
   const { error: updateError } = await supabase
     .from('Jobs')

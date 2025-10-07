@@ -22,17 +22,19 @@ interface AuthScreenProps {
   onSuccessfulLogin: (role: UserRole) => void;
 }
 
-const AuthScreen = ({ onSuccessfulLogin }: AuthScreenProps) => { // Remove navigation prop
+const AuthScreen = ({ onSuccessfulLogin }: AuthScreenProps) => {
+  const MINPASSWORDLEN = 6;
+  const MAXEMAILLEN = 254;
+  const MAXNAMELEN = 50;
+  const MAXPASSWORDLEN = 128;
   const [activeTab, setActiveTab] = useState("login");
   const [userType, setUserType] = useState<UserRole>("owner");
-
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [phone, setPhone] = useState("");
-
   const [agreeToTerms, setAgreeToTerms] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -65,6 +67,58 @@ const AuthScreen = ({ onSuccessfulLogin }: AuthScreenProps) => { // Remove navig
       Alert.alert("Terms and Conditions", "You must agree to the terms to continue.");
       return;
     }
+    if (!firstName.trim().match(/^[\p{L}]+(?:[\s'-][\p{L}]+)*$/u)) {
+      Alert.alert("Invalid First Name", "First name can only contain letters, spaces, hyphens, and apostrophes.");
+      return;
+    }
+    if (!lastName.trim().match(/^[\p{L}]+(?:[\s'-][\p{L}]+)*$/u)) {
+      Alert.alert("Invalid Last Name", "Last name can only contain letters, spaces, hyphens, and apostrophes.");
+      return;
+    }
+    if (!email.match(/^[\w-]+(\.[\w-]+)*@([\w-]+\.)+[a-zA-Z]{2,7}$/)) {
+      Alert.alert("Invalid Email", "Please enter a valid email address.");
+      return;
+    }
+    if (!phone.match(/^[0-9]{2,4}[- ]?[0-9]{3,4}[- ]?[0-9]{3,4}$/)) {
+      Alert.alert("Invalid Phone Number", "Please enter a valid phone number.");
+      return;
+    }
+    if (password.length < MINPASSWORDLEN) {
+      Alert.alert("Weak Password", `Password must be at least ${MINPASSWORDLEN} characters long.`);
+      return;
+    }
+    if (!password.match(/[A-Z]/)) {
+      Alert.alert("Weak Password", "Password must contain at least one uppercase letter.");
+      return;
+    }
+    if (!password.match(/[a-z]/)) {
+      Alert.alert("Weak Password", "Password must contain at least one lowercase letter.");
+      return;
+    }
+    if (!password.match(/[0-9]/)) {
+      Alert.alert("Weak Password", "Password must contain at least one number.");
+      return;
+    }
+    if (!password.match(/[!@#$%^&*(),.?":{}|<>]/)) {
+      Alert.alert("Weak Password", "Password must contain at least one special character.");
+      return;
+    }
+    if (email.length > MAXEMAILLEN) {
+      Alert.alert("Input Too Long", `Email cannot exceed ${MAXEMAILLEN} characters.`);
+      return;
+    }
+    if (firstName.length > MAXNAMELEN) {
+      Alert.alert("Input Too Long", `First name cannot exceed ${MAXNAMELEN} characters.`);
+      return;
+    }
+    if (lastName.length > MAXNAMELEN) {
+      Alert.alert("Input Too Long", `Last name cannot exceed ${MAXNAMELEN} characters.`);
+      return;
+    }
+    if (password.length > MAXPASSWORDLEN) {
+      Alert.alert("Input Too Long", `Password cannot exceed ${MAXPASSWORDLEN} characters.`);
+      return;
+    }
 
     setLoading(true);
     try {
@@ -85,7 +139,6 @@ const AuthScreen = ({ onSuccessfulLogin }: AuthScreenProps) => { // Remove navig
     }
   };
 
-  // ... rest of your component remains the same
   const renderLoginForm = () => (
     <View style={styles.formContainer}>
       <View style={styles.inputGroup}>

@@ -56,9 +56,10 @@ export default function JobBoard() {
     return (
       <TouchableOpacity
         style={styles.propertyCard}
-        // Navigate to the new details screen, passing the job_id
+        // This now navigates to the correct hub and passes both required IDs.
         onPress={() =>
-          navigation.navigate("TradieJobDetails", {
+          navigation.navigate("TradiePropertyHub", {
+            propertyId: item.property_id,
             jobId: item.job_id,
           })
         }

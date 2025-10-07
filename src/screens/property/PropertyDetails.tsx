@@ -6,7 +6,6 @@ import {
   SafeAreaView,
   ScrollView,
   ActivityIndicator,
-  LayoutAnimation,
   Platform,
   UIManager,
   Modal,

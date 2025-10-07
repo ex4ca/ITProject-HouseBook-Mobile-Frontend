@@ -388,3 +388,37 @@ export const claimJobWithPin = async (propertyId: string, pin: string): Promise<
 
   return { success: true, message: 'Job successfully added to your list!' };
 };
+
+/**
+ * Fetches all details for a property, and also identifies which assets
+ * are within the scope of a specific job for the current tradie.
+ * @param propertyId The ID of the property to view.
+ * @param jobId The ID of the current job.
+ */
+export const fetchPropertyAndJobScope = async (propertyId: string, jobId: string) => {
+  const { data: propertyData, error: propertyError } = await supabase
+    .from('Property')
+    .select(`
+      property_id, name, address,
+      Spaces ( id, name, type, Assets ( id, description, current_specifications ) )
+    `)
+    .eq('property_id', propertyId)
+    .single();
+
+  if (propertyError) throw propertyError;
+
+  const { data: jobAssets, error: jobAssetsError } = await supabase
+    .from('JobAssets')
+    .select('asset_id')
+    .eq('job_id', jobId);
+  
+  if (jobAssetsError) throw jobAssetsError;
+
+  const editableAssetIds = new Set(jobAssets.map(ja => ja.asset_id));
+
+  return {
+    property: propertyData,
+    editableAssetIds: editableAssetIds,
+  };
+};
+

@@ -3,12 +3,13 @@ import { Briefcase, User } from "lucide-react-native";
 import { PALETTE } from "../styles/palette";
 import { globalStyles } from "../styles/globalStyles";
 
+// The JobBoard is the main screen for the "Jobs" tab.
 import JobBoard from "../screens/tradie/JobBoard";
 import Account from "../screens/profile/Account";
 
 const Tab = createBottomTabNavigator();
 
-// The Tradie's specific tab navigator.
+// The Tradie's specific tab navigator. This is what they see after login.
 function TradieTabNavigator() {
   return (
     <Tab.Navigator
@@ -21,8 +22,8 @@ function TradieTabNavigator() {
       }}
     >
       <Tab.Screen
-  name="Jobs"
-  component={JobBoard}
+        name="Jobs"
+        component={JobBoard} // JobBoard is correctly used here.
         options={{
           tabBarIcon: ({ color, size }) => (
             <Briefcase color={color} size={size} />

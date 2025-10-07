@@ -3,7 +3,6 @@ import {
   View,
   Text,
   TouchableOpacity,
-  SafeAreaView,
   FlatList,
   Image,
   ActivityIndicator,
@@ -15,6 +14,7 @@ import {
   getPropertiesByOwner,
   fetchMyFirstName,
 } from "../../services/FetchAuthority";
+import { SafeAreaView } from 'react-native-safe-area-context'; 
 import { propertyListStyles as styles } from "../../styles/propertyListStyles";
 import { PALETTE } from "../../styles/palette";
 import type { Property } from "../../types";

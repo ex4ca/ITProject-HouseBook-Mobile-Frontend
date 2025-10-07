@@ -3,7 +3,6 @@ import {
   View,
   Text,
   TouchableOpacity,
-  SafeAreaView,
   ScrollView,
   ActivityIndicator,
   Platform,
@@ -21,6 +20,7 @@ import {
   X,
   Trash2,
 } from "lucide-react-native";
+import { SafeAreaView } from 'react-native-safe-area-context'; 
 import { DropField } from "../../components";
 
 import {

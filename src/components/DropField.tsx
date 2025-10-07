@@ -6,12 +6,11 @@ import {
   StyleSheet,
   Modal,
   FlatList,
-  SafeAreaView,
   ViewStyle,
   TextStyle,
 } from "react-native";
 import { ChevronsUpDown } from "lucide-react-native";
-
+import { SafeAreaView } from 'react-native-safe-area-context'; 
 import { PALETTE } from "../styles/palette";
 import { STYLES } from "../styles/globalStyles";
 
@@ -41,7 +40,7 @@ const DropField = ({
     y: 0,
     width: 0,
   });
-  const dropdownRef = useRef<TouchableOpacity>(null);
+  const dropdownRef = useRef<View>(null);
 
   const toggleDropdown = () => {
     if (disabled) return;

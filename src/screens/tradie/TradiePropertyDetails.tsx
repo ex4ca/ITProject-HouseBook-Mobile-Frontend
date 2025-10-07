@@ -1,5 +1,6 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, FlatList, ActivityIndicator, SafeAreaView, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, FlatList, ActivityIndicator, TouchableOpacity } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context'; 
 import { useFocusEffect, useRoute, useNavigation } from '@react-navigation/native';
 import { fetchPropertyAndJobScope } from '../../services/FetchAuthority';
 import { propertyListStyles as styles } from '../../styles/propertyListStyles';

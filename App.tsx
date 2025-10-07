@@ -5,6 +5,7 @@ import { StatusBar } from 'expo-status-bar';
 import { supabase } from './src/config/supabaseClient';
 import type { Session, User } from '@supabase/supabase-js';
 import type { UserRole } from './src/types';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 // Navigators
 import AppNavigator from './src/navigation/AppNavigator';
@@ -58,13 +59,15 @@ export default function App() {
   }
 
   return (
-    <NavigationContainer>
-      <StatusBar style="dark" />
-      {session && session.user && userRole ? (
-        <AppNavigator userRole={userRole} />
-      ) : (
-        <AuthNavigator onSuccessfulLogin={handleSuccessfulLogin} />
-      )}
-    </NavigationContainer>
+    <SafeAreaProvider>
+      <NavigationContainer>
+        <StatusBar style="dark" />
+        {session && session.user && userRole ? (
+          <AppNavigator userRole={userRole} />
+        ) : (
+          <AuthNavigator onSuccessfulLogin={handleSuccessfulLogin} />
+        )}
+      </NavigationContainer>
+    </SafeAreaProvider>
   );
 }

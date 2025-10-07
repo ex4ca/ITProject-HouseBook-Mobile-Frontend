@@ -3,13 +3,13 @@ import {
   View,
   Text,
   TouchableOpacity,
-  SafeAreaView,
   ScrollView,
   Image,
   FlatList,
   Dimensions,
   ActivityIndicator,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context'; 
 import { useFocusEffect, useRoute, useNavigation } from '@react-navigation/native';
 import {
   ChevronLeft,

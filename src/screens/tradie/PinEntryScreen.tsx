@@ -1,9 +1,20 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, StyleSheet, Alert, ActivityIndicator } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { 
+  View, 
+  Text, 
+  TextInput, 
+  StyleSheet, 
+  Alert, 
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  TouchableWithoutFeedback,
+  Keyboard,
+  Platform 
+} from 'react-native';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { claimJobWithPin } from '../../services/FetchAuthority';
 import { PALETTE } from '../../styles/palette';
-import Button from '../../components/Button'; // Assuming you have a standard Button component
+import Button from '../../components/Button';
 
 export default function PinEntryScreen() {
   const route = useRoute();
@@ -14,7 +25,9 @@ export default function PinEntryScreen() {
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async () => {
-    if (pin.length < 4 || loading) return; // Basic validation
+    // Dismiss the keyboard before showing alerts or navigating
+    Keyboard.dismiss();
+    if (pin.length < 4 || loading) return;
 
     setLoading(true);
     try {
@@ -22,7 +35,6 @@ export default function PinEntryScreen() {
       Alert.alert(
         result.success ? 'Success' : 'Failed',
         result.message,
-        // Navigate back to the job board after the user dismisses the alert.
         [{ text: 'OK', onPress: () => navigation.navigate('Main', { screen: 'Jobs' }) }]
       );
     } catch (error: any) {
@@ -32,37 +44,54 @@ export default function PinEntryScreen() {
     }
   };
 
+  // Auto-submit when PIN is 6 digits long
+  useEffect(() => {
+    if (pin.length === 6) {
+      handleSubmit();
+    }
+  }, [pin]);
+
+
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Enter Job PIN</Text>
-      <Text style={styles.subtitle}>
-        Enter the PIN associated with this job to claim it.
-      </Text>
-      <TextInput
-        style={styles.pinInput}
-        value={pin}
-        onChangeText={setPin}
-        keyboardType="number-pad"
-        maxLength={6}
-        placeholder="••••••"
-        placeholderTextColor="#9CA3AF"
-        secureTextEntry
-      />
-      {loading ? (
-        <ActivityIndicator size="large" color={PALETTE.primary} style={{ marginTop: 20 }}/>
-      ) : (
-        <Button text="Claim Job" onPress={handleSubmit} />
-      )}
-    </View>
+    <KeyboardAvoidingView 
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      style={styles.container}
+    >
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <View style={styles.innerContainer}>
+          <Text style={styles.title}>Enter Job PIN</Text>
+          <Text style={styles.subtitle}>
+            Enter the PIN associated with this job to claim it.
+          </Text>
+          <TextInput
+            style={styles.pinInput}
+            value={pin}
+            onChangeText={setPin}
+            keyboardType="number-pad"
+            maxLength={6}
+            placeholder="••••••"
+            placeholderTextColor="#9CA3AF"
+          />
+          {loading ? (
+            <ActivityIndicator size="large" color={PALETTE.primary} style={{ marginTop: 20 }}/>
+          ) : (
+            <Button text="Claim Job" onPress={handleSubmit} />
+          )}
+        </View>
+      </TouchableWithoutFeedback>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: PALETTE.background,
+  },
+  innerContainer: {
+    flex: 1,
     justifyContent: 'center',
     padding: 24,
-    backgroundColor: PALETTE.background,
   },
   title: {
     fontSize: 28,

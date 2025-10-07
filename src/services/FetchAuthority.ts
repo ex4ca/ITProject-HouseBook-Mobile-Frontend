@@ -354,6 +354,7 @@ export const claimJobWithPin = async (propertyId: string, pin: string): Promise<
     .eq('property_id', propertyId)
     .eq('pin', pin)
     .is('tradie_id', null) 
+    .eq('status', "PENDING")
     .eq('expired', false) 
     .limit(1)
     .single();

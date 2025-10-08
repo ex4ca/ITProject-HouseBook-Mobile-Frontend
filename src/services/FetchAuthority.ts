@@ -167,28 +167,10 @@ export const getPropertiesByOwner = async (userId: string): Promise<Property[] |
         .flatMap(owner => owner.OwnerProperty)
         .flatMap(op => op.Property);
 
-    // Check activity status for all properties
-    if (properties.length > 0) {
-        const propertyIds = properties.map(p => p.property_id);
-        
-        const { data: activeJobs, error: jobsError } = await supabase
-            .from('Jobs')
-            .select('property_id')
-            .in('property_id', propertyIds)
-            .eq('status', 'active')
-            .eq('expired', false);
-
-        if (jobsError) {
-            console.error("Error fetching active jobs:", jobsError.message);
-            properties.forEach(property => property.isActive = false);
-        } else {
-            const activePropertyIds = new Set(activeJobs?.map(job => job.property_id) || []);
-            
-            properties.forEach(property => {
-                property.isActive = activePropertyIds.has(property.property_id);
-            });
-        }
-    }
+    // Set activity status based on Property.status field
+    properties.forEach(property => {
+        property.isActive = property.status === 'ACTIVE';
+    });
 
     return properties;
 }
@@ -233,7 +215,6 @@ export const getJobsForTradie = async (tradieUserId: string): Promise<any[]> => 
             id,
             title,
             status,
-            expired,
             Property (
                 property_id,
                 name,
@@ -255,7 +236,7 @@ export const getJobsForTradie = async (tradieUserId: string): Promise<any[]> => 
         property_id: job.Property.property_id,
         name: job.Property.name,
         address: job.Property.address,
-        isActive: job.status === 'ACCEPTED' && !job.expired,
+        isActive: job.status === 'ACCEPTED',
     }));
 };
 

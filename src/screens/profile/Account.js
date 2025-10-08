@@ -8,7 +8,7 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useRoute } from '@react-navigation/native';
 import { supabase } from '../../config/supabaseClient';
 import { User, LogOut } from 'lucide-react-native';
 
@@ -25,6 +25,9 @@ const PALETTE = {
 
 // Main component for the user's account screen.
 const AccountScreen = () => {
+  const route = useRoute();
+  const { userRole: selectedRole } = route.params || { userRole: 'owner' };
+  
   const [loading, setLoading] = useState(true);
   const [userProfile, setUserProfile] = useState(null);
   const [userRole, setUserRole] = useState('');
@@ -38,14 +41,10 @@ const AccountScreen = () => {
           const { data: { user } } = await supabase.auth.getUser();
           if (!user) throw new Error("No user logged in.");
 
-          // Fetch user profile and role in parallel.
-          const [profile, role] = await Promise.all([
-            fetchUserProfile(user.id),
-            fetchUserRole(user.id)
-          ]);
-
+          // Fetch user profile and set role from navigation params
+          const profile = await fetchUserProfile(user.id);
           setUserProfile(profile);
-          setUserRole(role);
+          setUserRole(selectedRole === 'owner' ? 'Property Owner' : 'Trade Person');
 
         } catch (error) {
           console.error("Error fetching account data:", error.message);
@@ -57,7 +56,7 @@ const AccountScreen = () => {
       };
 
       fetchData();
-    }, [])
+    }, [selectedRole])
   );
 
   // Fetches the user's first name, last name, and email.
@@ -71,16 +70,6 @@ const AccountScreen = () => {
     return data;
   };
 
-  // Determines if the user is an owner or a tradie.
-  const fetchUserRole = async (userId) => {
-    const { data: ownerData } = await supabase.from('Owner').select('user_id').eq('user_id', userId).single();
-    if (ownerData) return 'Property Owner';
-
-    const { data: tradieData } = await supabase.from('Tradesperson').select('user_id').eq('user_id', userId).single();
-    if (tradieData) return 'Tradesperson';
-
-    return 'User';
-  };
 
   // Handles the sign-out process.
   const handleSignOut = async () => {

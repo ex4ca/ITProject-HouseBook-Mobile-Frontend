@@ -390,23 +390,48 @@ export const claimJobWithPin = async (propertyId: string, pin: string): Promise<
 };
 
 /**
- * Fetches all details for a property, and also identifies which assets
- * are within the scope of a specific job for the current tradie.
+ * Fetches all details for a property, including a full hierarchy of spaces, 
+ * assets, and their changelogs. It also identifies which assets are within 
+ * the scope of a specific job for the current tradie.
  * @param propertyId The ID of the property to view.
  * @param jobId The ID of the current job.
  */
 export const fetchPropertyAndJobScope = async (propertyId: string, jobId: string) => {
+  // Step 1: Fetch all property details with a corrected, explicit join to the User table.
   const { data: propertyData, error: propertyError } = await supabase
     .from('Property')
     .select(`
-      property_id, name, address,
-      Spaces ( id, name, type, Assets ( id, description, current_specifications ) )
+      property_id,
+      name,
+      address,
+      Spaces (
+        id,
+        name,
+        type,
+        Assets (
+          id,
+          description,
+          asset_type_id,
+          ChangeLog (
+            id,
+            specifications,
+            change_description,
+            created_at,
+            status,
+            User!ChangeLog_changed_by_user_id_fkey (
+              first_name,
+              last_name
+            )
+          )
+        )
+      )
     `)
     .eq('property_id', propertyId)
     .single();
 
   if (propertyError) throw propertyError;
 
+  // Step 2: Fetch the list of asset IDs that are specifically assigned to this job.
   const { data: jobAssets, error: jobAssetsError } = await supabase
     .from('JobAssets')
     .select('asset_id')
@@ -414,6 +439,7 @@ export const fetchPropertyAndJobScope = async (propertyId: string, jobId: string
   
   if (jobAssetsError) throw jobAssetsError;
 
+  // Create a Set for quick O(1) lookups of editable asset IDs in the UI.
   const editableAssetIds = new Set(jobAssets.map(ja => ja.asset_id));
 
   return {
@@ -421,4 +447,3 @@ export const fetchPropertyAndJobScope = async (propertyId: string, jobId: string
     editableAssetIds: editableAssetIds,
   };
 };
-

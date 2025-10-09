@@ -216,7 +216,8 @@ export const getJobsForTradie = async (tradieUserId: string): Promise<any[]> => 
                 address
             )
         `)
-        .eq('tradie_id', tradieData.tradie_id);
+        .eq('tradie_id', tradieData.tradie_id)
+        .eq('status', 'ACCEPTED');
 
     if (error) {
         console.error('Error fetching jobs for tradie:', error.message);
@@ -271,9 +272,9 @@ export const claimJobByPropertyId = async (propertyId: string): Promise<{ succes
   // Finally, attempt to update the job with the tradie's ID and set the status to 'accepted'.
   const { error: updateError } = await supabase
     .from('Jobs')
-    .update({ tradie_id: tradie.tradie_id, status: 'accepted' })
+    .update({ tradie_id: tradie.tradie_id, status: 'ACCEPTED' })
     .eq('id', pendingJob.id)
-    .eq('status', 'PENDING'); // Ensures atomicity
+    .eq('status', 'PENDING'); 
 
   if (updateError) {
     console.error('Error claiming job:', updateError.message);

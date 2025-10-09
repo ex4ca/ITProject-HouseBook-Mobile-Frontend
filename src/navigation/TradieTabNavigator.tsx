@@ -33,6 +33,7 @@ function TradieTabNavigator() {
       <Tab.Screen
         name="Account"
         component={Account}
+        initialParams={{ userRole: "tradie" }}
         options={{
           tabBarIcon: ({ color, size }) => <User color={color} size={size} />,
         }}

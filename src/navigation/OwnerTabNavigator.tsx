@@ -30,6 +30,7 @@ function OwnerTabNavigator() {
       <Tab.Screen
         name="Account"
         component={Account}
+        initialParams={{ userRole: "owner" }}
         options={{
           tabBarIcon: ({ color, size }) => <User color={color} size={size} />,
         }}

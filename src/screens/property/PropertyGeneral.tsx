@@ -294,26 +294,6 @@ const PropertyGeneralScreen = ({
               </Text>
             </View>
           )}
-
-          {/* Discipline Cards */}
-          {Object.entries(disciplineData).map(([discipline, specGroups]) => (
-            <View key={discipline} style={styles.detailsCard}>
-              <Text style={styles.cardTitle}>{discipline}</Text>
-              {Object.values(specGroups).map((group, index) => (
-                <View key={index} style={styles.specGroup}>
-                  <View style={styles.specificationsBox}>
-                    {Object.entries(group.specifications).map(([key, value]) => (
-                      <View key={key} style={styles.specPair}>
-                        <Text style={styles.specKey}>{key.replace(/_/g, " ")}</Text>
-                        <Text style={styles.specValue}>{String(value)}</Text>
-                      </View>
-                    ))}
-                  </View>
-                </View>
-              ))}
-            </View>
-          ))}
-
         </View>
       </ScrollView>
     </SafeAreaView>

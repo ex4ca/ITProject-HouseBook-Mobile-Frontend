@@ -36,14 +36,22 @@ export const addAsset = async (description: string, spaceId: string, assetTypeId
     if (changelogError) throw new Error(changelogError.message);
 };
 
-// Corrected: The function now accepts the correct 'AssetWithChangelog' type.
-// It only needs the 'id' from this object to perform the update.
-export const addHistory = async (asset: AssetWithChangelog, description: string, specifications: Record<string, string>) => {
+
+export const addHistoryOwner = async (asset: AssetWithChangelog, description: string, specifications: Record<string, string>) => {
     if (!asset) return;
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error("User must be logged in.");
 
     const { error } = await supabase.from('ChangeLog').insert({ asset_id: asset.id, specifications, change_description: description, changed_by_user_id: user.id, status: 'ACCEPTED' });
+    if (error) throw new Error(error.message);
+};
+
+export const addHistoryTradie = async (asset: AssetWithChangelog, description: string, specifications: Record<string, string>) => {
+    if (!asset) return;
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error("User must be logged in.");
+
+    const { error } = await supabase.from('ChangeLog').insert({ asset_id: asset.id, specifications, change_description: description, changed_by_user_id: user.id, status: 'PENDING' });
     if (error) throw new Error(error.message);
 };
 

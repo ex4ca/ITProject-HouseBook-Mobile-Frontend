@@ -27,7 +27,7 @@ import { DropField } from "../../components";
 
 import { fetchPropertyAndJobScope } from "../../services/FetchAuthority"; 
 import { fetchAssetTypes } from "../../services/FetchAssetTypes";
-import { addHistory } from "../../services/propertyDetails";
+import { addHistoryTradie } from "../../services/propertyDetails";
 import { propertyDetailsStyles as styles } from "../../styles/propertyDetailsStyles";
 import { PALETTE } from "../../styles/palette";
 import type {
@@ -84,7 +84,7 @@ const SpecificationDetails = ({
   <View style={styles.specificationsBox}>
     {Object.entries(specifications).map(([key, value]) => (
       <View key={key} style={styles.specPair}>
-        <Text style={styles.specKey}>{key.replace(/_/g, " ")}</Text>
+        <Text style={styles.specKey}>{key}</Text>
         <Text style={styles.specValue}>{String(value)}</Text>
       </View>
     ))}
@@ -238,14 +238,14 @@ export default function TradiePropertyDetails() {
           ]);
           
           if (scopeData.property && scopeData.property.Spaces) {
-            // FIX: Transform the data to match the expected TypeScript types before setting state.
-            const transformedSpaces = scopeData.property.Spaces.map((space: any) => ({
+            // Transform the data to match the expected TypeScript types before setting state.
+            const transformedSpaces: SpaceWithAssets[] = scopeData.property.Spaces.map((space: any) => ({
               ...space,
               Assets: space.Assets.map((asset: any) => ({
                 ...asset,
                 ChangeLog: asset.ChangeLog.map((log: any) => ({
                   ...log,
-                  // This is the key fix: it ensures User is an object, not an array.
+                  // This ensures User is an object, not an array, to match the types.
                   User: Array.isArray(log.User) ? log.User[0] : log.User,
                 })),
               })),
@@ -260,7 +260,6 @@ export default function TradiePropertyDetails() {
           setAssetTypes(fetchedAssetTypes);
         } catch (err: any) {
           Alert.alert("Error", "Could not load property data.");
-          console.error("Error in TradiePropertyDetails:", err);
         } finally {
           setLoading(false);
         }
@@ -270,11 +269,12 @@ export default function TradiePropertyDetails() {
     }, [propertyId, jobId])
   );
   
+  // FIX: Added the extractDisciplinesAndMapping function to the dependency array.
   useEffect(() => {
     if (spaces.length > 0 && assetTypes.length > 0) {
       extractDisciplinesAndMapping(spaces);
     }
-  }, [spaces, assetTypes]);
+  }, [spaces, assetTypes, extractDisciplinesAndMapping]);
 
   const handleAddHistory = async () => {
     if (!newHistoryDescription.trim() || !currentAsset) {
@@ -287,7 +287,7 @@ export default function TradiePropertyDetails() {
     }, {} as Record<string, string>);
 
     try {
-        await addHistory(currentAsset, newHistoryDescription, newSpecifications);
+        await addHistoryTradie(currentAsset, newHistoryDescription, newSpecifications);
         setNewHistoryDescription("");
         setEditableSpecs([]);
         setAddHistoryModalVisible(false);
@@ -303,7 +303,7 @@ export default function TradiePropertyDetails() {
     const latestSpecs = latestAcceptedLog?.specifications || {};
     const specsArray = Object.entries(latestSpecs).map(([key, value], index) => ({
         id: index,
-        key: key.charAt(0).toUpperCase() + key.slice(1),
+        key: key, 
         value: value as string,
     }));
     setEditableSpecs(specsArray);
@@ -332,7 +332,7 @@ export default function TradiePropertyDetails() {
   const currentAssets = currentSpace?.Assets || [];
   const selectedSpaceName = currentSpace?.name || "Select a Space";
   
-  const currentDisciplineSpaces = selectedDiscipline ? disciplineToSpacesMap[selectedDiscipline] || [] : [];
+  const currentDisciplineSpaces = selectedDiscipline ? (disciplineToSpacesMap[selectedDiscipline] || []) : [];
   const selectedDisciplineName = selectedDiscipline || "Select a Discipline";
 
   if (loading) {

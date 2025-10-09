@@ -66,7 +66,7 @@ export const fetchActiveJobsForProperty = async (propertyId: string): Promise<Ac
 export const endTradieJob = async (jobId: string): Promise<void> => {
     const { error } = await supabase
         .from('Jobs')
-        .update({ status: 'REVOKED' }) 
+        .update({ status: 'EXPIRED' }) 
         .eq('id', jobId);
 
     if (error) {

@@ -3,7 +3,6 @@ import {
   View,
   Text,
   TouchableOpacity,
-  SafeAreaView,
   FlatList,
   ActivityIndicator,
   Alert,
@@ -12,6 +11,7 @@ import {
   ScrollView,
 } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
+import { SafeAreaView } from 'react-native-safe-area-context'; 
 import {
   CheckCircle,
   XCircle,

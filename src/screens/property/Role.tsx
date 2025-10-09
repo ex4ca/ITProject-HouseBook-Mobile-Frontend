@@ -3,13 +3,13 @@ import {
   View,
   Text,
   TouchableOpacity,
-  SafeAreaView,
   ScrollView,
   ActivityIndicator,
   Alert,
 } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import { ChevronLeft, XCircle } from "lucide-react-native";
+import { SafeAreaView } from 'react-native-safe-area-context'; 
 
 import {
   fetchMyProfile,

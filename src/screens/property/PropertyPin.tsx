@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { SafeAreaView, View, Text, TouchableOpacity, TextInput } from 'react-native';
+import { View, Text, TouchableOpacity, TextInput } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context'; 
 import { ChevronLeft } from 'lucide-react-native';
 import { propertyRequestsStyles as styles } from '../../styles/requestStyles';
 import { PALETTE } from '../../styles/palette';

@@ -3,7 +3,6 @@ import {
   View,
   Text,
   TouchableOpacity,
-  SafeAreaView,
   ScrollView,
   Modal,
   TextInput,
@@ -11,6 +10,7 @@ import {
   Alert,
 } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
+import { SafeAreaView } from 'react-native-safe-area-context'; 
 import { ChevronLeft, Plus, Edit } from "lucide-react-native";
 
 // Import the new, separated logic and styles

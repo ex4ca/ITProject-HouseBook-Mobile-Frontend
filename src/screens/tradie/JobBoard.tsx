@@ -3,12 +3,12 @@ import {
   View,
   Text,
   TouchableOpacity,
-  SafeAreaView,
   FlatList,
   Image,
   ActivityIndicator,
 } from "react-native";
 import { useNavigation, useFocusEffect } from "@react-navigation/native";
+import { SafeAreaView } from 'react-native-safe-area-context'; 
 import Button from "../../components/Button";
 import { propertyListStyles as styles } from "../../styles/propertyListStyles";
 import { PALETTE } from "../../styles/palette";

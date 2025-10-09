@@ -3,7 +3,6 @@ import {
   View,
   Text,
   TouchableOpacity,
-  SafeAreaView,
   ScrollView,
   Image,
   FlatList,
@@ -21,6 +20,7 @@ import {
   QrCode,
 } from "lucide-react-native";
 import QRCode from 'react-native-qrcode-svg'; 
+import { SafeAreaView } from 'react-native-safe-area-context'; 
 
 // Import the new, separated logic and styles
 import { fetchPropertyGeneralData } from "../../services/Property";

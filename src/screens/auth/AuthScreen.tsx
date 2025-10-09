@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import {
   View,
   Text,
-  SafeAreaView,
   TouchableOpacity,
   Alert,
   ScrollView,
@@ -11,6 +10,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { Home, Wrench } from "lucide-react-native";
+import { SafeAreaView } from 'react-native-safe-area-context'; 
 import { Button, TextField, Checkbox } from "../../components";
 
 import { loginUser, signupUser } from "../../services/AuthService";

@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useRef } from "react";
 import {
   View,
   Text,
@@ -22,6 +22,7 @@ import {
 } from "lucide-react-native";
 import { SafeAreaView } from 'react-native-safe-area-context'; 
 import { DropField } from "../../components";
+import ConfirmModal from "../../components/ConfirmModal";
 
 import {
   fetchPropertyDetails,
@@ -232,6 +233,13 @@ const PropertyDetails = ({
   const [newHistoryDescription, setNewHistoryDescription] = useState("");
   const [editableSpecs, setEditableSpecs] = useState<EditableSpec[]>([]);
 
+  // Confirmation modal state & ref for deferred actions
+  const [confirmVisible, setConfirmVisible] = useState(false);
+  const [confirmTitle, setConfirmTitle] = useState('');
+  const [confirmMessage, setConfirmMessage] = useState('');
+  const [confirmDestructive, setConfirmDestructive] = useState(false);
+  const onConfirmRef = useRef<(() => Promise<void>) | null>(null);
+
   const spaceTypeOptions = [
     "Bedroom",
     "Bathroom",
@@ -317,14 +325,21 @@ const PropertyDetails = ({
       Alert.alert("Missing Information", "Please provide a name and select a type.");
       return;
     }
-    try {
-      await addSpace(propertyId, newSpaceName, newSpaceType);
-      setNewSpaceName("");
-      setNewSpaceType(null);
-      setAddSpaceModalVisible(false);
-    } catch (error: any) {
-      Alert.alert("Error", error.message);
-    }
+    // Show confirmation before adding the space
+    setConfirmTitle('Add Space');
+    setConfirmMessage(`Are you sure you want to add the space "${newSpaceName}"?`);
+    setConfirmDestructive(false);
+    onConfirmRef.current = async () => {
+      try {
+        await addSpace(propertyId, newSpaceName, newSpaceType);
+        setNewSpaceName("");
+        setNewSpaceType(null);
+        setAddSpaceModalVisible(false);
+      } catch (error: any) {
+        Alert.alert("Error", error.message);
+      }
+    };
+    setConfirmVisible(true);
   };
 
   const handleAddAsset = async () => {
@@ -332,14 +347,21 @@ const PropertyDetails = ({
       Alert.alert("Missing Information", "Please select an asset type and provide a description.");
       return;
     }
-    try {
-      await addAsset(newAssetDescription, selectedSpace, selectedAssetType);
-      setNewAssetDescription("");
-      setSelectedAssetType(null);
-      setAddAssetModalVisible(false);
-    } catch (error: any) {
-      Alert.alert("Error", error.message);
-    }
+    // Confirm before adding asset
+    setConfirmTitle('Add Asset');
+    setConfirmMessage(`Are you sure you want to add the asset "${newAssetDescription}"?`);
+    setConfirmDestructive(false);
+    onConfirmRef.current = async () => {
+      try {
+        await addAsset(newAssetDescription, selectedSpace, selectedAssetType);
+        setNewAssetDescription("");
+        setSelectedAssetType(null);
+        setAddAssetModalVisible(false);
+      } catch (error: any) {
+        Alert.alert("Error", error.message);
+      }
+    };
+    setConfirmVisible(true);
   };
 
   const handleAddHistory = async () => {
@@ -354,13 +376,29 @@ const PropertyDetails = ({
       return acc;
     }, {} as Record<string, string>);
 
-    try {
-      await addHistoryOwner(currentAsset, newHistoryDescription, newSpecifications);
-      setNewHistoryDescription("");
-      setAddHistoryModalVisible(false);
-      setCurrentAsset(null);
-    } catch (error: any) {
-      Alert.alert("Error", error.message);
+    // Confirm before submitting history
+    setConfirmTitle('Submit Update');
+    setConfirmMessage('Are you sure you want to submit this update to the asset history?');
+    setConfirmDestructive(false);
+    onConfirmRef.current = async () => {
+      try {
+        await addHistoryOwner(currentAsset, newHistoryDescription, newSpecifications);
+        setNewHistoryDescription("");
+        setAddHistoryModalVisible(false);
+        setCurrentAsset(null);
+      } catch (error: any) {
+        Alert.alert("Error", error.message);
+      }
+    };
+    setConfirmVisible(true);
+  };
+
+  const handleConfirm = async () => {
+    setConfirmVisible(false);
+    if (onConfirmRef.current) {
+      const fn = onConfirmRef.current;
+      onConfirmRef.current = null;
+      await fn();
     }
   };
 
@@ -545,6 +583,14 @@ const PropertyDetails = ({
           <Text style={styles.addRowButtonText}>Add Attribute</Text>
         </TouchableOpacity>
       </FormModal>
+      <ConfirmModal
+        visible={confirmVisible}
+        title={confirmTitle}
+        message={confirmMessage}
+        destructive={confirmDestructive}
+        onConfirm={handleConfirm}
+        onCancel={() => setConfirmVisible(false)}
+      />
     </SafeAreaView>
   );
 };

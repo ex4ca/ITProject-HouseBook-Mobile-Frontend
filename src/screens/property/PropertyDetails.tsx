@@ -424,11 +424,42 @@ const PropertyDetails = ({
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <ChevronLeft size={24} color={PALETTE.textPrimary} />
+      </View>
+      <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator={false}>
+    {/* Sort by Section */}
+    <View style={styles.sortSection}>
+      <Text style={styles.sortLabel}>Sort by:</Text>
+      <View style={styles.sortToggleGroup}>
+        <TouchableOpacity
+          style={[styles.sortToggleButton, sortMode === 'space' && styles.sortToggleButtonActive]}
+          onPress={() => setSortMode('space')}
+        >
+          <Text
+            style={[
+              styles.sortToggleText,
+              sortMode === 'space' && styles.sortToggleTextActive,
+            ]}
+          >
+            Space
+          </Text>
         </TouchableOpacity>
-        <View style={styles.dropdownContainer}>
+        <TouchableOpacity
+          style={[styles.sortToggleButton, sortMode === 'discipline' && styles.sortToggleButtonActive]}
+          onPress={() => setSortMode('discipline')}
+        >
+          <Text
+            style={[
+              styles.sortToggleText,
+              sortMode === 'discipline' && styles.sortToggleTextActive,
+            ]}
+          >
+            Discipline
+          </Text>
+        </TouchableOpacity>
+        </View>
+        <View style={styles.dropdownWrapper}>
           <DropField
             options={sortMode === 'space' ? spaces.map((s) => s.name) : availableDisciplines}
             selectedValue={sortMode === 'space' ? selectedSpaceName : selectedDisciplineName}
@@ -446,11 +477,7 @@ const PropertyDetails = ({
             }}
           />
         </View>
-        <TouchableOpacity style={styles.sortModeButton} onPress={toggleSortMode}>
-          <Text style={styles.sortModeButtonText}>{sortMode === 'space' ? 'Space' : 'Discipline'}</Text>
-        </TouchableOpacity>
       </View>
-      <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator={false}>
         <Text style={styles.pageTitle}>{sortMode === 'space' ? selectedSpaceName : selectedDisciplineName}</Text>
         <View style={styles.contentContainer}>
           {sortMode === 'space' ? (

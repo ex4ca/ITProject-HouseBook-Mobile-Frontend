@@ -18,6 +18,7 @@ import {
   Maximize,
   Car,
   QrCode,
+  Utensils
 } from "lucide-react-native";
 import QRCode from 'react-native-qrcode-svg'; 
 import { SafeAreaView } from 'react-native-safe-area-context'; 
@@ -163,23 +164,38 @@ const PropertyGeneralScreen = ({
   ];
 
   const PropertyStats = useMemo(() => {
-    const iconMap: { [key: string]: React.ReactElement } = {
-      bedroom: <Bed color={PALETTE.primary} size={20} />,
-      bathroom: <Bath color={PALETTE.primary} size={20} />,
-      kitchen: <HomeIcon color={PALETTE.primary} size={20} />,
-      garage: <Car color={PALETTE.primary} size={20} />,
-      living: <HomeIcon color={PALETTE.primary} size={20} />,
-    };
-    const stats = Object.entries(spaceCounts).map(([type, count]) => ({
-      icon: iconMap[type] || <HomeIcon color={PALETTE.primary} size={20} />,
-      label: `${type.charAt(0).toUpperCase() + type.slice(1)}s`,
-      value: count.toString(),
-    }));
+    // Only show these types, in this order
+    const statTypes = [
+      { key: 'bedroom', label: 'Bedrooms', icon: <Bed color={PALETTE.primary} size={20} /> },
+      { key: 'bathroom', label: 'Bathrooms', icon: <Bath color={PALETTE.primary} size={20} /> },
+      { key: 'kitchen', label: 'Kitchens', icon: <Utensils color={PALETTE.primary} size={20} /> },
+      { key: 'living', label: 'Living Rooms', icon: <HomeIcon color={PALETTE.primary} size={20} /> },
+      { key: 'garage', label: 'Garages', icon: <Car color={PALETTE.primary} size={20} /> },
+    ];
+    // Only use allowed keys from spaceCounts
+    const allowedKeys = statTypes.map(stat => stat.key);
+    const filteredSpaceCounts = Object.fromEntries(
+      Object.entries(spaceCounts).filter(([key]) => allowedKeys.includes(key))
+    );
+    const stats = statTypes
+      .filter(stat => filteredSpaceCounts[stat.key])
+      .map(stat => ({
+        icon: stat.icon,
+        label: stat.label,
+        value: filteredSpaceCounts[stat.key]?.toString() || '0',
+      }));
     if (property?.total_floor_area) {
       stats.push({
         icon: <Maximize color={PALETTE.primary} size={20} />,
         label: "Floor Area",
         value: `${property.total_floor_area} m²`,
+      });
+    }
+    if (property?.block_size) {
+      stats.push({
+        icon: <Maximize color={PALETTE.primary} size={20} />,
+        label: "Block Size",
+        value: `${property.block_size} m²`,
       });
     }
     return stats;
@@ -294,26 +310,6 @@ const PropertyGeneralScreen = ({
               </Text>
             </View>
           )}
-
-          {/* Discipline Cards */}
-          {Object.entries(disciplineData).map(([discipline, specGroups]) => (
-            <View key={discipline} style={styles.detailsCard}>
-              <Text style={styles.cardTitle}>{discipline}</Text>
-              {Object.values(specGroups).map((group, index) => (
-                <View key={index} style={styles.specGroup}>
-                  <View style={styles.specificationsBox}>
-                    {Object.entries(group.specifications).map(([key, value]) => (
-                      <View key={key} style={styles.specPair}>
-                        <Text style={styles.specKey}>{key.replace(/_/g, " ")}</Text>
-                        <Text style={styles.specValue}>{String(value)}</Text>
-                      </View>
-                    ))}
-                  </View>
-                </View>
-              ))}
-            </View>
-          ))}
-
         </View>
       </ScrollView>
     </SafeAreaView>

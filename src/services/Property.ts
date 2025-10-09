@@ -27,6 +27,7 @@ export const fetchPropertyGeneralData = async (propertyId: string): Promise<Prop
           address,
           description,
           total_floor_area,
+          block_size,
           PropertyImages ( image_link, image_name ),
           Spaces (
             id,

@@ -169,13 +169,13 @@ export default function TradiePropertyGeneral() {
           value: `${property.total_floor_area} m²`,
         });
       }
-      // if (property?.block_size) {
-      //   stats.push({
-      //     icon: <Maximize color={PALETTE.primary} size={20} />,
-      //     label: "Block Size",
-      //     value: `${property.block_size} m²`,
-      //   });
-      // }
+      if (property?.block_size) {
+        stats.push({
+          icon: <Maximize color={PALETTE.primary} size={20} />,
+          label: "Block Size",
+          value: `${property.block_size} m²`,
+        });
+      }
       return stats;
     }, [spaceCounts, property]);
 

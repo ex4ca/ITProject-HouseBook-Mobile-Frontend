@@ -345,30 +345,64 @@ export default function TradiePropertyDetails() {
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
           <ChevronLeft size={24} color={PALETTE.textPrimary} />
         </TouchableOpacity>
-        <View style={styles.dropdownContainer}>
-          <DropField
-            options={sortMode === 'space' ? spaces.map((s) => s.name) : availableDisciplines}
-            selectedValue={sortMode === 'space' ? selectedSpaceName : selectedDisciplineName}
-            onSelect={(name) => {
-              if (sortMode === 'space') {
-                const space = spaces.find((s) => s.name === name);
-                if (space) {
-                  setSelectedSpace(space.id);
+        <Text style={styles.headerTitle} numberOfLines={1}>
+          {"Timeline"}
+        </Text>
+        <View style={{ width: 40 }} />
+      </View>
+      <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator={false}>
+
+      {/* Sort by Section */}
+      <View style={styles.sortSection}>
+        <Text style={styles.sortLabel}>Sort by:</Text>
+        <View style={styles.sortToggleGroup}>
+          <TouchableOpacity
+            style={[styles.sortToggleButton, sortMode === 'space' && styles.sortToggleButtonActive]}
+            onPress={() => setSortMode('space')}
+          >
+            <Text
+              style={[
+                styles.sortToggleText,
+                sortMode === 'space' && styles.sortToggleTextActive,
+              ]}
+            >
+              Space
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.sortToggleButton, sortMode === 'discipline' && styles.sortToggleButtonActive]}
+            onPress={() => setSortMode('discipline')}
+          >
+            <Text
+              style={[
+                styles.sortToggleText,
+                sortMode === 'discipline' && styles.sortToggleTextActive,
+              ]}
+            >
+              Discipline
+            </Text>
+          </TouchableOpacity>
+          </View>
+          <View style={styles.dropdownWrapper}>
+            <DropField
+              options={sortMode === 'space' ? spaces.map((s) => s.name) : availableDisciplines}
+              selectedValue={sortMode === 'space' ? selectedSpaceName : selectedDisciplineName}
+              onSelect={(name) => {
+                if (sortMode === 'space') {
+                  const space = spaces.find((s) => s.name === name);
+                  if (space) {
+                    setSelectedSpace(space.id);
+                    setExpandedAssetId(null);
+                  }
+                } else {
+                  setSelectedDiscipline(name);
                   setExpandedAssetId(null);
                 }
-              } else {
-                setSelectedDiscipline(name);
-                setExpandedAssetId(null);
-              }
-            }}
-          />
+              }}
+            />
+          </View>
         </View>
-        <TouchableOpacity style={styles.sortModeButton} onPress={toggleSortMode}>
-          <Text style={styles.sortModeButtonText}>{sortMode === 'space' ? 'Space' : 'Discipline'}</Text>
-        </TouchableOpacity>
-      </View>
 
-      <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator={false}>
         <Text style={styles.pageTitle}>{sortMode === 'space' ? selectedSpaceName : selectedDisciplineName}</Text>
         <View style={styles.contentContainer}>
           {sortMode === 'space' ? (

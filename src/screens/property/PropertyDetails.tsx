@@ -435,6 +435,7 @@ const PropertyDetails = ({
         <View style={{ width: 40 }} />
       </View>
       <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator={false}>
+        
       {/* Sort by Section */}
       <View style={styles.sortSection}>
         <Text style={styles.sortLabel}>Sort by:</Text>
@@ -485,6 +486,7 @@ const PropertyDetails = ({
             />
           </View>
         </View>
+
         <Text style={styles.pageTitle}>{sortMode === 'space' ? selectedSpaceName : selectedDisciplineName}</Text>
         <View style={styles.contentContainer}>
           {sortMode === 'space' ? (

@@ -17,6 +17,14 @@ export const propertyDetailsStyles = StyleSheet.create({
     padding: 20,
     minHeight: 200,
   },
+    dividerContainer: {
+    paddingVertical: 8,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: '#D1D5DB',
+    width: '100%',
+  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',

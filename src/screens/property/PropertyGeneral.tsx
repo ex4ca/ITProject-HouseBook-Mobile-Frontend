@@ -18,6 +18,7 @@ import {
   Maximize,
   Car,
   QrCode,
+  Utensils
 } from "lucide-react-native";
 import QRCode from 'react-native-qrcode-svg'; 
 import { SafeAreaView } from 'react-native-safe-area-context'; 
@@ -167,7 +168,7 @@ const PropertyGeneralScreen = ({
     const statTypes = [
       { key: 'bedroom', label: 'Bedrooms', icon: <Bed color={PALETTE.primary} size={20} /> },
       { key: 'bathroom', label: 'Bathrooms', icon: <Bath color={PALETTE.primary} size={20} /> },
-      { key: 'kitchen', label: 'Kitchens', icon: <HomeIcon color={PALETTE.primary} size={20} /> },
+      { key: 'kitchen', label: 'Kitchens', icon: <Utensils color={PALETTE.primary} size={20} /> },
       { key: 'living', label: 'Living Rooms', icon: <HomeIcon color={PALETTE.primary} size={20} /> },
       { key: 'garage', label: 'Garages', icon: <Car color={PALETTE.primary} size={20} /> },
     ];

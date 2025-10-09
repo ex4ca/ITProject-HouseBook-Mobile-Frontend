@@ -17,6 +17,7 @@ import {
   Home as HomeIcon,
   Maximize,
   Car,
+  Utensils,
 } from 'lucide-react-native';
 
 import { fetchPropertyGeneralData } from '../../services/Property';
@@ -145,7 +146,7 @@ export default function TradiePropertyGeneral() {
       const statTypes = [
         { key: 'bedroom', label: 'Bedrooms', icon: <Bed color={PALETTE.primary} size={20} /> },
         { key: 'bathroom', label: 'Bathrooms', icon: <Bath color={PALETTE.primary} size={20} /> },
-        { key: 'kitchen', label: 'Kitchens', icon: <HomeIcon color={PALETTE.primary} size={20} /> },
+        { key: 'kitchen', label: 'Kitchens', icon: <Utensils color={PALETTE.primary} size={20} /> },
         { key: 'living', label: 'Living Rooms', icon: <HomeIcon color={PALETTE.primary} size={20} /> },
         { key: 'garage', label: 'Garages', icon: <Car color={PALETTE.primary} size={20} /> },
       ];
@@ -256,7 +257,7 @@ export default function TradiePropertyGeneral() {
               ))}
             </View>
           </View>
-          
+
           {/* Description Card */}
           {property?.description && (
             <View style={styles.detailsCard}>

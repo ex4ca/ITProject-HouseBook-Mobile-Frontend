@@ -18,31 +18,26 @@ import {
   Maximize,
   Car,
   QrCode,
-  Utensils
+  Utensils,
+  ChevronDown,
+  ChevronRight
 } from "lucide-react-native";
-import QRCode from 'react-native-qrcode-svg'; 
-import { SafeAreaView } from 'react-native-safe-area-context'; 
 
-// Import the new, separated logic and styles
+import QRCode from 'react-native-qrcode-svg';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { fetchPropertyGeneralData } from "../../services/Property";
+import { fetchPreviousOwners } from "../../services/FetchPreviousOwners";
+import { TouchableWithoutFeedback } from "react-native";
 import { propertyGeneralStyles as styles } from "../../styles/propertyGeneralStyles";
 import { PALETTE } from "../../styles/palette";
 import type { PropertyGeneral } from "../../types";
 
-const { width } = Dimensions.get("window");
 
-type DisciplineGroup = {
-  [discipline: string]: {
-    [specKey: string]: {
-      specifications: Record<string, any>;
-      locations: {
-        spaceName: string;
-        assetDescription: string;
-      }[];
-    };
-  };
+type PreviousOwner = {
+  transfer_id: string;
+  transfer_date: string;
+  owners: { owner_name: string }[];
 };
-
 
 interface PropertyGeneralScreenProps {
   route: { params?: { propertyId?: string } };
@@ -54,6 +49,32 @@ const PropertyGeneralScreen = ({
   navigation,
 }: PropertyGeneralScreenProps) => {
   const { propertyId } = route.params || {};
+  useFocusEffect(
+  useCallback(() => {
+    console.log('🔸 Route params:', route.params);
+    console.log('🔸 Property ID received:', propertyId);
+  }, [route.params])
+);
+
+  // Previous Owners State and Effect
+  const [previousOwners, setPreviousOwners] = useState<PreviousOwner[]>([]);
+  const [ownersDropdownOpen, setOwnersDropdownOpen] = useState(false);
+  const [selectedTransferIndex, setSelectedTransferIndex] = useState<number | null>(null);
+  useFocusEffect(
+    useCallback(() => {
+      const loadOwners = async () => {
+        if (propertyId) {
+          try {
+            const owners = await fetchPreviousOwners(propertyId);
+            setPreviousOwners(owners);
+          } catch (err) {
+            setPreviousOwners([]);
+          }
+        }
+      };
+      loadOwners();
+    }, [propertyId])
+);
 
   const [loading, setLoading] = useState(true);
   const [property, setProperty] = useState<PropertyGeneral | null>(null);
@@ -61,55 +82,6 @@ const PropertyGeneralScreen = ({
     { id: string; uri: string | null; title: string }[]
   >([]);
   const [spaceCounts, setSpaceCounts] = useState<Record<string, number>>({});
-
-  const disciplineData = useMemo<DisciplineGroup>(() => {
-    if (!property?.Spaces) return {};
-
-    const groups: DisciplineGroup = {};
-
-    property.Spaces.forEach(space => {
-      space.Assets?.forEach(asset => {
-        const discipline = asset.AssetTypes?.discipline || 'General';
-        const latestLog = asset.ChangeLog
-          ?.filter(log => log.status === 'ACCEPTED')
-          .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
-        
-        const specifications = latestLog?.specifications || {};
-        
-        // Skip assets that have no specifications
-        if (Object.keys(specifications).length === 0) {
-            return;
-        }
-
-        // Sort keys to create a consistent, unique key from the spec object
-        const sortedSpec = Object.keys(specifications).sort().reduce(
-          (obj, key) => { 
-            obj[key] = specifications[key]; 
-            return obj;
-          }, 
-          {} as Record<string, any>
-        );
-        const specKey = JSON.stringify(sortedSpec);
-
-        if (!groups[discipline]) {
-          groups[discipline] = {};
-        }
-        if (!groups[discipline][specKey]) {
-          groups[discipline][specKey] = {
-            specifications: specifications,
-            locations: [],
-          };
-        }
-
-        groups[discipline][specKey].locations.push({
-          spaceName: space.name,
-          assetDescription: asset.description,
-        });
-      });
-    });
-
-    return groups;
-  }, [property]);
 
   useFocusEffect(
     useCallback(() => {
@@ -310,6 +282,53 @@ const PropertyGeneralScreen = ({
               </Text>
             </View>
           )}
+
+          {/* Previous Owners Card */}
+          <View style={styles.detailsCard}>
+            <TouchableOpacity
+              style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 10 }}
+              onPress={() => setOwnersDropdownOpen(prev => !prev)}
+            >
+              <Text style={styles.cardTitle}>Previous Owners</Text>
+              {ownersDropdownOpen ? (
+                <ChevronDown size={20} color={PALETTE.textPrimary} />
+              ) : (
+                <ChevronRight size={20} color={PALETTE.textPrimary} />
+              )}
+            </TouchableOpacity>
+
+            {ownersDropdownOpen && (
+              <View style={{ marginTop: 8 }}>
+                {previousOwners.length === 0 ? (
+                  <Text style={styles.emptyText}>No previous owners found.</Text>
+                ) : (
+                  previousOwners.map((transfer) =>
+                    transfer.owners.map((owner, idx) => (
+                      <View
+                        key={`${transfer.transfer_id}-${idx}`}
+                        style={{
+                          flexDirection: 'row',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          paddingVertical: 10,
+                          borderBottomWidth: 1,
+                          borderBottomColor: PALETTE.border,
+                        }}
+                      >
+                        <Text style={{ fontWeight: '500', color: PALETTE.textPrimary }}>
+                          {owner.owner_name}
+                        </Text>
+                        <Text style={{ color: PALETTE.textSecondary }}>
+                          {new Date(transfer.transfer_date).toLocaleDateString()}
+                        </Text>
+                      </View>
+                    ))
+                  )
+                )}
+              </View>
+            )}
+          </View>
+
         </View>
       </ScrollView>
     </SafeAreaView>

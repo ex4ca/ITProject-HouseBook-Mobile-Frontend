@@ -25,74 +25,15 @@ import { propertyGeneralStyles as styles } from '../../styles/propertyGeneralSty
 import { PALETTE } from '../../styles/palette';
 import type { PropertyGeneral } from '../../types';
 
-type DisciplineGroup = {
-  [discipline: string]: {
-    [specKey: string]: {
-      specifications: Record<string, any>;
-      locations: {
-        spaceName: string;
-        assetDescription: string;
-      }[];
-    };
-  };
-};
-
 export default function TradiePropertyGeneral() {
   const route = useRoute();
   const navigation = useNavigation();
   const { propertyId } = route.params as { propertyId: string };
-
   const [loading, setLoading] = useState(true);
   const [property, setProperty] = useState<PropertyGeneral | null>(null);
   const [propertyImages, setPropertyImages] = useState<{ id: string; uri: string | null; title: string }[]>([]);
   const [spaceCounts, setSpaceCounts] = useState<Record<string, number>>({});
 
-  const disciplineData = useMemo<DisciplineGroup>(() => {
-    if (!property?.Spaces) return {};
-
-    const groups: DisciplineGroup = {};
-
-    property.Spaces.forEach(space => {
-      space.Assets?.forEach(asset => {
-        const discipline = asset.AssetTypes?.discipline || 'General';
-        const latestLog = asset.ChangeLog
-          ?.filter(log => log.status === 'ACCEPTED')
-          .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
-        
-        const specifications = latestLog?.specifications || {};
-        
-        if (Object.keys(specifications).length === 0) {
-            return;
-        }
-
-        const sortedSpec = Object.keys(specifications).sort().reduce(
-          (obj, key) => { 
-            obj[key] = specifications[key]; 
-            return obj;
-          }, 
-          {} as Record<string, any>
-        );
-        const specKey = JSON.stringify(sortedSpec);
-
-        if (!groups[discipline]) {
-          groups[discipline] = {};
-        }
-        if (!groups[discipline][specKey]) {
-          groups[discipline][specKey] = {
-            specifications: specifications,
-            locations: [],
-          };
-        }
-
-        groups[discipline][specKey].locations.push({
-          spaceName: space.name,
-          assetDescription: asset.description,
-        });
-      });
-    });
-
-    return groups;
-  }, [property]);
 
   useFocusEffect(
     useCallback(() => {

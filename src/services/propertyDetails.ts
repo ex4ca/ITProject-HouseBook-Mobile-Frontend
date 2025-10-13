@@ -9,12 +9,14 @@ export const fetchPropertyDetails = async (propertyId: string): Promise<Property
         Spaces (id, name, Assets (id, description, asset_type_id, ChangeLog (id, specifications, change_description, created_at, status, User!ChangeLog_changed_by_user_id_fkey(first_name, last_name))))
       `)
       .eq('property_id', propertyId)
+      .order('created_at', { foreignTable: 'Spaces.Assets.ChangeLog', ascending: false })
       .single();
     
     if (error && error.code !== 'PGRST116') {
         console.error("Error fetching property details:", error.message);
         return null;
     }
+    // The data will now be correctly sorted before it even reaches your component.
     return data as unknown as PropertyDetailsData;
 };
 
@@ -54,4 +56,3 @@ export const addHistoryTradie = async (asset: AssetWithChangelog, description: s
     const { error } = await supabase.from('ChangeLog').insert({ asset_id: asset.id, specifications, change_description: description, changed_by_user_id: user.id, status: 'PENDING' });
     if (error) throw new Error(error.message);
 };
-

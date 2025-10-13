@@ -359,4 +359,9 @@ export const propertyDetailsStyles = StyleSheet.create({
     borderWidth: 1,
     borderColor: PALETTE.border,
   },
+  permissionText: {
+    fontSize: 14,
+    fontStyle: 'italic',
+    color: PALETTE.textSecondary,
+  },
 });

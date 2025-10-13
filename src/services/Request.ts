@@ -72,8 +72,6 @@ export const fetchTradieRequests = async (propertyId: string, tradieUserId: stri
   pending: PendingRequest[];
   accepted: PendingRequest[];
 }> => {
-    console.log("Fetching tradie requests for:", { propertyId, tradieUserId });
-    
     const { data, error } = await supabase
       .from('ChangeLog')
       .select(`
@@ -100,7 +98,7 @@ export const fetchTradieRequests = async (propertyId: string, tradieUserId: stri
         return { pending: [], accepted: [] };
     }
 
-    console.log("Raw data from fetchTradieRequests:", data);
+    
 
     const anyData = data as any[];
 
@@ -144,13 +142,6 @@ export const createTradieRequest = async (
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error("User must be logged in to create a request.");
 
-    console.log("Creating tradie request with:", {
-        assetId,
-        description,
-        specifications,
-        userId: user.id
-    });
-
     const { data, error } = await supabase
         .from('ChangeLog')
         .insert({
@@ -162,11 +153,8 @@ export const createTradieRequest = async (
         });
 
     if (error) {
-        console.error("Error creating tradie request:", error);
         throw new Error(`Failed to create request: ${error.message}`);
     }
-
-    console.log("Successfully created tradie request");
 };
 
 // Cancel a pending request

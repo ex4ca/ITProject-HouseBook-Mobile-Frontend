@@ -24,9 +24,9 @@ import {
 } from "lucide-react-native";
 import {
   fetchTradieRequests,
-  createTradieRequest,
   cancelTradieRequest,
 } from "../../services/Request";
+import { addHistoryTradie } from "../../services/propertyDetails";
 import { fetchPropertyAndJobScope } from "../../services/FetchAuthority";
 import { propertyRequestsStyles as styles } from "../../styles/requestStyles";
 import { PALETTE } from "../../styles/palette";
@@ -131,20 +131,9 @@ const RequestCreationForm = ({
   const [showDropdown, setShowDropdown] = useState(false);
 
   const handleSubmit = () => {
-    console.log('[RequestCreationForm] handleSubmit called with:', { selectedSpaceId, description, date });
-
-    if (!selectedSpaceId || !description.trim()) {
-      console.warn('[RequestCreationForm] Missing info', { selectedSpaceId, hasDescription: !!description.trim() });
-      return;
-    }
-
-    // Simple YYYY-MM-DD validation
+    if (!selectedSpaceId || !description.trim()) return;
     const isValidDate = /^\d{4}-\d{2}-\d{2}$/.test(date);
-    if (!isValidDate) {
-      console.warn('[RequestCreationForm] Invalid date format, expected YYYY-MM-DD:', date);
-      return;
-    }
-
+    if (!isValidDate) return;
     onSubmit({ spaceId: selectedSpaceId, description: description.trim(), date });
   };
 
@@ -285,50 +274,37 @@ export default function TradieRequestsScreen() {
 
   const handleCreateRequest = async (formData: { spaceId: string; description: string; date: string }) => {
     if (!propertyData) return;
-
     setSubmitting(true);
-    try {
-      console.log('[TradieRequestsScreen] handleCreateRequest formData:', formData);
-      // Find the selected space
-      const selectedSpace = (propertyData.Spaces || []).find((space: any) => space.id === formData.spaceId);
-      if (!selectedSpace || !selectedSpace.Assets || selectedSpace.Assets.length === 0) {
-        console.warn('[TradieRequestsScreen] No assets in selected space', { spaceId: formData.spaceId });
+
+    const selectedSpace = (propertyData.Spaces || []).find((space: any) => space.id === formData.spaceId);
+    if (!selectedSpace || !selectedSpace.Assets || selectedSpace.Assets.length === 0) {
+      setSubmitting(false);
+      return;
+    }
+
+    let chosenAsset = selectedSpace.Assets[0];
+    if (editableAssetIds && editableAssetIds.size > 0) {
+      const allowed = selectedSpace.Assets.find((a: any) => editableAssetIds.has(a.id));
+      if (!allowed) {
+        setSubmitting(false);
         return;
       }
-
-      // Choose an asset: if scope present, pick first asset in scope; else first asset
-      let assetId = selectedSpace.Assets[0].id;
-      if (editableAssetIds && editableAssetIds.size > 0) {
-        const allowed = selectedSpace.Assets.find((a: any) => editableAssetIds.has(a.id));
-        if (!allowed) {
-          console.warn('[TradieRequestsScreen] Space has no editable assets', { spaceId: selectedSpace.id });
-          return;
-        }
-        assetId = allowed.id;
-      }
-      console.log('[TradieRequestsScreen] chosen assetId:', assetId);
-      console.log('[TradieRequestsScreen] calling createTradieRequest');
-      await createTradieRequest(assetId, formData.description, { date: formData.date });
-      console.log('[TradieRequestsScreen] createTradieRequest completed');
-      
-      setShowCreateForm(false);
-      await loadData(); // Reload data to show the new request
-      console.log('[TradieRequestsScreen] Request submitted, reloaded data');
-    } catch (error: any) {
-      console.error('[TradieRequestsScreen] create request failed:', error);
-    } finally {
-      setSubmitting(false);
+      chosenAsset = allowed;
     }
+
+    await addHistoryTradie(chosenAsset, formData.description, { date: formData.date })
+      .then(async () => {
+        setShowCreateForm(false);
+        await loadData();
+      })
+      .catch(() => {})
+      .finally(() => setSubmitting(false));
   };
 
   const handleCancelRequest = async (id: string) => {
-    try {
-      await cancelTradieRequest(id);
-      await loadData(); // Reload data to remove the cancelled request
-      Alert.alert("Success", "Request cancelled");
-    } catch (error: any) {
-      Alert.alert("Error", error.message);
-    }
+    await cancelTradieRequest(id).then(async () => {
+      await loadData();
+    });
   };
 
   if (loading) {

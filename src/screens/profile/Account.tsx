@@ -1,15 +1,15 @@
-import React, {useState, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
   TouchableOpacity,
   StyleSheet,
-  SafeAreaView,
   ActivityIndicator,
   Alert,
 } from 'react-native';
-import { useFocusEffect, useRoute } from '@react-navigation/native';
+import { useFocusEffect, useRoute, RouteProp } from '@react-navigation/native';
 import { supabase } from '../../config/supabaseClient';
+import { SafeAreaView } from 'react-native-safe-area-context'; 
 import { User, LogOut } from 'lucide-react-native';
 
 // Consistent color palette for the Notion-like design.
@@ -23,14 +23,26 @@ const PALETTE = {
   danger: '#DC2626',
 };
 
+// Define a type for the user profile data.
+interface UserProfile {
+  first_name: string;
+  last_name: string;
+  email: string;
+}
+
+// Define the types for the navigation route parameters.
+type AccountScreenRouteParams = {
+  userRole?: 'owner' | 'tradie';
+};
+
 // Main component for the user's account screen.
 const AccountScreen = () => {
-  const route = useRoute();
+  const route = useRoute<RouteProp<{ params: AccountScreenRouteParams }, 'params'>>();
   const { userRole: selectedRole } = route.params || { userRole: 'owner' };
   
-  const [loading, setLoading] = useState(true);
-  const [userProfile, setUserProfile] = useState(null);
-  const [userRole, setUserRole] = useState('');
+  const [loading, setLoading] = useState<boolean>(true);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [userRole, setUserRole] = useState<string>('');
 
   // Fetches data every time the screen comes into view.
   useFocusEffect(
@@ -46,7 +58,7 @@ const AccountScreen = () => {
           setUserProfile(profile);
           setUserRole(selectedRole === 'owner' ? 'Property Owner' : 'Trade Person');
 
-        } catch (error) {
+        } catch (error: any) {
           console.error("Error fetching account data:", error.message);
           setUserProfile(null);
           setUserRole('');
@@ -60,7 +72,7 @@ const AccountScreen = () => {
   );
 
   // Fetches the user's first name, last name, and email.
-  const fetchUserProfile = async (userId) => {
+  const fetchUserProfile = async (userId: string): Promise<UserProfile> => {
     const { data, error } = await supabase
       .from('User')
       .select('first_name, last_name, email')
@@ -72,7 +84,7 @@ const AccountScreen = () => {
 
 
   // Handles the sign-out process.
-  const handleSignOut = async () => {
+  const handleSignOut = async (): Promise<void> => {
     const { error } = await supabase.auth.signOut();
     if (error) {
       Alert.alert('Sign Out Error', error.message);

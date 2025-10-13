@@ -27,7 +27,9 @@ export const fetchMyProfile = async (): Promise<UserProfile | null> => {
 };
 
 /**
- * NEW LOGIC: Fetches active tradies for a property by querying through the JobTradies table.
+ * Fetches active tradies for a property by querying through the JobTradies table.
+ * This version now filters for 'ACCEPTED' status and handles expired jobs by updating their
+ * status in the background.
  * @param propertyId The ID of the property.
  */
 export const fetchActiveJobsForProperty = async (propertyId: string): Promise<ActiveTradieJob[]> => {
@@ -36,6 +38,7 @@ export const fetchActiveJobsForProperty = async (propertyId: string): Promise<Ac
         .select(`
             id,
             title,
+            end_time,
             JobTradies!inner (
                 tradie_id,
                 status,
@@ -48,7 +51,7 @@ export const fetchActiveJobsForProperty = async (propertyId: string): Promise<Ac
             )
         `)
         .eq('property_id', propertyId)
-        .eq('JobTradies.status', 'ACCEPTED'); 
+        .eq('JobTradies.status', 'ACCEPTED');
         
     if (error) {
         console.error("Error fetching active jobs:", error.message);
@@ -58,9 +61,20 @@ export const fetchActiveJobsForProperty = async (propertyId: string): Promise<Ac
     if (!data) return [];
 
     const activeTradies: ActiveTradieJob[] = [];
+    const expiredAssignments: { jobId: string, tradieId: string }[] = [];
+    const currentTime = new Date();
+
+    // Iterate through the fetched data to separate active and expired jobs.
     data.forEach(job => {
+        const jobEndTime = new Date(job.end_time);
+
         (job.JobTradies as any[]).forEach((jobTradie: any) => {
-            if (jobTradie.Tradesperson && jobTradie.Tradesperson.User) {
+            // Check if the job's end_time has passed.
+            if (job.end_time && jobEndTime < currentTime) {
+                // If expired, add the assignment to a list to be updated.
+                expiredAssignments.push({ jobId: job.id, tradieId: jobTradie.tradie_id });
+            } else if (jobTradie.Tradesperson && jobTradie.Tradesperson.User) {
+                // If not expired, add the tradie to the list to be displayed in the UI.
                 activeTradies.push({
                     jobId: job.id,
                     jobTitle: job.title,
@@ -71,11 +85,30 @@ export const fetchActiveJobsForProperty = async (propertyId: string): Promise<Ac
         });
     });
 
+    // Asynchronously update the status of all expired assignments in the background.
+    // We don't `await` this, so the UI can update instantly with the active tradies.
+    if (expiredAssignments.length > 0) {
+        console.log(`Found ${expiredAssignments.length} expired job assignments to update.`);
+        Promise.all(expiredAssignments.map(async (assignment) => {
+            const { error: updateError } = await supabase
+                .from('JobTradies')
+                .update({ status: 'EXPIRED' })
+                .eq('job_id', assignment.jobId)
+                .eq('tradie_id', assignment.tradieId);
+
+            if (updateError) {
+                console.error(`Failed to expire job ${assignment.jobId} for tradie ${assignment.tradieId}:`, updateError.message);
+            }
+        }));
+    }
+
+    // Return only the list of active tradies.
     return activeTradies;
 };
 
+
 /**
- * NEW LOGIC: Ends a specific tradie's session by updating their status in the JobTradies table.
+ * Ends a specific tradie's session by updating their status in the JobTradies table.
  * @param jobId The ID of the job.
  * @param tradieId The ID of the tradie to be removed.
  */
@@ -205,7 +238,7 @@ export const fetchMyFirstName = async (): Promise<string | null> => {
 }
 
 /**
- * NEW LOGIC: Fetches all jobs a tradie is assigned to via the JobTradies table.
+ * Fetches all jobs a tradie is assigned to via the JobTradies table.
  * This function now correctly joins through the new assignment table.
  * @param tradieUserId The user_id of the currently logged-in tradie.
  */
@@ -357,7 +390,7 @@ export const fetchJobDetails = async (jobId: string): Promise<any | null> => {
 
 
 /**
- * NEW LOGIC: Assigns a tradie to a job by creating an entry in the JobTradies table.
+ * Assigns a tradie to a job by creating an entry in the JobTradies table.
  * It now first validates that the propertyId from the QR code is valid.
  * @param propertyId The ID of the property.
  * @param pin The PIN for the job.

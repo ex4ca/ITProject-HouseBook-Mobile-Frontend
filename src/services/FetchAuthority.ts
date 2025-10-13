@@ -26,53 +26,68 @@ export const fetchMyProfile = async (): Promise<UserProfile | null> => {
     };
 };
 
+/**
+ * NEW LOGIC: Fetches active tradies for a property by querying through the JobTradies table.
+ * @param propertyId The ID of the property.
+ */
 export const fetchActiveJobsForProperty = async (propertyId: string): Promise<ActiveTradieJob[]> => {
     const { data, error } = await supabase
         .from('Jobs')
         .select(`
             id,
             title,
-            status,
-            Tradesperson!jobs_tradie_id_fkey (
+            JobTradies!inner (
                 tradie_id,
-                User!Tradesperson_user_id_fkey (
-                    first_name,
-                    last_name
+                status,
+                Tradesperson (
+                    User (
+                        first_name,
+                        last_name
+                    )
                 )
             )
         `)
         .eq('property_id', propertyId)
-        .eq('status', 'ACCEPTED'); 
-    
+        .eq('JobTradies.status', 'ACCEPTED'); 
+        
     if (error) {
         console.error("Error fetching active jobs:", error.message);
         return [];
     }
-    
-    const anyData = data as any[];
 
-    return anyData
-      .filter(job => job.Tradesperson && (job.Tradesperson as any).User)
-      .map(job => {
-        const tradesperson = job.Tradesperson as any;
-        const user = tradesperson.User;
-        return {
-            jobId: job.id,
-            jobTitle: job.title,
-            tradieId: tradesperson.tradie_id,
-            tradieName: `${user.first_name} ${user.last_name}`,
-        }
+    if (!data) return [];
+
+    const activeTradies: ActiveTradieJob[] = [];
+    data.forEach(job => {
+        (job.JobTradies as any[]).forEach((jobTradie: any) => {
+            if (jobTradie.Tradesperson && jobTradie.Tradesperson.User) {
+                activeTradies.push({
+                    jobId: job.id,
+                    jobTitle: job.title,
+                    tradieId: jobTradie.tradie_id,
+                    tradieName: `${jobTradie.Tradesperson.User.first_name} ${jobTradie.Tradesperson.User.last_name}`,
+                });
+            }
+        });
     });
+
+    return activeTradies;
 };
 
-export const endTradieJob = async (jobId: string): Promise<void> => {
+/**
+ * NEW LOGIC: Ends a specific tradie's session by updating their status in the JobTradies table.
+ * @param jobId The ID of the job.
+ * @param tradieId The ID of the tradie to be removed.
+ */
+export const endTradieJob = async (jobId: string, tradieId: string): Promise<void> => {
     const { error } = await supabase
-        .from('Jobs')
+        .from('JobTradies')
         .update({ status: 'EXPIRED' }) 
-        .eq('id', jobId);
+        .eq('job_id', jobId)
+        .eq('tradie_id', tradieId);
 
     if (error) {
-        console.error("Error ending tradie job:", error.message);
+        console.error("Error ending tradie's job session:", error.message);
         throw new Error('Could not end the tradie session.');
     }
 };
@@ -190,9 +205,9 @@ export const fetchMyFirstName = async (): Promise<string | null> => {
 }
 
 /**
- * Fetches all jobs assigned to the currently logged-in tradie.
- * This query joins the Jobs, Property, and Owner tables to provide comprehensive
- * details for the job board.
+ * NEW LOGIC: Fetches all jobs a tradie is assigned to via the JobTradies table.
+ * This function now correctly joins through the new assignment table.
+ * @param tradieUserId The user_id of the currently logged-in tradie.
  */
 export const getJobsForTradie = async (tradieUserId: string): Promise<any[]> => {
     const { data: tradieData, error: tradieError } = await supabase
@@ -206,16 +221,19 @@ export const getJobsForTradie = async (tradieUserId: string): Promise<any[]> => 
         return [];
     }
 
+    // Query the JobTradies table to find all accepted jobs for this tradie
     const { data, error } = await supabase
-        .from('Jobs')
+        .from('JobTradies')
         .select(`
-            id,
-            title,
             status,
-            Property (
-                property_id,
-                name,
-                address
+            Jobs (
+                id,
+                title,
+                Property (
+                    property_id,
+                    name,
+                    address
+                )
             )
         `)
         .eq('tradie_id', tradieData.tradie_id)
@@ -226,16 +244,18 @@ export const getJobsForTradie = async (tradieUserId: string): Promise<any[]> => 
         return [];
     }
 
-    // Map the data to a flat structure for easier use in the UI component.
-    return data.map((job: any) => ({
-        job_id: job.id,
-        title: job.title,
-        status: job.status,
-        property_id: job.Property.property_id,
-        name: job.Property.name,
-        address: job.Property.address,
+    // Map the nested data to the flat structure the UI expects
+    return (data || []).map((jobTradie: any) => ({
+        job_id: jobTradie.Jobs.id,
+        title: jobTradie.Jobs.title,
+        status: jobTradie.status, // Status now comes from the JobTradies table
+        property_id: jobTradie.Jobs.Property.property_id,
+        name: jobTradie.Jobs.Property.name,
+        address: jobTradie.Jobs.Property.address,
     }));
 };
+
+
 
 /**
  * Allows a tradie to claim a pending job by scanning a property's QR code.
@@ -335,8 +355,14 @@ export const fetchJobDetails = async (jobId: string): Promise<any | null> => {
   return jobDetails;
 };
 
+
+/**
+ * NEW LOGIC: Assigns a tradie to a job by creating an entry in the JobTradies table.
+ * It now first validates that the propertyId from the QR code is valid.
+ * @param propertyId The ID of the property.
+ * @param pin The PIN for the job.
+ */
 export const claimJobWithPin = async (propertyId: string, pin: string): Promise<{ success: boolean; message: string }> => {
-  // First, get the current user's tradie ID.
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('You must be logged in to claim a job.');
   
@@ -350,42 +376,46 @@ export const claimJobWithPin = async (propertyId: string, pin: string): Promise<
     throw new Error('Could not identify your tradie profile.');
   }
 
-  // Step 1: Verify the property exists before looking for a job.
+  // Step 1: Verify the propertyId from the QR code is valid.
   const { data: property, error: propertyError } = await supabase
     .from('Property')
     .select('property_id')
     .eq('property_id', propertyId)
     .single();
 
-  // If we get an error or no data, the property ID is invalid.
+  // If we get an error or no data, the property ID from the QR code is invalid.
   if (propertyError || !property) {
-    return { success: false, message: 'Oh, the property is not found.' };
+    return { success: false, message: 'Invalid Property QR Code. This property does not exist.' };
   }
 
-  // Step 2: Now that we know the property exists, find a matching pending job.
-  const { data: pendingJob, error: findError } = await supabase
+  // Step 2: Now that the property is confirmed, find a matching, active job.
+  const { data: job, error: findError } = await supabase
     .from('Jobs')
-    .select('id')
+    .select('id, end_time')
     .eq('property_id', propertyId)
     .eq('pin', pin)
-    .is('tradie_id', null) 
-    .eq('status', "PENDING")
-    .eq('expired', false) 
+    .gt('end_time', new Date().toISOString()) // Check if end_time is greater than the current time
     .limit(1)
     .single();
 
-  if (findError || !pendingJob) {
-    return { success: false, message: 'Invalid PIN, the job is expired, or it has already been claimed.' };
+  if (findError || !job) {
+    return { success: false, message: 'Invalid PIN or this job has expired.' };
   }
-  
-  // If found, update the job with the tradie's ID and set the status to 'accepted'.
-  const { error: updateError } = await supabase
-    .from('Jobs')
-    .update({ tradie_id: tradie.tradie_id, status: 'ACCEPTED' })
-    .eq('id', pendingJob.id);
 
-  if (updateError) {
-    console.error('Error claiming job:', updateError.message);
+  // Step 3: Create a new entry in the JobTradies table to assign the job.
+  const { error: insertError } = await supabase
+    .from('JobTradies')
+    .insert({
+      job_id: job.id,
+      tradie_id: tradie.tradie_id,
+      status: 'ACCEPTED',
+    });
+
+  if (insertError) {
+    if (insertError.code === '23505') {
+        return { success: true, message: 'You are already assigned to this job.' };
+    }
+    console.error('Error assigning job:', insertError.message);
     return { success: false, message: 'Failed to claim job. Please try again.' };
   }
 
@@ -393,48 +423,23 @@ export const claimJobWithPin = async (propertyId: string, pin: string): Promise<
 };
 
 /**
- * Fetches all details for a property, including a full hierarchy of spaces, 
- * assets, and their changelogs. It also identifies which assets are within 
- * the scope of a specific job for the current tradie.
+ * Fetches all details for a property, and also identifies which assets
+ * are within the scope of a specific job for the current tradie.
  * @param propertyId The ID of the property to view.
  * @param jobId The ID of the current job.
  */
 export const fetchPropertyAndJobScope = async (propertyId: string, jobId: string) => {
-  // Step 1: Fetch all property details with a corrected, explicit join to the User table.
   const { data: propertyData, error: propertyError } = await supabase
     .from('Property')
     .select(`
-      property_id,
-      name,
-      address,
-      Spaces (
-        id,
-        name,
-        type,
-        Assets (
-          id,
-          description,
-          asset_type_id,
-          ChangeLog (
-            id,
-            specifications,
-            change_description,
-            created_at,
-            status,
-            User!ChangeLog_changed_by_user_id_fkey (
-              first_name,
-              last_name
-            )
-          )
-        )
-      )
+      property_id, name, address,
+      Spaces ( id, name, type, Assets!left(id, description, asset_type_id, ChangeLog(id, specifications, change_description, created_at, status, User!ChangeLog_changed_by_user_id_fkey(first_name, last_name))))
     `)
     .eq('property_id', propertyId)
     .single();
 
   if (propertyError) throw propertyError;
 
-  // Step 2: Fetch the list of asset IDs that are specifically assigned to this job.
   const { data: jobAssets, error: jobAssetsError } = await supabase
     .from('JobAssets')
     .select('asset_id')
@@ -442,7 +447,6 @@ export const fetchPropertyAndJobScope = async (propertyId: string, jobId: string
   
   if (jobAssetsError) throw jobAssetsError;
 
-  // Create a Set for quick O(1) lookups of editable asset IDs in the UI.
   const editableAssetIds = new Set(jobAssets.map(ja => ja.asset_id));
 
   return {

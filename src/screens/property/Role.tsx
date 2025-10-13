@@ -54,7 +54,8 @@ const AuthorityManagementCard = ({
   onEndSession 
 }: { 
   jobs: ActiveTradieJob[],
-  onEndSession: (jobId: string, tradieName: string) => void,
+  // FIX: Update the function signature to include tradieId
+  onEndSession: (jobId: string, tradieId: string, tradieName: string) => void,
 }) => (
   <View style={styles.section}>
     <Text style={styles.sectionTitle}>Active on Property</Text>
@@ -62,7 +63,7 @@ const AuthorityManagementCard = ({
       jobs.map((job) => {
         const initials = job.tradieName.split(" ").map((n) => n[0]).join("");
         return (
-          <View key={job.jobId} style={styles.userRow}>
+          <View key={`${job.jobId}-${job.tradieId}`} style={styles.userRow}>
             <View style={styles.userInfo}>
               <View style={styles.smallAvatar}>
                 <Text>{initials}</Text>
@@ -74,7 +75,7 @@ const AuthorityManagementCard = ({
             </View>
             <TouchableOpacity 
               style={[styles.statusButton, styles.endSessionButton]}
-              onPress={() => onEndSession(job.jobId, job.tradieName)}
+              onPress={() => onEndSession(job.jobId, job.tradieId, job.tradieName)}
             >
               <XCircle size={18} color={PALETTE.danger} />
               <Text style={styles.endSessionButtonText}>End Session</Text>
@@ -90,10 +91,6 @@ const AuthorityManagementCard = ({
   </View>
 );
 
-/**
- * The Role screen displays authority and management information for a property.
- * Owners can see and manage active tradies, while tradies can see property owner details.
- */
 const Role = ({ route, navigation }: { route: any; navigation: any }) => {
   const { propertyId, isOwner } = route.params || {};
 
@@ -102,7 +99,6 @@ const Role = ({ route, navigation }: { route: any; navigation: any }) => {
   const [propertyOwner, setPropertyOwner] = useState<UserProfile | null>(null);
   const [activeJobs, setActiveJobs] = useState<ActiveTradieJob[]>([]);
 
-  // Fetches all necessary data when the screen comes into focus.
   useFocusEffect(
     useCallback(() => {
       const fetchData = async () => {
@@ -136,11 +132,8 @@ const Role = ({ route, navigation }: { route: any; navigation: any }) => {
     }, [propertyId, isOwner])
   );
 
-  /**
-   * Handles ending a tradie's session after owner confirmation.
-   * This will update the job's status in the database and remove it from the UI.
-   */
-  const handleEndSession = async (jobId: string, tradieName: string) => {
+  // FIX: Update the function to accept tradieId
+  const handleEndSession = async (jobId: string, tradieId: string, tradieName: string) => {
     Alert.alert(
       "End Session",
       `Are you sure you want to end the session for ${tradieName}? This action cannot be undone.`,
@@ -151,9 +144,10 @@ const Role = ({ route, navigation }: { route: any; navigation: any }) => {
           style: "destructive",
           onPress: async () => {
             try {
-              await endTradieJob(jobId);
-              // Optimistically remove the job from the local state for a responsive UI.
-              setActiveJobs((prevJobs) => prevJobs.filter((job) => job.jobId !== jobId));
+              await endTradieJob(jobId, tradieId);
+              setActiveJobs((prevJobs) => prevJobs.filter(
+                (job) => !(job.jobId === jobId && job.tradieId === tradieId)
+              ));
             } catch (error) {
               Alert.alert("Error", "Could not end the session. Please try again.");
             }

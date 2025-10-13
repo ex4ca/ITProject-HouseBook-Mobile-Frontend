@@ -33,9 +33,9 @@ export const fetchActiveJobsForProperty = async (propertyId: string): Promise<Ac
             id,
             title,
             status,
-            Tradesperson (
+            Tradesperson!jobs_tradie_id_fkey (
                 tradie_id,
-                User (
+                User!Tradesperson_user_id_fkey (
                     first_name,
                     last_name
                 )
@@ -43,6 +43,7 @@ export const fetchActiveJobsForProperty = async (propertyId: string): Promise<Ac
         `)
         .eq('property_id', propertyId)
         .eq('status', 'ACCEPTED'); 
+    
     if (error) {
         console.error("Error fetching active jobs:", error.message);
         return [];
@@ -51,13 +52,14 @@ export const fetchActiveJobsForProperty = async (propertyId: string): Promise<Ac
     const anyData = data as any[];
 
     return anyData
-      .filter(job => job.Tradesperson && job.Tradesperson.User)
+      .filter(job => job.Tradesperson && (job.Tradesperson as any).User)
       .map(job => {
-        const user = job.Tradesperson.User;
+        const tradesperson = job.Tradesperson as any;
+        const user = tradesperson.User;
         return {
             jobId: job.id,
             jobTitle: job.title,
-            tradieId: job.Tradesperson.tradie_id,
+            tradieId: tradesperson.tradie_id,
             tradieName: `${user.first_name} ${user.last_name}`,
         }
     });

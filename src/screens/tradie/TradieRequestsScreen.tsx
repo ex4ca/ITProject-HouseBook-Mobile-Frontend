@@ -131,10 +131,20 @@ const RequestCreationForm = ({
   const [showDropdown, setShowDropdown] = useState(false);
 
   const handleSubmit = () => {
+    console.log('[RequestCreationForm] handleSubmit called with:', { selectedSpaceId, description, date });
+
     if (!selectedSpaceId || !description.trim()) {
-      Alert.alert("Missing Information", "Please select a space and provide a description.");
+      console.warn('[RequestCreationForm] Missing info', { selectedSpaceId, hasDescription: !!description.trim() });
       return;
     }
+
+    // Simple YYYY-MM-DD validation
+    const isValidDate = /^\d{4}-\d{2}-\d{2}$/.test(date);
+    if (!isValidDate) {
+      console.warn('[RequestCreationForm] Invalid date format, expected YYYY-MM-DD:', date);
+      return;
+    }
+
     onSubmit({ spaceId: selectedSpaceId, description: description.trim(), date });
   };
 
@@ -220,6 +230,8 @@ export default function TradieRequestsScreen() {
   const [pendingRequests, setPendingRequests] = useState<PendingRequest[]>([]);
   const [acceptedRequests, setAcceptedRequests] = useState<PendingRequest[]>([]);
   const [propertyData, setPropertyData] = useState<any>(null);
+  const [filteredSpaces, setFilteredSpaces] = useState<any[]>([]);
+  const [editableAssetIds, setEditableAssetIds] = useState<Set<string>>(new Set());
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
@@ -242,6 +254,19 @@ export default function TradieRequestsScreen() {
       ]);
 
       setPropertyData(propertyResult.property);
+      const scope = propertyResult.editableAssetIds || new Set();
+      setEditableAssetIds(scope);
+      // If scope provided, only include spaces that have at least one editable asset
+      if (scope && scope.size > 0) {
+        const scopedSpaces = (propertyResult.property?.Spaces || []).map((space: any) => {
+          const assets = (space.Assets || []);
+          const hasEditable = assets.some((a: any) => scope.has(a.id));
+          return hasEditable ? space : null;
+        }).filter(Boolean);
+        setFilteredSpaces(scopedSpaces as any[]);
+      } else {
+        setFilteredSpaces(propertyResult.property?.Spaces || []);
+      }
       setPendingRequests(requestsResult.pending);
       setAcceptedRequests(requestsResult.accepted);
     } catch (error: any) {
@@ -263,21 +288,34 @@ export default function TradieRequestsScreen() {
 
     setSubmitting(true);
     try {
-      // Find the first asset in the selected space
-      const selectedSpace = propertyData.Spaces.find((space: any) => space.id === formData.spaceId);
+      console.log('[TradieRequestsScreen] handleCreateRequest formData:', formData);
+      // Find the selected space
+      const selectedSpace = (propertyData.Spaces || []).find((space: any) => space.id === formData.spaceId);
       if (!selectedSpace || !selectedSpace.Assets || selectedSpace.Assets.length === 0) {
-        Alert.alert("Error", "No assets found in the selected space");
+        console.warn('[TradieRequestsScreen] No assets in selected space', { spaceId: formData.spaceId });
         return;
       }
 
-      const assetId = selectedSpace.Assets[0].id;
+      // Choose an asset: if scope present, pick first asset in scope; else first asset
+      let assetId = selectedSpace.Assets[0].id;
+      if (editableAssetIds && editableAssetIds.size > 0) {
+        const allowed = selectedSpace.Assets.find((a: any) => editableAssetIds.has(a.id));
+        if (!allowed) {
+          console.warn('[TradieRequestsScreen] Space has no editable assets', { spaceId: selectedSpace.id });
+          return;
+        }
+        assetId = allowed.id;
+      }
+      console.log('[TradieRequestsScreen] chosen assetId:', assetId);
+      console.log('[TradieRequestsScreen] calling createTradieRequest');
       await createTradieRequest(assetId, formData.description, { date: formData.date });
+      console.log('[TradieRequestsScreen] createTradieRequest completed');
       
       setShowCreateForm(false);
       await loadData(); // Reload data to show the new request
-      Alert.alert("Success", "Request submitted for approval");
+      console.log('[TradieRequestsScreen] Request submitted, reloaded data');
     } catch (error: any) {
-      Alert.alert("Error", error.message);
+      console.error('[TradieRequestsScreen] create request failed:', error);
     } finally {
       setSubmitting(false);
     }
@@ -331,7 +369,7 @@ export default function TradieRequestsScreen() {
 
           {showCreateForm && propertyData && (
             <RequestCreationForm
-              spaces={propertyData.Spaces || []}
+              spaces={filteredSpaces}
               onSubmit={handleCreateRequest}
               onCancel={() => setShowCreateForm(false)}
             />

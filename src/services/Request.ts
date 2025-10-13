@@ -159,15 +159,14 @@ export const createTradieRequest = async (
             specifications: specifications,
             changed_by_user_id: user.id,
             status: 'PENDING'
-        })
-        .select();
+        });
 
     if (error) {
         console.error("Error creating tradie request:", error);
         throw new Error(`Failed to create request: ${error.message}`);
     }
 
-    console.log("Successfully created tradie request:", data);
+    console.log("Successfully created tradie request");
 };
 
 // Cancel a pending request

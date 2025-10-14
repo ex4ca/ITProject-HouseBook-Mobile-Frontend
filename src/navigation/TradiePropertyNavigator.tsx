@@ -1,7 +1,7 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useRoute } from '@react-navigation/native';
-import { Layout, List } from 'lucide-react-native';
+import { Layout, LayoutGrid } from 'lucide-react-native';
 import { PALETTE } from '../styles/palette';
 import { globalStyles } from '../styles/globalStyles';
 
@@ -45,7 +45,7 @@ export default function TradiePropertyNavigator() {
         // Pass the necessary IDs down to the Details screen
         initialParams={{ propertyId, jobId }}
         options={{
-          tabBarIcon: ({ color, size }) => <List color={color} size={size} />,
+          tabBarIcon: ({ color, size }) => <LayoutGrid color={color} size={size} />,
         }}
       />
     </Tab.Navigator>

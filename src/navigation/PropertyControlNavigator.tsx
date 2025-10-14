@@ -1,7 +1,7 @@
 import React from "react";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { RouteProp } from "@react-navigation/native";
-import { Info, LayoutGrid, Users, Bell } from "lucide-react-native";
+import { LayoutGrid, Users, Bell, Layout } from "lucide-react-native";
 
 // Import types for navigation
 import type { RootStackParamList, PropertyControlTabParamList } from "./types";
@@ -45,7 +45,7 @@ const PropertyControlNavigator = ({ route }: Props) => {
         component={PropertyGeneral}
         initialParams={{ propertyId }}
         options={{
-          tabBarIcon: ({ color, size }) => <Info color={color} size={size} />,
+          tabBarIcon: ({ color, size }) => <Layout color={color} size={size} />,
         }}
       />
 

@@ -217,6 +217,11 @@ export const getPropertiesByOwner = async (userId: string): Promise<Property[] |
         .flatMap(owner => owner.OwnerProperty)
         .flatMap(op => op.Property);
 
+    // Set activity status based on Property.status field
+    properties.forEach(property => {
+        property.isActive = property.status === 'ACTIVE';
+    });
+
     return properties;
 }
 

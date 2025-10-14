@@ -19,8 +19,6 @@ import {
   PlusCircle,
   X,
   Trash2,
-  Lock,
-  Edit3,
 } from "lucide-react-native";
 import { SafeAreaView } from 'react-native-safe-area-context'; 
 import { DropField } from "../../components";
@@ -112,10 +110,11 @@ const AssetAccordion = ({
     <View style={styles.assetContainer}>
       <TouchableOpacity style={styles.assetHeader} onPress={onToggle}>
         <Text style={styles.assetTitle}>{asset.description}</Text>
-        {isEditable ? (
-             <Edit3 size={18} color={PALETTE.success} />
+        {/* FIX 1: Use Chevron icons for accordion behavior */}
+        {isExpanded ? (
+             <ChevronDown size={20} color={PALETTE.textPrimary} />
         ) : (
-             <Lock size={18} color={PALETTE.textSecondary} />
+             <ChevronRight size={20} color={PALETTE.textPrimary} />
         )}
       </TouchableOpacity>
       {isExpanded && (
@@ -128,7 +127,8 @@ const AssetAccordion = ({
           )}
           <View style={styles.historySectionHeader}>
             <Text style={styles.contentSectionTitle}>History</Text>
-            {isEditable && (
+            {/* FIX 2: Show explicit permission message */}
+            {isEditable ? (
               <TouchableOpacity
                 style={styles.addButtonSmall}
                 onPress={() => onAddHistory(asset)}
@@ -136,6 +136,8 @@ const AssetAccordion = ({
                 <PlusCircle size={18} color={PALETTE.primary} />
                 <Text style={styles.addButtonSmallText}>Add Entry</Text>
               </TouchableOpacity>
+            ) : (
+              <Text style={styles.permissionText}>You don't have permission to edit.</Text>
             )}
           </View>
           {acceptedLogs.length > 1 ? (
@@ -238,14 +240,12 @@ export default function TradiePropertyDetails() {
           ]);
           
           if (scopeData.property && scopeData.property.Spaces) {
-            // Transform the data to match the expected TypeScript types before setting state.
             const transformedSpaces: SpaceWithAssets[] = scopeData.property.Spaces.map((space: any) => ({
               ...space,
               Assets: space.Assets.map((asset: any) => ({
                 ...asset,
                 ChangeLog: asset.ChangeLog.map((log: any) => ({
                   ...log,
-                  // This ensures User is an object, not an array, to match the types.
                   User: Array.isArray(log.User) ? log.User[0] : log.User,
                 })),
               })),
@@ -269,7 +269,6 @@ export default function TradiePropertyDetails() {
     }, [propertyId, jobId])
   );
   
-  // FIX: Added the extractDisciplinesAndMapping function to the dependency array.
   useEffect(() => {
     if (spaces.length > 0 && assetTypes.length > 0) {
       extractDisciplinesAndMapping(spaces);
@@ -345,30 +344,63 @@ export default function TradiePropertyDetails() {
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
           <ChevronLeft size={24} color={PALETTE.textPrimary} />
         </TouchableOpacity>
-        <View style={styles.dropdownContainer}>
-          <DropField
-            options={sortMode === 'space' ? spaces.map((s) => s.name) : availableDisciplines}
-            selectedValue={sortMode === 'space' ? selectedSpaceName : selectedDisciplineName}
-            onSelect={(name) => {
-              if (sortMode === 'space') {
-                const space = spaces.find((s) => s.name === name);
-                if (space) {
-                  setSelectedSpace(space.id);
+        <Text style={styles.headerTitle} numberOfLines={1}>
+          {"Timeline"}
+        </Text>
+        <View style={{ width: 40 }} />
+      </View>
+      <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator={false}>
+
+      <View style={styles.sortSection}>
+        <Text style={styles.sortLabel}>Sort by:</Text>
+        <View style={styles.sortToggleGroup}>
+          <TouchableOpacity
+            style={[styles.sortToggleButton, sortMode === 'space' && styles.sortToggleButtonActive]}
+            onPress={() => setSortMode('space')}
+          >
+            <Text
+              style={[
+                styles.sortToggleText,
+                sortMode === 'space' && styles.sortToggleTextActive,
+              ]}
+            >
+              Space
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.sortToggleButton, sortMode === 'discipline' && styles.sortToggleButtonActive]}
+            onPress={() => setSortMode('discipline')}
+          >
+            <Text
+              style={[
+                styles.sortToggleText,
+                sortMode === 'discipline' && styles.sortToggleTextActive,
+              ]}
+            >
+              Discipline
+            </Text>
+          </TouchableOpacity>
+          </View>
+          <View style={styles.dropdownWrapper}>
+            <DropField
+              options={sortMode === 'space' ? spaces.map((s) => s.name) : availableDisciplines}
+              selectedValue={sortMode === 'space' ? selectedSpaceName : selectedDisciplineName}
+              onSelect={(name) => {
+                if (sortMode === 'space') {
+                  const space = spaces.find((s) => s.name === name);
+                  if (space) {
+                    setSelectedSpace(space.id);
+                    setExpandedAssetId(null);
+                  }
+                } else {
+                  setSelectedDiscipline(name);
                   setExpandedAssetId(null);
                 }
-              } else {
-                setSelectedDiscipline(name);
-                setExpandedAssetId(null);
-              }
-            }}
-          />
+              }}
+            />
+          </View>
         </View>
-        <TouchableOpacity style={styles.sortModeButton} onPress={toggleSortMode}>
-          <Text style={styles.sortModeButtonText}>{sortMode === 'space' ? 'Space' : 'Discipline'}</Text>
-        </TouchableOpacity>
-      </View>
 
-      <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator={false}>
         <Text style={styles.pageTitle}>{sortMode === 'space' ? selectedSpaceName : selectedDisciplineName}</Text>
         <View style={styles.contentContainer}>
           {sortMode === 'space' ? (

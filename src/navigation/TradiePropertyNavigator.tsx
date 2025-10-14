@@ -1,13 +1,13 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useRoute } from '@react-navigation/native';
-import { Layout, LayoutGrid } from 'lucide-react-native';
+import { Layout, List, Bell } from 'lucide-react-native';
 import { PALETTE } from '../styles/palette';
 import { globalStyles } from '../styles/globalStyles';
 
-// Import the two screens that will be used in the tabs
 import TradiePropertyGeneral from '../screens/tradie/TradiePropertyGeneral';
 import TradiePropertyDetails from '../screens/tradie/TradiePropertyDetails';
+import TradieRequestsScreen from '../screens/tradie/TradieRequestsScreen';
 
 const Tab = createBottomTabNavigator();
 
@@ -45,7 +45,16 @@ export default function TradiePropertyNavigator() {
         // Pass the necessary IDs down to the Details screen
         initialParams={{ propertyId, jobId }}
         options={{
-          tabBarIcon: ({ color, size }) => <LayoutGrid color={color} size={size} />,
+          tabBarIcon: ({ color, size }) => <List color={color} size={size} />,
+        }}
+      />
+      <Tab.Screen
+        name="Requests"
+        component={TradieRequestsScreen}
+        // Pass the necessary IDs down to the Requests screen
+        initialParams={{ propertyId, jobId }}
+        options={{
+          tabBarIcon: ({ color, size }) => <Bell color={color} size={size} />,
         }}
       />
     </Tab.Navigator>

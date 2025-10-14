@@ -22,15 +22,11 @@ export const fetchPendingRequests = async (propertyId: string): Promise<PendingR
       .eq('Assets.Spaces.Property.property_id', propertyId);
 
     if (error) {
-        console.error("Error fetching requests:", error.message);
         return [];
     }
 
-    // Using 'any' to bypass Supabase's complex type inference issues
     const anyData = data as any[];
 
-    // CORRECTED: This mapping now expects nested objects instead of arrays,
-    // which matches the data structure returned by the '!inner' join.
     return (anyData || []).map(item => {
         const asset = item.Assets;
         const space = asset?.Spaces;
@@ -94,11 +90,8 @@ export const fetchTradieRequests = async (propertyId: string, tradieUserId: stri
       .in('status', ['PENDING', 'ACCEPTED']);
 
     if (error) {
-        console.error("Error fetching tradie requests:", error.message);
         return { pending: [], accepted: [] };
     }
-
-    
 
     const anyData = data as any[];
 

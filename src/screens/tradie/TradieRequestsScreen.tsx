@@ -4,17 +4,14 @@ import {
   Text,
   TouchableOpacity,
   SafeAreaView,
-  FlatList,
   ActivityIndicator,
   Alert,
   LayoutAnimation,
   TextInput,
   ScrollView,
-  Modal,
 } from "react-native";
 import { useFocusEffect, useRoute, useNavigation } from "@react-navigation/native";
 import {
-  CheckCircle,
   XCircle,
   ChevronDown,
   ChevronRight,
@@ -259,7 +256,6 @@ export default function TradieRequestsScreen() {
       setPendingRequests(requestsResult.pending);
       setAcceptedRequests(requestsResult.accepted);
     } catch (error: any) {
-      console.error("Error loading data:", error.message);
       Alert.alert("Error", "Failed to load requests data");
     } finally {
       setLoading(false);

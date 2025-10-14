@@ -302,9 +302,13 @@ export default function TradieRequestsScreen() {
   };
 
   const handleCancelRequest = async (id: string) => {
-    await cancelTradieRequest(id).then(async () => {
-      await loadData();
-    });
+    try {
+      await cancelTradieRequest(id);
+      await loadData(); // Reload data to remove the cancelled request
+      Alert.alert("Success", "Request cancelled");
+    } catch (error: any) {
+      Alert.alert("Error", error.message);
+    }
   };
 
   if (loading) {
@@ -343,13 +347,13 @@ export default function TradieRequestsScreen() {
             </Text>
           </TouchableOpacity>
 
-          {showCreateForm && propertyData && (
-            <RequestCreationForm
-              spaces={filteredSpaces}
-              onSubmit={handleCreateRequest}
-              onCancel={() => setShowCreateForm(false)}
-            />
-          )}
+           {showCreateForm && propertyData && (
+             <RequestCreationForm
+               spaces={filteredSpaces}
+               onSubmit={handleCreateRequest}
+               onCancel={() => setShowCreateForm(false)}
+             />
+           )}
         </View>
 
         {/* Pending Requests Section */}

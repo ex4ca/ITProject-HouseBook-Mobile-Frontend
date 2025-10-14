@@ -159,13 +159,16 @@ export const createTradieRequest = async (
 
 // Cancel a pending request
 export const cancelTradieRequest = async (id: string) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error("User must be logged in to cancel a request.");
+
     const { error } = await supabase
       .from('ChangeLog')
       .update({ 
-        status: 'DECLINED',
-        action: 'DELETED'
+        status: 'DECLINED'
       })
-      .eq('id', id);
+      .eq('id', id)
+      .eq('changed_by_user_id', user.id);
 
     if (error) {
         throw new Error(`Failed to cancel request: ${error.message}`);

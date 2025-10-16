@@ -187,7 +187,6 @@ export const fetchPropertyOwner = async (propertyId: string): Promise<UserProfil
         roles: ['Owner'],
     };
 };
-
 export const getPropertiesByOwner = async (userId: string): Promise<Property[] | null> => {
     const { data, error } = await supabase
         .from('Owner')
@@ -200,7 +199,8 @@ export const getPropertiesByOwner = async (userId: string): Promise<Property[] |
                     description, 
                     pin, 
                     created_at,
-                    status 
+                    status,
+                    splash_image 
                 )
             )
         `)
@@ -214,15 +214,36 @@ export const getPropertiesByOwner = async (userId: string): Promise<Property[] |
     if (!data) return [];
 
     const properties: Property[] = data
-        .flatMap(owner => owner.OwnerProperty)
-        .flatMap(op => op.Property);
+        .flatMap((owner: any) => owner.OwnerProperty)
+        .map((op: any) => op.Property);
 
-    // Set activity status based on Property.status field
-    properties.forEach(property => {
-        property.isActive = property.status === 'ACTIVE';
-    });
+    // Process both splash images and activity status concurrently.
+    const processedProperties = await Promise.all(
+        properties.map(async (property) => {
+            let processedProperty = { ...property };
 
-    return properties;
+            // Set activity status based on the Property.status field.
+            processedProperty.isActive = property.status === 'ACTIVE';
+
+            // Generate a signed URL for the splash image if it exists.
+            if (property.splash_image) {
+                const { data: signedUrlData, error: signedUrlError } = await supabase.storage
+                    .from('Property_Images')
+                    .createSignedUrl(property.splash_image, 60 * 5); // 5-minute expiry
+
+                if (signedUrlError) {
+                    console.error(`Error creating signed URL for ${property.splash_image}:`, signedUrlError);
+                    // If signing fails, nullify the image so a placeholder is used.
+                    processedProperty.splash_image = null;
+                } else {
+                    processedProperty.splash_image = signedUrlData.signedUrl;
+                }
+            }
+            return processedProperty;
+        })
+    );
+
+    return processedProperties;
 }
 
 export const fetchMyFirstName = async (): Promise<string | null> => {

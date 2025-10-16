@@ -12,14 +12,13 @@ import {
 } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import {
-  ChevronLeft, Bed, Bath, Home as HomeIcon, Maximize, Car, QrCode, Utensils, UploadCloud,
+  ChevronLeft, Bed, Bath, Home as HomeIcon, Maximize, Car, QrCode, Utensils,
 } from "lucide-react-native";
 import QRCode from 'react-native-qrcode-svg';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import * as ImagePicker from 'expo-image-picker';
 
 import { fetchPropertyGeneralData } from "../../services/Property";
-import { fetchPropertyImages, uploadPropertyImage } from "../../services/Image";
+import { fetchPropertyImages } from "../../services/Image";
 import { propertyGeneralStyles as styles } from "../../styles/propertyGeneralStyles";
 import { PALETTE } from "../../styles/palette";
 import type { PropertyGeneral } from "../../types";
@@ -47,7 +46,6 @@ const PropertyGeneralScreen = ({ route, navigation }: PropertyGeneralScreenProps
   const { propertyId } = route.params || {};
 
   const [loading, setLoading] = useState(true);
-  const [uploading, setUploading] = useState(false);
   const [property, setProperty] = useState<PropertyGeneral | null>(null);
   const [propertyImages, setPropertyImages] = useState<{ id: string; uri: string }[]>([]);
   const [spaceCounts, setSpaceCounts] = useState<Record<string, number>>({});
@@ -101,7 +99,7 @@ const PropertyGeneralScreen = ({ route, navigation }: PropertyGeneralScreenProps
 
   const loadData = useCallback(async () => {
     if (propertyId) {
-      setLoading(true); // Always set loading to true when fetching
+      setLoading(true);
       try {
         const [propertyData, fetchedImages] = await Promise.all([
           fetchPropertyGeneralData(propertyId),
@@ -127,44 +125,13 @@ const PropertyGeneralScreen = ({ route, navigation }: PropertyGeneralScreenProps
         setLoading(false);
       }
     }
-  }, [propertyId]); // FIX: Removed 'property' from the dependency array to prevent the infinite loop.
+  }, [propertyId]);
 
   useFocusEffect(
     useCallback(() => {
       loadData();
     }, [loadData])
   );
-  
-  const handleImagePickAndUpload = async () => {
-    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (permissionResult.granted === false) {
-      Alert.alert("Permission required", "You need to allow access to your photos to upload images.");
-      return;
-    }
-
-    const pickerResult = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [4, 3],
-      quality: 1,
-    });
-
-    if (pickerResult.canceled) {
-      return;
-    }
-
-    const imageAsset = pickerResult.assets[0];
-    setUploading(true);
-    try {
-      await uploadPropertyImage(propertyId!, imageAsset, "Property Image");
-      Alert.alert("Success", "Image uploaded successfully!");
-      await loadData(); // Refresh data to show new image
-    } catch (error: any) {
-      Alert.alert("Upload Failed", error.message);
-    } finally {
-      setUploading(false);
-    }
-  };
 
   const PropertyStats = useMemo(() => {
     const statTypes = [
@@ -250,7 +217,7 @@ const PropertyGeneralScreen = ({ route, navigation }: PropertyGeneralScreenProps
               <FlatList
                 data={propertyImages}
                 renderItem={({ item }) => (
-                  <View style={styles.imageSlide}>
+                  <View style={[styles.imageSlide, { width: width - 40 }]}>
                     <Image source={{ uri: item.uri }} style={styles.propertyImage} />
                   </View>
                 )}
@@ -258,7 +225,6 @@ const PropertyGeneralScreen = ({ route, navigation }: PropertyGeneralScreenProps
                 horizontal
                 pagingEnabled
                 showsHorizontalScrollIndicator={false}
-                style={{ width: width - 40 }} 
               />
             </View>
           ) : (
@@ -267,16 +233,8 @@ const PropertyGeneralScreen = ({ route, navigation }: PropertyGeneralScreenProps
             </View>
           )}
 
-          <TouchableOpacity style={styles.uploadButton} onPress={handleImagePickAndUpload} disabled={uploading}>
-            {uploading ? (
-              <ActivityIndicator color={PALETTE.card} />
-            ) : (
-              <>
-                <UploadCloud size={20} color={PALETTE.card} />
-                <Text style={styles.uploadButtonText}>Upload Image</Text>
-              </>
-            )}
-          </TouchableOpacity>
+          {/* Upload Button Removed */}
+
         </View>
 
         {/* --- OTHER CARDS --- */}

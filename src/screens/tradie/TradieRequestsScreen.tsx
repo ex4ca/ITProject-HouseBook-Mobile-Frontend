@@ -3,7 +3,6 @@ import {
   View,
   Text,
   TouchableOpacity,
-  SafeAreaView,
   ActivityIndicator,
   Alert,
   LayoutAnimation,
@@ -24,6 +23,7 @@ import {
   cancelTradieRequest,
 } from "../../services/Request";
 import { addHistoryTradie } from "../../services/propertyDetails";
+import { SafeAreaView } from 'react-native-safe-area-context'; 
 import { fetchPropertyAndJobScope } from "../../services/FetchAuthority";
 import { propertyRequestsStyles as styles } from "../../styles/requestStyles";
 import { PALETTE } from "../../styles/palette";

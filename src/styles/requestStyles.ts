@@ -333,4 +333,58 @@ export const propertyRequestsStyles = StyleSheet.create({
     color: PALETTE.card,
     fontWeight: '600',
   },
+  // --- ADDED STYLES FOR SPECIFICATION EDITOR ---
+  input: {
+    backgroundColor: PALETTE.background,
+    borderWidth: 1,
+    borderColor: PALETTE.border,
+    borderRadius: STYLES.borderRadius.small,
+    padding: 16,
+    fontSize: 16,
+    marginBottom: 12,
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: PALETTE.textSecondary,
+    marginBottom: 8,
+  },
+  specRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+    width: '100%',
+  },
+  specInputKey: {
+    flex: 2,
+    marginRight: 6,
+    marginBottom: 0,
+    padding: 10,
+    fontSize: 14,
+  },
+  specInputValue: {
+    flex: 3,
+    marginRight: 6,
+    marginBottom: 0,
+    padding: 10,
+    fontSize: 14,
+  },
+  removeRowButton: {
+    padding: 6,
+  },
+  addRowButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 12,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: PALETTE.border,
+    borderRadius: 8,
+  },
+  addRowButtonText: {
+    marginLeft: 8,
+    color: PALETTE.primary,
+    fontWeight: '500',
+  },
 });

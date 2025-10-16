@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import {
   View,
   Text,
@@ -16,7 +16,8 @@ import {
   ChevronRight,
   ChevronLeft,
   Plus,
-  Calendar,
+  PlusCircle,
+  Trash2,
 } from "lucide-react-native";
 import {
   fetchTradieRequests,
@@ -27,34 +28,22 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { fetchPropertyAndJobScope } from "../../services/FetchAuthority";
 import { propertyRequestsStyles as styles } from "../../styles/requestStyles";
 import { PALETTE } from "../../styles/palette";
-import type { PendingRequest } from "../../types";
+import { DropField } from "../../components";
+import type { PendingRequest, SpaceWithAssets, AssetWithChangelog, EditableSpec } from "../../types";
 
-// Reuse the existing SpecificationDetails component
-const SpecificationDetails = ({
-  specifications,
-}: {
-  specifications: Record<string, any>;
-}) => (
-  <View style={styles.specificationsBox}>
-    {Object.entries(specifications).map(([key, value]) => (
-      <View key={key} style={styles.specPair}>
-        <Text style={styles.specKey}>{key.replace(/_/g, " ")}</Text>
-        <Text style={styles.specValue}>{String(value)}</Text>
-      </View>
-    ))}
-  </View>
+// --- Reusable Components ---
+const SpecificationDetails = ({ specifications }: { specifications: Record<string, any> }) => (
+    <View style={styles.specificationsBox}>
+        {Object.entries(specifications).map(([key, value]) => (
+            <View key={key} style={styles.specPair}>
+                <Text style={styles.specKey}>{key}</Text>
+                <Text style={styles.specValue}>{String(value)}</Text>
+            </View>
+        ))}
+    </View>
 );
 
-// Reuse the existing RequestCard component but with cancel button instead of accept/decline
-const RequestCard = ({
-  item,
-  onCancel,
-  showActions = true,
-}: {
-  item: PendingRequest;
-  onCancel?: (id: string) => void;
-  showActions?: boolean;
-}) => {
+const RequestCard = ({ item, onCancel, showActions = true }: { item: PendingRequest; onCancel?: (id: string) => void; showActions?: boolean; }) => {
   const [isExpanded, setIsExpanded] = useState(false);
 
   const toggleExpand = () => {
@@ -112,114 +101,123 @@ const RequestCard = ({
   );
 };
 
-// Request creation form component
+// --- New, Powerful Request Creation Form ---
 const RequestCreationForm = ({
   spaces,
+  editableAssetIds,
   onSubmit,
-  onCancel,
 }: {
-  spaces: any[];
-  onSubmit: (data: { spaceId: string; description: string; date: string }) => void;
-  onCancel: () => void;
+  spaces: SpaceWithAssets[];
+  editableAssetIds: Set<string>;
+  onSubmit: (data: { assetId: string; description: string; specifications: Record<string, string> }) => void;
 }) => {
-  const [selectedSpaceId, setSelectedSpaceId] = useState<string>("");
+  const [selectedSpaceId, setSelectedSpaceId] = useState<string | null>(null);
+  const [selectedAssetId, setSelectedAssetId] = useState<string | null>(null);
   const [description, setDescription] = useState("");
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
-  const [showDropdown, setShowDropdown] = useState(false);
+  const [editableSpecs, setEditableSpecs] = useState<EditableSpec[]>([{ id: Date.now(), key: '', value: '' }]);
+
+  // Filter assets based on the selected space and edit permissions
+  const availableAssets = (spaces.find(s => s.id === selectedSpaceId)?.Assets || [])
+    .filter(a => editableAssetIds.has(a.id));
+
+  const handleSpecChange = (id: number, field: "key" | "value", value: string) => {
+    setEditableSpecs((prev) => prev.map((spec) => (spec.id === id ? { ...spec, [field]: value } : spec)));
+  };
+  const addNewSpecRow = () => setEditableSpecs((prev) => [...prev, { id: Date.now(), key: "", value: "" }]);
+  const removeSpecRow = (id: number) => setEditableSpecs((prev) => prev.filter((spec) => spec.id !== id));
 
   const handleSubmit = () => {
-    if (!selectedSpaceId || !description.trim()) return;
-    const isValidDate = /^\d{4}-\d{2}-\d{2}$/.test(date);
-    if (!isValidDate) return;
-    onSubmit({ spaceId: selectedSpaceId, description: description.trim(), date });
+    if (!selectedAssetId || !description.trim()) {
+        Alert.alert("Missing Information", "Please select a space, an asset, and provide a description.");
+        return;
+    }
+    const specifications = editableSpecs.reduce((acc, spec) => {
+      if (spec.key.trim()) acc[spec.key.trim()] = spec.value.trim();
+      return acc;
+    }, {} as Record<string, string>);
+
+    onSubmit({ assetId: selectedAssetId, description, specifications });
   };
 
   return (
     <View style={styles.requestForm}>
       <Text style={styles.formTitle}>Create New Request</Text>
       
-      <View style={showDropdown ? styles.formFieldActive : styles.formField}>
-        <Text style={styles.fieldLabel}>Area/Room</Text>
-        <TouchableOpacity
-          style={styles.dropdownField}
-          onPress={() => setShowDropdown(!showDropdown)}
-        >
-          <Text style={[
-            styles.dropdownText,
-            !selectedSpaceId && styles.dropdownPlaceholder
-          ]}>
-            {selectedSpaceId 
-              ? spaces.find(s => s.id === selectedSpaceId)?.name 
-              : "Select a space..."
-            }
-          </Text>
-          <ChevronDown size={20} color={PALETTE.textSecondary} />
-        </TouchableOpacity>
-        
-        {showDropdown && (
-          <View style={styles.dropdownList}>
-            {spaces.map((space) => (
-              <TouchableOpacity
-                key={space.id}
-                style={styles.dropdownItem}
-                onPress={() => {
-                  setSelectedSpaceId(space.id);
-                  setShowDropdown(false);
+      <Text style={styles.fieldLabel}>Space</Text>
+      <DropField
+        options={spaces.map(s => s.name)}
+        selectedValue={spaces.find(s => s.id === selectedSpaceId)?.name}
+        onSelect={(name) => {
+          const space = spaces.find(s => s.name === name);
+          setSelectedSpaceId(space ? space.id : null);
+          setSelectedAssetId(null);
+        }}
+        placeholder="Select a space..."
+      />
+
+      {selectedSpaceId && (
+        <>
+            <Text style={[styles.fieldLabel, { marginTop: 12 }]}>Asset</Text>
+            <DropField
+                options={availableAssets.map(a => a.description)}
+                selectedValue={availableAssets.find(a => a.id === selectedAssetId)?.description}
+                onSelect={(desc) => {
+                    const asset = availableAssets.find(a => a.description === desc);
+                    setSelectedAssetId(asset ? asset.id : null);
                 }}
-              >
-                <Text style={styles.dropdownItemText}>{space.name}</Text>
-              </TouchableOpacity>
+                placeholder="Select an asset to update..."
+                disabled={availableAssets.length === 0}
+            />
+        </>
+      )}
+
+      {selectedAssetId && (
+        <>
+            <Text style={[styles.fieldLabel, { marginTop: 12 }]}>Description of Change</Text>
+            <TextInput
+                style={[styles.formInput, { height: 80, textAlignVertical: 'top' }]}
+                placeholder="Describe the work completed or the change made..."
+                value={description}
+                onChangeText={setDescription}
+                multiline
+            />
+
+            <Text style={[styles.fieldLabel, { marginTop: 12 }]}>New Specifications</Text>
+            {editableSpecs.map((spec) => (
+              <View key={spec.id} style={styles.specRow}>
+                <TextInput style={[styles.input, styles.specInputKey]} placeholder="Attribute" value={spec.key} onChangeText={(text) => handleSpecChange(spec.id, "key", text)} />
+                <TextInput style={[styles.input, styles.specInputValue]} placeholder="Value" value={spec.value} onChangeText={(text) => handleSpecChange(spec.id, "value", text)} />
+                <TouchableOpacity onPress={() => removeSpecRow(spec.id)} style={styles.removeRowButton}><Trash2 size={20} color={PALETTE.danger} /></TouchableOpacity>
+              </View>
             ))}
-          </View>
-        )}
-      </View>
+            <TouchableOpacity style={styles.addRowButton} onPress={addNewSpecRow}>
+                <PlusCircle size={20} color={PALETTE.primary} />
+                <Text style={styles.addRowButtonText}>Add Attribute</Text>
+            </TouchableOpacity>
 
-      <View style={styles.formField}>
-        <Text style={styles.fieldLabel}>Description</Text>
-        <TextInput
-          style={[styles.formInput, { height: 80, textAlignVertical: 'top' }]}
-          placeholder="Describe the work completed..."
-          value={description}
-          onChangeText={setDescription}
-          multiline
-        />
-      </View>
-
-      <View style={styles.formField}>
-        <Text style={styles.fieldLabel}>Date</Text>
-        <View style={styles.dateInput}>
-          <Calendar size={20} color={PALETTE.textSecondary} />
-          <TextInput
-            style={styles.formInput}
-            value={date}
-            onChangeText={setDate}
-            placeholder="YYYY-MM-DD"
-          />
-        </View>
-      </View>
-
-      <View style={styles.formActions}>
-        <TouchableOpacity style={styles.submitButton} onPress={handleSubmit}>
-          <Text style={styles.submitButtonText}>Submit for Approval</Text>
-        </TouchableOpacity>
-      </View>
+            <View style={styles.formActions}>
+                <TouchableOpacity style={styles.submitButton} onPress={handleSubmit}>
+                    <Text style={styles.submitButtonText}>Submit for Approval</Text>
+                </TouchableOpacity>
+            </View>
+        </>
+      )}
     </View>
   );
 };
 
+// --- Main Screen ---
 export default function TradieRequestsScreen() {
   const route = useRoute();
   const navigation = useNavigation();
-  const { propertyId, jobId } = route.params as { propertyId: string; jobId: string };
+  const { propertyId, jobId } = (route.params || {}) as { propertyId: string; jobId: string };
 
   const [loading, setLoading] = useState(true);
   const [pendingRequests, setPendingRequests] = useState<PendingRequest[]>([]);
   const [acceptedRequests, setAcceptedRequests] = useState<PendingRequest[]>([]);
   const [propertyData, setPropertyData] = useState<any>(null);
-  const [filteredSpaces, setFilteredSpaces] = useState<any[]>([]);
   const [editableAssetIds, setEditableAssetIds] = useState<Set<string>>(new Set());
   const [showCreateForm, setShowCreateForm] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
 
   const loadData = useCallback(async () => {
     if (!propertyId || !jobId) {
@@ -229,30 +227,16 @@ export default function TradieRequestsScreen() {
 
     setLoading(true);
     try {
-      // Get current user ID
       const { data: { user } } = await import('../../config/supabaseClient').then(m => m.supabase.auth.getUser());
       if (!user) throw new Error("User not logged in");
 
-      // Load property data and tradie requests in parallel
       const [propertyResult, requestsResult] = await Promise.all([
         fetchPropertyAndJobScope(propertyId, jobId),
         fetchTradieRequests(propertyId, user.id)
       ]);
 
       setPropertyData(propertyResult.property);
-      const scope = propertyResult.editableAssetIds || new Set();
-      setEditableAssetIds(scope);
-      // If scope provided, only include spaces that have at least one editable asset
-      if (scope && scope.size > 0) {
-        const scopedSpaces = (propertyResult.property?.Spaces || []).map((space: any) => {
-          const assets = (space.Assets || []);
-          const hasEditable = assets.some((a: any) => scope.has(a.id));
-          return hasEditable ? space : null;
-        }).filter(Boolean);
-        setFilteredSpaces(scopedSpaces as any[]);
-      } else {
-        setFilteredSpaces(propertyResult.property?.Spaces || []);
-      }
+      setEditableAssetIds(propertyResult.editableAssetIds || new Set());
       setPendingRequests(requestsResult.pending);
       setAcceptedRequests(requestsResult.accepted);
     } catch (error: any) {
@@ -268,39 +252,35 @@ export default function TradieRequestsScreen() {
     }, [loadData])
   );
 
-  const handleCreateRequest = async (formData: { spaceId: string; description: string; date: string }) => {
-    if (!propertyData) return;
-    setSubmitting(true);
-
-    const selectedSpace = (propertyData.Spaces || []).find((space: any) => space.id === formData.spaceId);
-    if (!selectedSpace || !selectedSpace.Assets || selectedSpace.Assets.length === 0) {
-      setSubmitting(false);
-      return;
+  const handleCreateRequest = async (formData: { assetId: string; description: string; specifications: Record<string, string> }) => {
+    let assetToUpdate: AssetWithChangelog | null = null;
+    for (const space of (propertyData?.Spaces || [])) {
+        const foundAsset = space.Assets.find((a: AssetWithChangelog) => a.id === formData.assetId);
+        if (foundAsset) {
+            assetToUpdate = foundAsset;
+            break;
+        }
     }
-
-    let chosenAsset = selectedSpace.Assets[0];
-    if (editableAssetIds && editableAssetIds.size > 0) {
-      const allowed = selectedSpace.Assets.find((a: any) => editableAssetIds.has(a.id));
-      if (!allowed) {
-        setSubmitting(false);
+    
+    if (!assetToUpdate) {
+        Alert.alert("Error", "Could not find the selected asset.");
         return;
-      }
-      chosenAsset = allowed;
     }
 
-    await addHistoryTradie(chosenAsset, formData.description, { date: formData.date })
-      .then(async () => {
+    try {
+        await addHistoryTradie(assetToUpdate, formData.description, formData.specifications);
         setShowCreateForm(false);
         await loadData();
-      })
-      .catch(() => {})
-      .finally(() => setSubmitting(false));
+        Alert.alert("Success", "Your request has been submitted for approval.");
+    } catch (error: any) {
+        Alert.alert("Error", error.message);
+    }
   };
 
   const handleCancelRequest = async (id: string) => {
     try {
       await cancelTradieRequest(id);
-      await loadData(); // Reload data to remove the cancelled request
+      await loadData();
       Alert.alert("Success", "Request cancelled");
     } catch (error: any) {
       Alert.alert("Error", error.message);
@@ -308,23 +288,19 @@ export default function TradieRequestsScreen() {
   };
 
   if (loading) {
-    return (
-      <SafeAreaView style={styles.centerContainer}>
-        <ActivityIndicator size="large" color={PALETTE.primary} />
-      </SafeAreaView>
-    );
+    return <SafeAreaView style={styles.centerContainer}><ActivityIndicator size="large" color={PALETTE.primary} /></SafeAreaView>;
   }
+
+  // Filter spaces to only include those with editable assets for the form dropdown.
+  const spacesWithEditableAssets = (propertyData?.Spaces || []).filter((space: SpaceWithAssets) =>
+    space.Assets.some(asset => editableAssetIds.has(asset.id))
+  );
 
   return (
     <SafeAreaView style={styles.container}>
       {/* Header Section */}
       <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
-          <ChevronLeft size={24} color={PALETTE.textPrimary} />
-        </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}><ChevronLeft size={24} color={PALETTE.textPrimary} /></TouchableOpacity>
         <Text style={styles.headerTitle}>All Requests</Text>
         <View style={{ width: 40 }} />
       </View>
@@ -335,19 +311,16 @@ export default function TradieRequestsScreen() {
           <TouchableOpacity
             style={styles.createButton}
             onPress={() => setShowCreateForm(!showCreateForm)}
-            disabled={submitting}
           >
             {!showCreateForm && <Plus size={20} color={PALETTE.card} />}
-            <Text style={styles.createButtonText}>
-              {showCreateForm ? "Cancel" : "Create Request"}
-            </Text>
+            <Text style={styles.createButtonText}>{showCreateForm ? "Cancel" : "Create Request"}</Text>
           </TouchableOpacity>
 
-           {showCreateForm && propertyData && (
+           {showCreateForm && (
              <RequestCreationForm
-               spaces={filteredSpaces}
+               spaces={spacesWithEditableAssets}
+               editableAssetIds={editableAssetIds}
                onSubmit={handleCreateRequest}
-               onCancel={() => setShowCreateForm(false)}
              />
            )}
         </View>

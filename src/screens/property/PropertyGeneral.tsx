@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from "react";
+import React, { useState, useCallback, useMemo, useEffect } from "react";
 import {
   View,
   Text,
@@ -8,23 +8,18 @@ import {
   FlatList,
   Dimensions,
   ActivityIndicator,
+  Alert,
 } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import {
-  ChevronLeft,
-  Bed,
-  Bath,
-  Home as HomeIcon,
-  Maximize,
-  Car,
-  QrCode,
-  Utensils
+  ChevronLeft, Bed, Bath, Home as HomeIcon, Maximize, Car, QrCode, Utensils, UploadCloud,
 } from "lucide-react-native";
-import QRCode from 'react-native-qrcode-svg'; 
-import { SafeAreaView } from 'react-native-safe-area-context'; 
+import QRCode from 'react-native-qrcode-svg';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import * as ImagePicker from 'expo-image-picker';
 
-// Import the new, separated logic and styles
 import { fetchPropertyGeneralData } from "../../services/Property";
+import { fetchPropertyImages, uploadPropertyImage } from "../../services/Image";
 import { propertyGeneralStyles as styles } from "../../styles/propertyGeneralStyles";
 import { PALETTE } from "../../styles/palette";
 import type { PropertyGeneral } from "../../types";
@@ -43,23 +38,18 @@ type DisciplineGroup = {
   };
 };
 
-
 interface PropertyGeneralScreenProps {
   route: { params?: { propertyId?: string } };
   navigation: any;
 }
 
-const PropertyGeneralScreen = ({
-  route,
-  navigation,
-}: PropertyGeneralScreenProps) => {
+const PropertyGeneralScreen = ({ route, navigation }: PropertyGeneralScreenProps) => {
   const { propertyId } = route.params || {};
 
   const [loading, setLoading] = useState(true);
+  const [uploading, setUploading] = useState(false);
   const [property, setProperty] = useState<PropertyGeneral | null>(null);
-  const [propertyImages, setPropertyImages] = useState<
-    { id: string; uri: string | null; title: string }[]
-  >([]);
+  const [propertyImages, setPropertyImages] = useState<{ id: string; uri: string }[]>([]);
   const [spaceCounts, setSpaceCounts] = useState<Record<string, number>>({});
 
   const disciplineData = useMemo<DisciplineGroup>(() => {
@@ -76,17 +66,15 @@ const PropertyGeneralScreen = ({
         
         const specifications = latestLog?.specifications || {};
         
-        // Skip assets that have no specifications
         if (Object.keys(specifications).length === 0) {
             return;
         }
 
-        // Sort keys to create a consistent, unique key from the spec object
         const sortedSpec = Object.keys(specifications).sort().reduce(
-          (obj, key) => { 
-            obj[key] = specifications[key]; 
+          (obj, key) => {
+            obj[key] = specifications[key];
             return obj;
-          }, 
+          },
           {} as Record<string, any>
         );
         const specKey = JSON.stringify(sortedSpec);
@@ -111,60 +99,74 @@ const PropertyGeneralScreen = ({
     return groups;
   }, [property]);
 
+  const loadData = useCallback(async () => {
+    if (propertyId) {
+      setLoading(true); // Always set loading to true when fetching
+      try {
+        const [propertyData, fetchedImages] = await Promise.all([
+          fetchPropertyGeneralData(propertyId),
+          fetchPropertyImages(propertyId),
+        ]);
+
+        if (propertyData) {
+          setProperty(propertyData);
+          const counts = (propertyData.Spaces || []).reduce((acc, space) => {
+            const type = space.type.toLowerCase();
+            acc[type] = (acc[type] || 0) + 1;
+            return acc;
+          }, {} as Record<string, number>);
+          setSpaceCounts(counts);
+        }
+        
+        setPropertyImages(fetchedImages.map((uri, index) => ({ id: `image-${index}`, uri })));
+
+      } catch (err: any) {
+        console.error("Error loading general property data:", err.message);
+        Alert.alert("Error", "Could not load property data.");
+      } finally {
+        setLoading(false);
+      }
+    }
+  }, [propertyId]); // FIX: Removed 'property' from the dependency array to prevent the infinite loop.
+
   useFocusEffect(
     useCallback(() => {
-      const loadData = async () => {
-        if (propertyId) {
-          setLoading(true);
-          try {
-            const propertyData = await fetchPropertyGeneralData(propertyId);
-            if (propertyData) {
-              setProperty(propertyData);
-
-              const counts = (propertyData.Spaces || []).reduce(
-                (acc, space) => {
-                  const type = space.type.toLowerCase();
-                  acc[type] = (acc[type] || 0) + 1;
-                  return acc;
-                },
-                {} as Record<string, number>
-              );
-              setSpaceCounts(counts);
-
-              const formattedImages = (propertyData.PropertyImages || []).map(
-                (img, index) => ({
-                  id: `${propertyId}-${index}`,
-                  uri: img.image_link,
-                  title: img.image_name,
-                })
-              );
-              setPropertyImages(
-                formattedImages.length > 0
-                  ? formattedImages
-                  : getPlaceholderImages()
-              );
-            }
-          } catch (err: any) {
-            console.error("Error loading general property data:", err.message);
-            setPropertyImages(getPlaceholderImages());
-          } finally {
-            setLoading(false);
-          }
-        } else {
-          setLoading(false);
-        }
-      };
       loadData();
-    }, [propertyId])
+    }, [loadData])
   );
+  
+  const handleImagePickAndUpload = async () => {
+    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (permissionResult.granted === false) {
+      Alert.alert("Permission required", "You need to allow access to your photos to upload images.");
+      return;
+    }
 
-  const getPlaceholderImages = () => [
-    { id: "placeholder-1", uri: null, title: "Exterior View" },
-    { id: "placeholder-2", uri: null, title: "Interior View" },
-  ];
+    const pickerResult = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 1,
+    });
+
+    if (pickerResult.canceled) {
+      return;
+    }
+
+    const imageAsset = pickerResult.assets[0];
+    setUploading(true);
+    try {
+      await uploadPropertyImage(propertyId!, imageAsset, "Property Image");
+      Alert.alert("Success", "Image uploaded successfully!");
+      await loadData(); // Refresh data to show new image
+    } catch (error: any) {
+      Alert.alert("Upload Failed", error.message);
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const PropertyStats = useMemo(() => {
-    // Only show these types, in this order
     const statTypes = [
       { key: 'bedroom', label: 'Bedrooms', icon: <Bed color={PALETTE.primary} size={20} /> },
       { key: 'bathroom', label: 'Bathrooms', icon: <Bath color={PALETTE.primary} size={20} /> },
@@ -172,7 +174,6 @@ const PropertyGeneralScreen = ({
       { key: 'living', label: 'Living Rooms', icon: <HomeIcon color={PALETTE.primary} size={20} /> },
       { key: 'garage', label: 'Garages', icon: <Car color={PALETTE.primary} size={20} /> },
     ];
-    // Only use allowed keys from spaceCounts
     const allowedKeys = statTypes.map(stat => stat.key);
     const filteredSpaceCounts = Object.fromEntries(
       Object.entries(spaceCounts).filter(([key]) => allowedKeys.includes(key))
@@ -213,10 +214,7 @@ const PropertyGeneralScreen = ({
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.header}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => navigation.goBack()}
-          >
+          <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
             <ChevronLeft size={24} color={PALETTE.textPrimary} />
           </TouchableOpacity>
         </View>
@@ -231,41 +229,58 @@ const PropertyGeneralScreen = ({
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
           <ChevronLeft size={24} color={PALETTE.textPrimary} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle} numberOfLines={1}>
-          {property?.name || "Property"}
-        </Text>
+        <Text style={styles.headerTitle} numberOfLines={1}>{property?.name || "Property"}</Text>
         <View style={{ width: 40 }} />
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false}>
-        {/* Image Section */}
-        <View style={styles.imageSection}>
-          <FlatList
-            data={propertyImages}
-            renderItem={({ item }) => (
-              <View style={styles.imageSlide}>
-                <Image
-                  source={{ uri: item.uri }}
-                  style={styles.propertyImage}
-                />
-              </View>
-            )}
-            keyExtractor={(item) => item.id}
-            horizontal
-            pagingEnabled
-            showsHorizontalScrollIndicator={false}
-          />
-        </View>
         <View style={styles.detailsContainer}>
-          <Text style={styles.propertyName}>{property?.name}</Text>
-          <Text style={styles.propertyAddress}>{property?.address}</Text>
-          
+            <Text style={styles.propertyName}>{property?.name}</Text>
+            <Text style={styles.propertyAddress}>{property?.address}</Text>
+        </View>
+        
+        {/* --- IMAGE SECTION --- */}
+        <View style={styles.detailsCard}>
+          <Text style={styles.cardTitle}>Property Images</Text>
+          {propertyImages.length > 0 ? (
+            <View style={{ height: 250, marginTop: 12, borderRadius: 8 }}>
+              <FlatList
+                data={propertyImages}
+                renderItem={({ item }) => (
+                  <View style={styles.imageSlide}>
+                    <Image source={{ uri: item.uri }} style={styles.propertyImage} />
+                  </View>
+                )}
+                keyExtractor={(item) => item.id}
+                horizontal
+                pagingEnabled
+                showsHorizontalScrollIndicator={false}
+                style={{ width: width - 40 }} 
+              />
+            </View>
+          ) : (
+            <View style={styles.centerContainer}>
+                <Text style={styles.emptyText}>No images uploaded yet.</Text>
+            </View>
+          )}
+
+          <TouchableOpacity style={styles.uploadButton} onPress={handleImagePickAndUpload} disabled={uploading}>
+            {uploading ? (
+              <ActivityIndicator color={PALETTE.card} />
+            ) : (
+              <>
+                <UploadCloud size={20} color={PALETTE.card} />
+                <Text style={styles.uploadButtonText}>Upload Image</Text>
+              </>
+            )}
+          </TouchableOpacity>
+        </View>
+
+        {/* --- OTHER CARDS --- */}
+        <View style={styles.detailsContainer}>
           {/* Property Details Card */}
           <View style={styles.detailsCard}>
             <Text style={styles.cardTitle}>Property Details</Text>
@@ -310,6 +325,25 @@ const PropertyGeneralScreen = ({
               </Text>
             </View>
           )}
+
+           {/* Discipline Cards */}
+          {Object.entries(disciplineData).map(([discipline, specGroups]) => (
+            <View key={discipline} style={styles.detailsCard}>
+              <Text style={styles.cardTitle}>{discipline}</Text>
+              {Object.values(specGroups).map((group, index) => (
+                <View key={index} style={styles.specGroup}>
+                  <View style={styles.specificationsBox}>
+                    {Object.entries(group.specifications).map(([key, value]) => (
+                      <View key={key} style={styles.specPair}>
+                        <Text style={styles.specKey}>{key}</Text>
+                        <Text style={styles.specValue}>{String(value)}</Text>
+                      </View>
+                    ))}
+                  </View>
+                </View>
+              ))}
+            </View>
+          ))}
         </View>
       </ScrollView>
     </SafeAreaView>

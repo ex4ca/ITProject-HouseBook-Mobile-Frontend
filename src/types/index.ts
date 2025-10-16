@@ -12,6 +12,7 @@ export type Property = {
   last_updated?: string;
   completionStatus?: number;
   isActive?: boolean;
+  splash_image?: string | null; 
 };
 
 // Defines the shape of a user profile. The 'id' here is the user_id.

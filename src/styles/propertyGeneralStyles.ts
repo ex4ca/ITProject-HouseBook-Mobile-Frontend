@@ -40,12 +40,14 @@ export const propertyGeneralStyles = StyleSheet.create({
     backgroundColor: PALETTE.border,
   },
   imageSlide: {
-    width: width,
-    height: '100%',
+    width: width - 40, 
+    height: 250,       
+    borderRadius: 8,
   },
   propertyImage: {
-    width: '100%',
-    height: '100%',
+    width: '100%',     
+    height: '100%',    
+    resizeMode: 'cover', 
   },
   detailsContainer: {
     padding: 20,
@@ -164,4 +166,19 @@ export const propertyGeneralStyles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 12,
   },
+  uploadButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: PALETTE.primary,
+    borderRadius: STYLES.borderRadius.small,
+    paddingVertical: 12,
+    marginTop: 16,
+  },
+  uploadButtonText: {
+    color: PALETTE.card,
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 8,
+  }
 });

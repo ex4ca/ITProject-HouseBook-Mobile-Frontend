@@ -1,0 +1,3 @@
+[build]
+  # Serverless functions are in "/backend"
+  functions = "backend/"

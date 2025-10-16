@@ -2,15 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { StatusBar } from 'expo-status-bar';
-import { supabase } from './src/config/supabaseClient';
+import { supabase } from './frontend/src/config/supabaseClient';
 import type { Session, User } from '@supabase/supabase-js';
-import type { UserRole } from './src/types';
+import type { UserRole } from './frontend/src/types';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 // Navigators
-import AppNavigator from './src/navigation/AppNavigator';
+import AppNavigator from './frontend/src/navigation/AppNavigator';
 // Screens
-import AuthScreen from './src/screens/auth/AuthScreen';
+import AuthScreen from './frontend/src/screens/auth/AuthScreen';
 
 const Stack = createStackNavigator();
 

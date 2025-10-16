@@ -47,9 +47,12 @@ export default function JobBoard() {
   );
 
   const renderJobCard = ({ item }: { item: any }) => {
-    const imageUrl = `https://placehold.co/600x400/E5E7EB/111827?text=${encodeURIComponent(
-      item.name || "Job"
-    )}`;
+    // FIX: Use the signed splash_image URL if it exists, otherwise use a placeholder.
+    const imageUrl = item.splash_image 
+      ? item.splash_image
+      : `https://placehold.co/600x400/E5E7EB/111827?text=${encodeURIComponent(
+          item.name || "Job"
+        )}`;
 
     return (
       <TouchableOpacity
@@ -69,11 +72,6 @@ export default function JobBoard() {
               {item.name}
             </Text>
           </View>
-          
-          {/* Activity Status */}
-          <Text style={styles.propertyAddress} numberOfLines={1}>
-            {item.isActive ? 'Active' : 'Inactive'}
-          </Text>
           
           <Text style={styles.propertyAddress} numberOfLines={2}>
             📍 {item.address}

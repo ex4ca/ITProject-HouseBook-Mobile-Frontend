@@ -265,7 +265,7 @@ export const fetchMyFirstName = async (): Promise<string | null> => {
 
 /**
  * Fetches all jobs a tradie is assigned to via the JobTradies table.
- * This function now correctly joins through the new assignment table.
+ * This version now also fetches the splash_image for the property and creates a signed URL for it.
  * @param tradieUserId The user_id of the currently logged-in tradie.
  */
 export const getJobsForTradie = async (tradieUserId: string): Promise<any[]> => {
@@ -280,7 +280,6 @@ export const getJobsForTradie = async (tradieUserId: string): Promise<any[]> => 
         return [];
     }
 
-    // Query the JobTradies table to find all accepted jobs for this tradie
     const { data, error } = await supabase
         .from('JobTradies')
         .select(`
@@ -291,7 +290,8 @@ export const getJobsForTradie = async (tradieUserId: string): Promise<any[]> => 
                 Property (
                     property_id,
                     name,
-                    address
+                    address,
+                    splash_image 
                 )
             )
         `)
@@ -302,16 +302,37 @@ export const getJobsForTradie = async (tradieUserId: string): Promise<any[]> => 
         console.error('Error fetching jobs for tradie:', error.message);
         return [];
     }
+    if (!data) return [];
 
-    // Map the nested data to the flat structure the UI expects
-    return (data || []).map((jobTradie: any) => ({
-        job_id: jobTradie.Jobs.id,
-        title: jobTradie.Jobs.title,
-        status: jobTradie.status, // Status now comes from the JobTradies table
-        property_id: jobTradie.Jobs.Property.property_id,
-        name: jobTradie.Jobs.Property.name,
-        address: jobTradie.Jobs.Property.address,
-    }));
+    // Map the nested data and generate signed URLs for each splash image.
+    const jobsWithSignedUrls = await Promise.all(
+        data.map(async (jobTradie: any) => {
+            let splashImageUrl = null;
+            if (jobTradie.Jobs.Property.splash_image) {
+                const { data: signedUrlData, error: signedUrlError } = await supabase.storage
+                    .from('Property_Images')
+                    .createSignedUrl(jobTradie.Jobs.Property.splash_image, 60 * 5); // 5-minute expiry
+
+                if (signedUrlError) {
+                    console.error(`Error creating signed URL for ${jobTradie.Jobs.Property.splash_image}:`, signedUrlError);
+                } else {
+                    splashImageUrl = signedUrlData.signedUrl;
+                }
+            }
+            
+            return {
+                job_id: jobTradie.Jobs.id,
+                title: jobTradie.Jobs.title,
+                status: jobTradie.status,
+                property_id: jobTradie.Jobs.Property.property_id,
+                name: jobTradie.Jobs.Property.name,
+                address: jobTradie.Jobs.Property.address,
+                splash_image: splashImageUrl, // Use the new signed URL
+            };
+        })
+    );
+
+    return jobsWithSignedUrls;
 };
 
 

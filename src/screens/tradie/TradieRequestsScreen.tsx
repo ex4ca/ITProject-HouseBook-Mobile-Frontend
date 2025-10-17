@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback, useEffect, useMemo } from "react";
 import {
   View,
   Text,
@@ -31,7 +31,7 @@ import { PALETTE } from "../../styles/palette";
 import { DropField } from "../../components";
 import type { PendingRequest, SpaceWithAssets, AssetWithChangelog, EditableSpec } from "../../types";
 
-// --- Reusable Components ---
+// --- Reusable Components (Unchanged) ---
 const SpecificationDetails = ({ specifications }: { specifications: Record<string, any> }) => (
     <View style={styles.specificationsBox}>
         {Object.entries(specifications).map(([key, value]) => (
@@ -60,18 +60,10 @@ const RequestCard = ({ item, onCancel, showActions = true }: { item: PendingRequ
       <TouchableOpacity onPress={toggleExpand}>
         <View style={styles.cardHeader}>
           <View style={styles.cardHeaderText}>
-            <Text style={styles.propertyName}>
-              {item.Assets.Spaces.name}
-            </Text>
-            <Text style={styles.assetName}>
-              {item.Assets.description}
-            </Text>
+            <Text style={styles.propertyName}>{item.Assets.Spaces.name}</Text>
+            <Text style={styles.assetName}>{item.Assets.description}</Text>
           </View>
-          {isExpanded ? (
-            <ChevronDown size={20} color={PALETTE.textSecondary} />
-          ) : (
-            <ChevronRight size={20} color={PALETTE.textSecondary} />
-          )}
+          {isExpanded ? <ChevronDown size={20} color={PALETTE.textSecondary} /> : <ChevronRight size={20} color={PALETTE.textSecondary} />}
         </View>
         <Text style={styles.descriptionText}>"{item.change_description}"</Text>
         <Text style={styles.submittedBy}>Submitted by: {submittedByText}</Text>
@@ -91,9 +83,7 @@ const RequestCard = ({ item, onCancel, showActions = true }: { item: PendingRequ
             onPress={() => onCancel(item.id)}
           >
             <XCircle size={18} color={PALETTE.danger} />
-            <Text style={[styles.statusButtonText, { color: PALETTE.danger }]}>
-              Cancel
-            </Text>
+            <Text style={[styles.statusButtonText, { color: PALETTE.danger }]}>Cancel</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -101,7 +91,7 @@ const RequestCard = ({ item, onCancel, showActions = true }: { item: PendingRequ
   );
 };
 
-// --- New, Powerful Request Creation Form ---
+// --- Updated Request Creation Form ---
 const RequestCreationForm = ({
   spaces,
   editableAssetIds,
@@ -114,17 +104,40 @@ const RequestCreationForm = ({
   const [selectedSpaceId, setSelectedSpaceId] = useState<string | null>(null);
   const [selectedAssetId, setSelectedAssetId] = useState<string | null>(null);
   const [description, setDescription] = useState("");
-  const [editableSpecs, setEditableSpecs] = useState<EditableSpec[]>([{ id: Date.now(), key: '', value: '' }]);
+  const [editableSpecs, setEditableSpecs] = useState<EditableSpec[]>([]);
 
-  // Filter assets based on the selected space and edit permissions
-  const availableAssets = (spaces.find(s => s.id === selectedSpaceId)?.Assets || [])
-    .filter(a => editableAssetIds.has(a.id));
+  const availableAssets = useMemo(() => {
+    if (!selectedSpaceId) return [];
+    return (spaces.find(s => s.id === selectedSpaceId)?.Assets || [])
+      .filter(a => editableAssetIds.has(a.id));
+  }, [selectedSpaceId, spaces, editableAssetIds]);
+
+  const selectedAsset = useMemo(() => {
+    return availableAssets.find(a => a.id === selectedAssetId) || null;
+  }, [selectedAssetId, availableAssets]);
+
+  // FIX: This useEffect hook now pre-populates the specification editor
+  // whenever a new asset is selected from the dropdown.
+  useEffect(() => {
+    if (selectedAsset) {
+      const latestAcceptedLog = selectedAsset.ChangeLog?.find(log => log.status === 'ACCEPTED');
+      const latestSpecs = latestAcceptedLog?.specifications || {};
+      const specsArray = Object.entries(latestSpecs).map(([key, value], index) => ({
+        id: Date.now() + index, // More unique key
+        key: key,
+        value: value as string,
+      }));
+      setEditableSpecs(specsArray.length > 0 ? specsArray : [{ id: Date.now(), key: '', value: '' }]);
+    } else {
+      setEditableSpecs([{ id: Date.now(), key: '', value: '' }]); // Reset if no asset is selected
+    }
+  }, [selectedAsset]);
 
   const handleSpecChange = (id: number, field: "key" | "value", value: string) => {
-    setEditableSpecs((prev) => prev.map((spec) => (spec.id === id ? { ...spec, [field]: value } : spec)));
+    setEditableSpecs(prev => prev.map(spec => (spec.id === id ? { ...spec, [field]: value } : spec)));
   };
-  const addNewSpecRow = () => setEditableSpecs((prev) => [...prev, { id: Date.now(), key: "", value: "" }]);
-  const removeSpecRow = (id: number) => setEditableSpecs((prev) => prev.filter((spec) => spec.id !== id));
+  const addNewSpecRow = () => setEditableSpecs(prev => [...prev, { id: Date.now(), key: "", value: "" }]);
+  const removeSpecRow = (id: number) => setEditableSpecs(prev => prev.filter(spec => spec.id !== id));
 
   const handleSubmit = () => {
     if (!selectedAssetId || !description.trim()) {
@@ -160,12 +173,12 @@ const RequestCreationForm = ({
             <Text style={[styles.fieldLabel, { marginTop: 12 }]}>Asset</Text>
             <DropField
                 options={availableAssets.map(a => a.description)}
-                selectedValue={availableAssets.find(a => a.id === selectedAssetId)?.description}
+                selectedValue={selectedAsset?.description}
                 onSelect={(desc) => {
                     const asset = availableAssets.find(a => a.description === desc);
                     setSelectedAssetId(asset ? asset.id : null);
                 }}
-                placeholder="Select an asset to update..."
+                placeholder={availableAssets.length > 0 ? "Select an asset to update..." : "No editable assets in this space"}
                 disabled={availableAssets.length === 0}
             />
         </>
@@ -291,7 +304,6 @@ export default function TradieRequestsScreen() {
     return <SafeAreaView style={styles.centerContainer}><ActivityIndicator size="large" color={PALETTE.primary} /></SafeAreaView>;
   }
 
-  // Filter spaces to only include those with editable assets for the form dropdown.
   const spacesWithEditableAssets = (propertyData?.Spaces || []).filter((space: SpaceWithAssets) =>
     space.Assets.some(asset => editableAssetIds.has(asset.id))
   );

@@ -23,16 +23,17 @@ import {
   ChevronDown,
   ChevronRight
 } from "lucide-react-native";
-
 import QRCode from 'react-native-qrcode-svg';
 import { SafeAreaView } from 'react-native-safe-area-context';
+
 import { fetchPropertyGeneralData } from "../../services/Property";
+import { fetchPropertyImages } from "../../services/Image"; // Import the image service
 import { fetchPreviousOwners } from "../../services/FetchPreviousOwners";
-import { TouchableWithoutFeedback } from "react-native";
 import { propertyGeneralStyles as styles } from "../../styles/propertyGeneralStyles";
 import { PALETTE } from "../../styles/palette";
 import type { PropertyGeneral } from "../../types";
 
+const { width } = Dimensions.get("window");
 
 type PreviousOwner = {
   transfer_id: string;
@@ -47,58 +48,26 @@ interface PropertyGeneralScreenProps {
 
 const PropertyGeneralScreen = ({ route, navigation }: PropertyGeneralScreenProps) => {
   const { propertyId } = route.params || {};
-  useFocusEffect(
-  useCallback(() => {
-    console.log('🔸 Route params:', route.params);
-    console.log('🔸 Property ID received:', propertyId);
-  }, [route.params])
-);
-
-  // Previous Owners State and Effect
-  const [previousOwners, setPreviousOwners] = useState<PreviousOwner[]>([]);
-  const [ownersDropdownOpen, setOwnersDropdownOpen] = useState(false);
-  const [selectedTransferIndex, setSelectedTransferIndex] = useState<number | null>(null);
-  useFocusEffect(
-    useCallback(() => {
-      const loadOwners = async () => {
-        if (propertyId) {
-          try {
-            const owners = await fetchPreviousOwners(propertyId);
-            setPreviousOwners(owners);
-          } catch (err) {
-            setPreviousOwners([]);
-          }
-        }
-      };
-      loadOwners();
-    }, [propertyId])
-);
 
   const [loading, setLoading] = useState(true);
   const [property, setProperty] = useState<PropertyGeneral | null>(null);
   const [propertyImages, setPropertyImages] = useState<{ id: string; uri: string }[]>([]);
   const [spaceCounts, setSpaceCounts] = useState<Record<string, number>>({});
+  const [previousOwners, setPreviousOwners] = useState<PreviousOwner[]>([]);
+  const [ownersDropdownOpen, setOwnersDropdownOpen] = useState(false);
+  
+  const loadData = useCallback(async () => {
+    if (propertyId) {
+      setLoading(true);
+      try {
+        // Fetch all data in parallel for better performance
+        const [propertyData, fetchedImages, prevOwners] = await Promise.all([
+          fetchPropertyGeneralData(propertyId),
+          fetchPropertyImages(propertyId),
+          fetchPreviousOwners(propertyId),
+        ]);
 
-  useFocusEffect(
-    useCallback(() => {
-      const loadData = async () => {
-        if (propertyId) {
-          setLoading(true);
-          try {
-            const propertyData = await fetchPropertyGeneralData(propertyId);
-            if (propertyData) {
-              setProperty(propertyData);
-
-              const counts = (propertyData.Spaces || []).reduce(
-                (acc, space) => {
-                  const type = space.type.toLowerCase();
-                  acc[type] = (acc[type] || 0) + 1;
-                  return acc;
-                },
-                {} as Record<string, number>
-              );
-              setSpaceCounts(counts);
-
+        // Process property data
         if (propertyData) {
           setProperty(propertyData);
           const counts = (propertyData.Spaces || []).reduce((acc, space) => {
@@ -109,7 +78,11 @@ const PropertyGeneralScreen = ({ route, navigation }: PropertyGeneralScreenProps
           setSpaceCounts(counts);
         }
         
+        // Process image data
         setPropertyImages(fetchedImages.map((uri, index) => ({ id: `image-${index}`, uri })));
+
+        // Process previous owners data
+        setPreviousOwners(prevOwners);
 
       } catch (err: any) {
         console.error("Error loading general property data:", err.message);
@@ -120,6 +93,7 @@ const PropertyGeneralScreen = ({ route, navigation }: PropertyGeneralScreenProps
     }
   }, [propertyId]);
 
+  // FIX: Wrap the async function call in useCallback to satisfy useFocusEffect's type requirements.
   useFocusEffect(
     useCallback(() => {
       loadData();
@@ -225,9 +199,6 @@ const PropertyGeneralScreen = ({ route, navigation }: PropertyGeneralScreenProps
                 <Text style={styles.emptyText}>No images uploaded yet.</Text>
             </View>
           )}
-
-          {/* Upload Button Removed */}
-
         </View>
 
         {/* --- OTHER CARDS --- */}

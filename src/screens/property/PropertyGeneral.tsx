@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from "react";
+import React, { useState, useCallback, useMemo, useEffect } from "react";
 import {
   View,
   Text,
@@ -8,6 +8,7 @@ import {
   FlatList,
   Dimensions,
   ActivityIndicator,
+  Alert,
 } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import {
@@ -44,10 +45,7 @@ interface PropertyGeneralScreenProps {
   navigation: any;
 }
 
-const PropertyGeneralScreen = ({
-  route,
-  navigation,
-}: PropertyGeneralScreenProps) => {
+const PropertyGeneralScreen = ({ route, navigation }: PropertyGeneralScreenProps) => {
   const { propertyId } = route.params || {};
   useFocusEffect(
   useCallback(() => {
@@ -78,9 +76,7 @@ const PropertyGeneralScreen = ({
 
   const [loading, setLoading] = useState(true);
   const [property, setProperty] = useState<PropertyGeneral | null>(null);
-  const [propertyImages, setPropertyImages] = useState<
-    { id: string; uri: string | null; title: string }[]
-  >([]);
+  const [propertyImages, setPropertyImages] = useState<{ id: string; uri: string }[]>([]);
   const [spaceCounts, setSpaceCounts] = useState<Record<string, number>>({});
 
   useFocusEffect(
@@ -103,40 +99,34 @@ const PropertyGeneralScreen = ({
               );
               setSpaceCounts(counts);
 
-              const formattedImages = (propertyData.PropertyImages || []).map(
-                (img, index) => ({
-                  id: `${propertyId}-${index}`,
-                  uri: img.image_link,
-                  title: img.image_name,
-                })
-              );
-              setPropertyImages(
-                formattedImages.length > 0
-                  ? formattedImages
-                  : getPlaceholderImages()
-              );
-            }
-          } catch (err: any) {
-            console.error("Error loading general property data:", err.message);
-            setPropertyImages(getPlaceholderImages());
-          } finally {
-            setLoading(false);
-          }
-        } else {
-          setLoading(false);
+        if (propertyData) {
+          setProperty(propertyData);
+          const counts = (propertyData.Spaces || []).reduce((acc, space) => {
+            const type = space.type.toLowerCase();
+            acc[type] = (acc[type] || 0) + 1;
+            return acc;
+          }, {} as Record<string, number>);
+          setSpaceCounts(counts);
         }
-      };
+        
+        setPropertyImages(fetchedImages.map((uri, index) => ({ id: `image-${index}`, uri })));
+
+      } catch (err: any) {
+        console.error("Error loading general property data:", err.message);
+        Alert.alert("Error", "Could not load property data.");
+      } finally {
+        setLoading(false);
+      }
+    }
+  }, [propertyId]);
+
+  useFocusEffect(
+    useCallback(() => {
       loadData();
-    }, [propertyId])
+    }, [loadData])
   );
 
-  const getPlaceholderImages = () => [
-    { id: "placeholder-1", uri: null, title: "Exterior View" },
-    { id: "placeholder-2", uri: null, title: "Interior View" },
-  ];
-
   const PropertyStats = useMemo(() => {
-    // Only show these types, in this order
     const statTypes = [
       { key: 'bedroom', label: 'Bedrooms', icon: <Bed color={PALETTE.primary} size={20} /> },
       { key: 'bathroom', label: 'Bathrooms', icon: <Bath color={PALETTE.primary} size={20} /> },
@@ -144,7 +134,6 @@ const PropertyGeneralScreen = ({
       { key: 'living', label: 'Living Rooms', icon: <HomeIcon color={PALETTE.primary} size={20} /> },
       { key: 'garage', label: 'Garages', icon: <Car color={PALETTE.primary} size={20} /> },
     ];
-    // Only use allowed keys from spaceCounts
     const allowedKeys = statTypes.map(stat => stat.key);
     const filteredSpaceCounts = Object.fromEntries(
       Object.entries(spaceCounts).filter(([key]) => allowedKeys.includes(key))
@@ -185,10 +174,7 @@ const PropertyGeneralScreen = ({
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.header}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => navigation.goBack()}
-          >
+          <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
             <ChevronLeft size={24} color={PALETTE.textPrimary} />
           </TouchableOpacity>
         </View>
@@ -203,41 +189,49 @@ const PropertyGeneralScreen = ({
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
           <ChevronLeft size={24} color={PALETTE.textPrimary} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle} numberOfLines={1}>
-          {property?.name || "Property"}
-        </Text>
+        <Text style={styles.headerTitle} numberOfLines={1}>{property?.name || "Property"}</Text>
         <View style={{ width: 40 }} />
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false}>
-        {/* Image Section */}
-        <View style={styles.imageSection}>
-          <FlatList
-            data={propertyImages}
-            renderItem={({ item }) => (
-              <View style={styles.imageSlide}>
-                <Image
-                  source={{ uri: item.uri }}
-                  style={styles.propertyImage}
-                />
-              </View>
-            )}
-            keyExtractor={(item) => item.id}
-            horizontal
-            pagingEnabled
-            showsHorizontalScrollIndicator={false}
-          />
-        </View>
         <View style={styles.detailsContainer}>
-          <Text style={styles.propertyName}>{property?.name}</Text>
-          <Text style={styles.propertyAddress}>{property?.address}</Text>
-          
+            <Text style={styles.propertyName}>{property?.name}</Text>
+            <Text style={styles.propertyAddress}>{property?.address}</Text>
+        </View>
+        
+        {/* --- IMAGE SECTION --- */}
+        <View style={styles.detailsCard}>
+          <Text style={styles.cardTitle}>Property Images</Text>
+          {propertyImages.length > 0 ? (
+            <View style={{ height: 250, marginTop: 12, borderRadius: 8 }}>
+              <FlatList
+                data={propertyImages}
+                renderItem={({ item }) => (
+                  <View style={[styles.imageSlide, { width: width - 40 }]}>
+                    <Image source={{ uri: item.uri }} style={styles.propertyImage} />
+                  </View>
+                )}
+                keyExtractor={(item) => item.id}
+                horizontal
+                pagingEnabled
+                showsHorizontalScrollIndicator={false}
+              />
+            </View>
+          ) : (
+            <View style={styles.centerContainer}>
+                <Text style={styles.emptyText}>No images uploaded yet.</Text>
+            </View>
+          )}
+
+          {/* Upload Button Removed */}
+
+        </View>
+
+        {/* --- OTHER CARDS --- */}
+        <View style={styles.detailsContainer}>
           {/* Property Details Card */}
           <View style={styles.detailsCard}>
             <Text style={styles.cardTitle}>Property Details</Text>

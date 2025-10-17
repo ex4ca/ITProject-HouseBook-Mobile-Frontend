@@ -7,7 +7,7 @@ import {
   Image,
   ActivityIndicator,
 } from "react-native";
-import { useFocusEffect } from "@react-navigation/native";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { Home } from "lucide-react-native";
 import { supabase } from "../../config/supabaseClient";
 import {
@@ -19,7 +19,8 @@ import { propertyListStyles as styles } from "../../styles/propertyListStyles";
 import { PALETTE } from "../../styles/palette";
 import type { Property } from "../../types";
 
-const PropertyList = ({ navigation }: { navigation: any }) => {
+const PropertyList = () => {
+  const navigation: any = useNavigation();
   const [properties, setProperties] = useState<Property[]>([]);
   const [userName, setUserName] = useState<string | null>("");
   const [loading, setLoading] = useState(true);
@@ -42,7 +43,7 @@ const PropertyList = ({ navigation }: { navigation: any }) => {
         return;
       }
 
-      // Fetch user's name and properties concurrently using the new services
+      // Fetch user's name and properties concurrently.
       const [fetchedProperties, firstName] = await Promise.all([
         getPropertiesByOwner(user.id),
         fetchMyFirstName(),
@@ -80,9 +81,12 @@ const PropertyList = ({ navigation }: { navigation: any }) => {
   }, [fetchData]);
 
   const renderPropertyCard = ({ item }: { item: Property }) => {
-    const imageUrl = `https://placehold.co/600x400/E5E7EB/111827?text=${encodeURIComponent(
-      item.name || "Property"
-    )}`;
+    // Use the splash_image from the database if it exists, otherwise use a placeholder.
+    const imageUrl = item.splash_image 
+      ? item.splash_image
+      : `https://placehold.co/600x400/E5E7EB/111827?text=${encodeURIComponent(
+          item.name || "Property"
+        )}`;
     
     const isInProgress = item.status && item.status.toLowerCase().includes('progress');
 
@@ -98,7 +102,6 @@ const PropertyList = ({ navigation }: { navigation: any }) => {
       >
         <Image source={{ uri: imageUrl }} style={styles.propertyImage} />
         <View style={styles.propertyInfo}>
-          {/* Top row with Name and Status Badge */}
           <View style={styles.propertyHeader}>
             <Text style={styles.propertyName} numberOfLines={1}>
               {item.name}
@@ -110,12 +113,9 @@ const PropertyList = ({ navigation }: { navigation: any }) => {
             )}
           </View>
           
-          {/* Address */}
           <Text style={styles.propertyAddress} numberOfLines={2}>
              📍 {item.address}
           </Text>
-
-          {/* Owner text has been removed */}
         </View>
       </TouchableOpacity>
     );

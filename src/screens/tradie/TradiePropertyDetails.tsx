@@ -176,58 +176,16 @@ export default function TradiePropertyDetails() {
   const route = useRoute();
   const navigation = useNavigation();
   const { propertyId, jobId } = route.params as { propertyId: string, jobId: string };
-
   const [loading, setLoading] = useState(true);
   const [spaces, setSpaces] = useState<SpaceWithAssets[]>([]);
   const [editableAssetIds, setEditableAssetIds] = useState(new Set());
   const [assetTypes, setAssetTypes] = useState<{ id: number; name: string; discipline: string }[]>([]);
-  
   const [selectedSpace, setSelectedSpace] = useState<string | null>(null);
   const [expandedAssetId, setExpandedAssetId] = useState<string | null>(null);
-  
-  const [sortMode, setSortMode] = useState<'space' | 'discipline'>('space');
-  const [selectedDiscipline, setSelectedDiscipline] = useState<string | null>(null);
-  const [availableDisciplines, setAvailableDisciplines] = useState<string[]>([]);
-  const [disciplineToSpacesMap, setDisciplineToSpacesMap] = useState<Record<string, SpaceWithAssets[]>>({});
-
   const [isAddHistoryModalVisible, setAddHistoryModalVisible] = useState(false);
   const [currentAsset, setCurrentAsset] = useState<AssetWithChangelog | null>(null);
   const [newHistoryDescription, setNewHistoryDescription] = useState("");
   const [editableSpecs, setEditableSpecs] = useState<EditableSpec[]>([]);
-
-  const extractDisciplinesAndMapping = useCallback((spacesData: SpaceWithAssets[]) => {
-    const disciplinesSet = new Set<string>();
-    const mapping: Record<string, SpaceWithAssets[]> = {};
-
-    spacesData.forEach(space => {
-      space.Assets.forEach(asset => {
-        const assetType = assetTypes.find(type => type.id === asset.asset_type_id);
-        const discipline = assetType?.discipline || 'General';
-        
-        disciplinesSet.add(discipline);
-        
-        if (!mapping[discipline]) {
-          mapping[discipline] = [];
-        }
-        
-        let spaceInMap = mapping[discipline].find(s => s.id === space.id);
-        if (!spaceInMap) {
-          spaceInMap = { ...space, Assets: [] };
-          mapping[discipline].push(spaceInMap);
-        }
-        
-        spaceInMap.Assets.push(asset);
-      });
-    });
-
-    const disciplines = Array.from(disciplinesSet).sort();
-    setAvailableDisciplines(disciplines);
-    setDisciplineToSpacesMap(mapping);
-    
-    if (sortMode === 'discipline' && !selectedDiscipline && disciplines.length > 0) {
-      setSelectedDiscipline(disciplines[0]);
-    }
-  }, [assetTypes, sortMode, selectedDiscipline]);
 
   useFocusEffect(
     useCallback(() => {
@@ -269,11 +227,6 @@ export default function TradiePropertyDetails() {
     }, [propertyId, jobId])
   );
   
-  useEffect(() => {
-    if (spaces.length > 0 && assetTypes.length > 0) {
-      extractDisciplinesAndMapping(spaces);
-    }
-  }, [spaces, assetTypes, extractDisciplinesAndMapping]);
 
   const handleAddHistory = async () => {
     if (!newHistoryDescription.trim() || !currentAsset) {
@@ -314,25 +267,9 @@ export default function TradiePropertyDetails() {
   };
   const addNewSpecRow = () => setEditableSpecs((prev) => [...prev, { id: Date.now(), key: "", value: "" }]);
   const removeSpecRow = (id: number) => setEditableSpecs((prev) => prev.filter((spec) => spec.id !== id));
-
-  const toggleSortMode = () => {
-    if (sortMode === 'space') {
-      setSortMode('discipline');
-      if (availableDisciplines.length > 0 && !selectedDiscipline) {
-        setSelectedDiscipline(availableDisciplines[0]);
-      }
-    } else {
-      setSortMode('space');
-      setSelectedDiscipline(null);
-    }
-  };
-
   const currentSpace = spaces.find((s) => s.id === selectedSpace);
   const currentAssets = currentSpace?.Assets || [];
   const selectedSpaceName = currentSpace?.name || "Select a Space";
-  
-  const currentDisciplineSpaces = selectedDiscipline ? (disciplineToSpacesMap[selectedDiscipline] || []) : [];
-  const selectedDisciplineName = selectedDiscipline || "Select a Discipline";
 
   if (loading) {
     return <SafeAreaView style={styles.centerContainer}><ActivityIndicator size="large" color={PALETTE.primary} /></SafeAreaView>;
@@ -351,104 +288,42 @@ export default function TradiePropertyDetails() {
       </View>
       <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator={false}>
 
-      <View style={styles.sortSection}>
-        <Text style={styles.sortLabel}>Sort by:</Text>
-        <View style={styles.sortToggleGroup}>
-          <TouchableOpacity
-            style={[styles.sortToggleButton, sortMode === 'space' && styles.sortToggleButtonActive]}
-            onPress={() => setSortMode('space')}
-          >
-            <Text
-              style={[
-                styles.sortToggleText,
-                sortMode === 'space' && styles.sortToggleTextActive,
-              ]}
-            >
-              Space
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.sortToggleButton, sortMode === 'discipline' && styles.sortToggleButtonActive]}
-            onPress={() => setSortMode('discipline')}
-          >
-            <Text
-              style={[
-                styles.sortToggleText,
-                sortMode === 'discipline' && styles.sortToggleTextActive,
-              ]}
-            >
-              Discipline
-            </Text>
-          </TouchableOpacity>
-          </View>
-          <View style={styles.dropdownWrapper}>
-            <DropField
-              options={sortMode === 'space' ? spaces.map((s) => s.name) : availableDisciplines}
-              selectedValue={sortMode === 'space' ? selectedSpaceName : selectedDisciplineName}
-              onSelect={(name) => {
-                if (sortMode === 'space') {
-                  const space = spaces.find((s) => s.name === name);
-                  if (space) {
-                    setSelectedSpace(space.id);
-                    setExpandedAssetId(null);
-                  }
-                } else {
-                  setSelectedDiscipline(name);
-                  setExpandedAssetId(null);
-                }
-              }}
-            />
-          </View>
-        </View>
 
-        <Text style={styles.pageTitle}>{sortMode === 'space' ? selectedSpaceName : selectedDisciplineName}</Text>
-        <View style={styles.contentContainer}>
-          {sortMode === 'space' ? (
-            currentAssets.length > 0 ? (
-              currentAssets.map((asset) => (
-                <AssetAccordion
-                  key={asset.id}
-                  asset={asset}
-                  isExpanded={expandedAssetId === asset.id}
-                  onToggle={() => setExpandedAssetId(prev => prev === asset.id ? null : asset.id)}
-                  onAddHistory={openAddHistoryModal}
-                  isEditable={editableAssetIds.has(asset.id)}
-                />
-              ))
-            ) : (
-              <View style={styles.centerContainer}><Text style={styles.emptyText}>No assets found in this space.</Text></View>
-            )
-          ) : (
-            currentDisciplineSpaces.length > 0 ? (
-              currentDisciplineSpaces.map((space) => {
-                const filteredAssets = space.Assets.filter((asset) => {
-                  const assetType = assetTypes.find(type => type.id === (asset as any).asset_type_id);
-                  const discipline = assetType?.discipline || 'General';
-                  return discipline === selectedDiscipline;
-                });
-                
-                return (
-                  <View key={space.id} style={styles.disciplineSpaceContainer}>
-                    <Text style={styles.disciplineSpaceTitle}>{space.name}</Text>
-                    {filteredAssets.map((asset) => (
-                      <AssetAccordion
-                        key={asset.id}
-                        asset={asset}
-                        isExpanded={expandedAssetId === asset.id}
-                        onToggle={() => setExpandedAssetId(prev => prev === asset.id ? null : asset.id)}
-                        onAddHistory={openAddHistoryModal}
-                        isEditable={editableAssetIds.has(asset.id)}
-                      />
-                    ))}
-                  </View>
-                );
-              })
-            ) : (
-              <View style={styles.centerContainer}><Text style={styles.emptyText}>No spaces found with {selectedDiscipline} assets.</Text></View>
-            )
-          )}
+      <View style={styles.sortSection}>
+        <Text style={styles.sortLabel}>Space:</Text>
+        <View style={styles.dropdownWrapper}>
+          <DropField
+            options={spaces.map((s) => s.name)}
+            selectedValue={selectedSpaceName}
+            onSelect={(name) => {
+              const space = spaces.find((s) => s.name === name);
+              if (space) {
+                setSelectedSpace(space.id);
+                setExpandedAssetId(null);
+              }
+            }}
+          />
         </View>
-      </ScrollView>
+      </View>
+
+      <Text style={styles.pageTitle}>{selectedSpaceName}</Text>
+      <View style={styles.contentContainer}>
+        {currentAssets.length > 0 ? (
+          currentAssets.map((asset) => (
+            <AssetAccordion
+              key={asset.id}
+              asset={asset}
+              isExpanded={expandedAssetId === asset.id}
+              onToggle={() => setExpandedAssetId(prev => prev === asset.id ? null : asset.id)}
+              onAddHistory={openAddHistoryModal}
+              isEditable={editableAssetIds.has(asset.id)}
+            />
+          ))
+        ) : (
+          <View style={styles.centerContainer}><Text style={styles.emptyText}>No assets found in this space.</Text></View>
+        )}
+      </View>
+    </ScrollView>
 
       <FormModal
         visible={isAddHistoryModalVisible}

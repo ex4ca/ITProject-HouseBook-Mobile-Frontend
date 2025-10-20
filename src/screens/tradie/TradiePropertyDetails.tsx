@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -26,6 +26,7 @@ import { DropField } from "../../components";
 import { fetchPropertyAndJobScope } from "../../services/FetchAuthority"; 
 import { fetchAssetTypes } from "../../services/FetchAssetTypes";
 import { addHistoryTradie } from "../../services/propertyDetails";
+import { ConfirmModal } from '../../components';
 import { propertyDetailsStyles as styles } from "../../styles/propertyDetailsStyles";
 import { PALETTE } from "../../styles/palette";
 import type {
@@ -238,15 +239,21 @@ export default function TradiePropertyDetails() {
         return acc;
     }, {} as Record<string, string>);
 
+  confirmRef.current = async () => {
     try {
-        await addHistoryTradie(currentAsset, newHistoryDescription, newSpecifications);
-        setNewHistoryDescription("");
-        setEditableSpecs([]);
-        setAddHistoryModalVisible(false);
-        setCurrentAsset(null);
+      await addHistoryTradie(currentAsset, newHistoryDescription, newSpecifications);
+      setNewHistoryDescription("");
+      setEditableSpecs([]);
+      setAddHistoryModalVisible(false);
+      setCurrentAsset(null);
     } catch (error: any) {
-        Alert.alert("Error", error.message);
+      Alert.alert("Error", error.message);
     }
+  };
+  setConfirmTitle('Submit Update');
+  setConfirmMessage(`Submit this update for ${currentAsset?.description}?`);
+  setConfirmDestructive(false);
+  setConfirmVisible(true);
   };
 
   const openAddHistoryModal = (asset: AssetWithChangelog) => {
@@ -261,6 +268,12 @@ export default function TradiePropertyDetails() {
     setEditableSpecs(specsArray);
     setAddHistoryModalVisible(true);
   };
+
+  const confirmRef = useRef<() => Promise<void> | void>(() => {});
+  const [confirmVisible, setConfirmVisible] = useState(false);
+  const [confirmTitle, setConfirmTitle] = useState<string | undefined>(undefined);
+  const [confirmMessage, setConfirmMessage] = useState<string | undefined>(undefined);
+  const [confirmDestructive, setConfirmDestructive] = useState(false);
 
   const handleSpecChange = (id: number, field: "key" | "value", value: string) => {
     setEditableSpecs((prev) => prev.map((spec) => (spec.id === id ? { ...spec, [field]: value } : spec)));
@@ -365,6 +378,17 @@ export default function TradiePropertyDetails() {
           <Text style={styles.addRowButtonText}>Add Attribute</Text>
         </TouchableOpacity>
       </FormModal>
+      <ConfirmModal
+        visible={confirmVisible}
+        title={confirmTitle}
+        message={confirmMessage}
+        destructive={confirmDestructive}
+        onCancel={() => setConfirmVisible(false)}
+        onConfirm={async () => {
+          setConfirmVisible(false);
+          await confirmRef.current();
+        }}
+      />
     </SafeAreaView>
   );
 };

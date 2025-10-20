@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useRef } from "react";
 import {
   View,
   Text,
@@ -17,6 +17,7 @@ import {
   fetchActiveJobsForProperty,
   endTradieJob,
 } from "../../services/FetchAuthority";
+import { ConfirmModal } from '../../components';
 import type { UserProfile, ActiveTradieJob } from "../../types";
 import { authorityStyles as styles } from "../../styles/authorityStyles";
 import { PALETTE } from "../../styles/palette";
@@ -133,28 +134,27 @@ const Role = ({ route, navigation }: { route: any; navigation: any }) => {
   );
 
   // FIX: Update the function to accept tradieId
-  const handleEndSession = async (jobId: string, tradieId: string, tradieName: string) => {
-    Alert.alert(
-      "End Session",
-      `Are you sure you want to end the session for ${tradieName}? This action cannot be undone.`,
-      [
-        { text: "Cancel", style: "cancel" },
-        { 
-          text: "End Session", 
-          style: "destructive",
-          onPress: async () => {
-            try {
-              await endTradieJob(jobId, tradieId);
-              setActiveJobs((prevJobs) => prevJobs.filter(
-                (job) => !(job.jobId === jobId && job.tradieId === tradieId)
-              ));
-            } catch (error) {
-              Alert.alert("Error", "Could not end the session. Please try again.");
-            }
-          }
-        }
-      ]
-    );
+  const confirmRef = useRef<() => Promise<void> | void>(() => {});
+  const [confirmVisible, setConfirmVisible] = useState(false);
+  const [confirmTitle, setConfirmTitle] = useState<string | undefined>(undefined);
+  const [confirmMessage, setConfirmMessage] = useState<string | undefined>(undefined);
+  const [confirmDestructive, setConfirmDestructive] = useState(false);
+
+  const handleEndSession = (jobId: string, tradieId: string, tradieName: string) => {
+    confirmRef.current = async () => {
+      try {
+        await endTradieJob(jobId, tradieId);
+        setActiveJobs((prevJobs) => prevJobs.filter(
+          (job) => !(job.jobId === jobId && job.tradieId === tradieId)
+        ));
+      } catch (error) {
+        Alert.alert("Error", "Could not end the session. Please try again.");
+      }
+    };
+    setConfirmTitle('End Session');
+    setConfirmMessage(`Are you sure you want to end the session for ${tradieName}? This action cannot be undone.`);
+    setConfirmDestructive(true);
+    setConfirmVisible(true);
   };
 
   if (loading) {
@@ -205,6 +205,17 @@ const Role = ({ route, navigation }: { route: any; navigation: any }) => {
           />
         )}
       </ScrollView>
+      <ConfirmModal
+        visible={confirmVisible}
+        title={confirmTitle}
+        message={confirmMessage}
+        destructive={confirmDestructive}
+        onCancel={() => setConfirmVisible(false)}
+        onConfirm={async () => {
+          setConfirmVisible(false);
+          await confirmRef.current();
+        }}
+      />
     </SafeAreaView>
   );
 };

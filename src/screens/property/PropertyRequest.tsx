@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useRef } from "react";
 import {
   View,
   Text,
@@ -23,6 +23,7 @@ import {
   fetchPendingRequests,
   updateRequestStatus,
 } from "../../services/Request";
+import { ConfirmModal } from '../../components';
 import { propertyRequestsStyles as styles } from "../../styles/requestStyles";
 import { PALETTE } from "../../styles/palette";
 import type { PendingRequest } from "../../types";
@@ -209,16 +210,26 @@ const PropertyRequestsScreen = ({
     id: string,
     status: "ACCEPTED" | "DECLINED"
   ) => {
-    try {
-      await updateRequestStatus(id, status);
-      // Refresh the list by filtering out the updated item.
-      setRequests((prevRequests) =>
-        prevRequests.filter((req) => req.id !== id)
-      );
-    } catch (error: any) {
-      Alert.alert("Error", error.message);
-    }
+    // Use a confirm modal to ensure owner wants to accept/decline
+    confirmRef.current = async () => {
+      try {
+        await updateRequestStatus(id, status);
+        setRequests((prevRequests) => prevRequests.filter((req) => req.id !== id));
+      } catch (error: any) {
+        Alert.alert("Error", error.message);
+      }
+    };
+    setConfirmTitle(status === 'ACCEPTED' ? 'Accept Request' : 'Decline Request');
+    setConfirmMessage(`Are you sure you want to ${status === 'ACCEPTED' ? 'accept' : 'decline'} this request?`);
+    setConfirmDestructive(status === 'DECLINED');
+    setConfirmVisible(true);
   };
+
+  const confirmRef = useRef<() => Promise<void> | void>(() => {});
+  const [confirmVisible, setConfirmVisible] = useState(false);
+  const [confirmTitle, setConfirmTitle] = useState<string | undefined>(undefined);
+  const [confirmMessage, setConfirmMessage] = useState<string | undefined>(undefined);
+  const [confirmDestructive, setConfirmDestructive] = useState(false);
 
   if (loading) {
     return (
@@ -254,6 +265,17 @@ const PropertyRequestsScreen = ({
             </Text>
           </View>
         }
+      />
+      <ConfirmModal
+        visible={confirmVisible}
+        title={confirmTitle}
+        message={confirmMessage}
+        destructive={confirmDestructive}
+        onCancel={() => setConfirmVisible(false)}
+        onConfirm={async () => {
+          setConfirmVisible(false);
+          await confirmRef.current();
+        }}
       />
     </SafeAreaView>
   );

@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useRef } from "react";
 import {
   View,
   Text,
@@ -29,6 +29,7 @@ import {
   addAsset,
   addHistoryOwner,
 } from "../../services/propertyDetails";
+import { ConfirmModal } from '../../components';
 import { fetchAssetTypes } from "../../services/FetchAssetTypes";
 import { propertyDetailsStyles as styles } from "../../styles/propertyDetailsStyles";
 import { PALETTE } from "../../styles/palette";
@@ -317,14 +318,21 @@ const PropertyDetails = ({
       Alert.alert("Missing Information", "Please provide a name and select a type.");
       return;
     }
-    try {
-      await addSpace(propertyId, newSpaceName, newSpaceType);
-      setNewSpaceName("");
-      setNewSpaceType(null);
-      setAddSpaceModalVisible(false);
-    } catch (error: any) {
-      Alert.alert("Error", error.message);
-    }
+    // Defer execution until user confirms
+    confirmRef.current = async () => {
+      try {
+        await addSpace(propertyId, newSpaceName, newSpaceType);
+        setNewSpaceName("");
+        setNewSpaceType(null);
+        setAddSpaceModalVisible(false);
+      } catch (error: any) {
+        Alert.alert("Error", error.message);
+      }
+    };
+    setConfirmTitle('Add Space');
+    setConfirmMessage(`Create new space "${newSpaceName}" of type "${newSpaceType}"?`);
+    setConfirmDestructive(false);
+    setConfirmVisible(true);
   };
 
   const handleAddAsset = async () => {
@@ -332,14 +340,20 @@ const PropertyDetails = ({
       Alert.alert("Missing Information", "Please select an asset type and provide a description.");
       return;
     }
-    try {
-      await addAsset(newAssetDescription, selectedSpace, selectedAssetType);
-      setNewAssetDescription("");
-      setSelectedAssetType(null);
-      setAddAssetModalVisible(false);
-    } catch (error: any) {
-      Alert.alert("Error", error.message);
-    }
+    confirmRef.current = async () => {
+      try {
+        await addAsset(newAssetDescription, selectedSpace, selectedAssetType);
+        setNewAssetDescription("");
+        setSelectedAssetType(null);
+        setAddAssetModalVisible(false);
+      } catch (error: any) {
+        Alert.alert("Error", error.message);
+      }
+    };
+    setConfirmTitle('Add Asset');
+    setConfirmMessage(`Add "${newAssetDescription}" to the selected space?`);
+    setConfirmDestructive(false);
+    setConfirmVisible(true);
   };
 
   const handleAddHistory = async () => {
@@ -354,15 +368,27 @@ const PropertyDetails = ({
       return acc;
     }, {} as Record<string, string>);
 
-    try {
-      await addHistoryOwner(currentAsset, newHistoryDescription, newSpecifications);
-      setNewHistoryDescription("");
-      setAddHistoryModalVisible(false);
-      setCurrentAsset(null);
-    } catch (error: any) {
-      Alert.alert("Error", error.message);
-    }
+    confirmRef.current = async () => {
+      try {
+        await addHistoryOwner(currentAsset, newHistoryDescription, newSpecifications);
+        setNewHistoryDescription("");
+        setAddHistoryModalVisible(false);
+        setCurrentAsset(null);
+      } catch (error: any) {
+        Alert.alert("Error", error.message);
+      }
+    };
+    setConfirmTitle('Submit Update');
+    setConfirmMessage(`Submit this update for ${currentAsset?.description}?`);
+    setConfirmDestructive(false);
+    setConfirmVisible(true);
   };
+
+  const confirmRef = useRef<() => Promise<void> | void>(() => {});
+  const [confirmVisible, setConfirmVisible] = useState(false);
+  const [confirmTitle, setConfirmTitle] = useState<string | undefined>(undefined);
+  const [confirmMessage, setConfirmMessage] = useState<string | undefined>(undefined);
+  const [confirmDestructive, setConfirmDestructive] = useState(false);
 
   const openAddHistoryModal = (asset: AssetWithChangelog) => {
     setCurrentAsset(asset);
@@ -581,6 +607,17 @@ const PropertyDetails = ({
           <Text style={styles.addRowButtonText}>Add Attribute</Text>
         </TouchableOpacity>
       </FormModal>
+      <ConfirmModal
+        visible={confirmVisible}
+        title={confirmTitle}
+        message={confirmMessage}
+        destructive={confirmDestructive}
+        onCancel={() => setConfirmVisible(false)}
+        onConfirm={async () => {
+          setConfirmVisible(false);
+          await confirmRef.current();
+        }}
+      />
     </SafeAreaView>
   );
 };

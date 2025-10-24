@@ -1,4 +1,4 @@
-export type UserRole = 'owner' | 'tradie' | 'admin';
+export type UserRole = 'owner' | 'tradesperson' | 'admin';
 
 export type Property = {
   created_at: any;

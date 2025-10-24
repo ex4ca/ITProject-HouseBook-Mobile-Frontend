@@ -279,7 +279,17 @@ export default function TradiePropertyDetails() {
     setEditableSpecs((prev) => prev.map((spec) => (spec.id === id ? { ...spec, [field]: value } : spec)));
   };
   const addNewSpecRow = () => setEditableSpecs((prev) => [...prev, { id: Date.now(), key: "", value: "" }]);
-  const removeSpecRow = (id: number) => setEditableSpecs((prev) => prev.filter((spec) => spec.id !== id));
+  const removeSpecRowInternal = (id: number) => setEditableSpecs((prev) => prev.filter((spec) => spec.id !== id));
+
+  const requestRemoveSpecRow = (id: number, key?: string) => {
+    confirmRef.current = async () => {
+      removeSpecRowInternal(id);
+    };
+    setConfirmTitle('Delete Attribute');
+    setConfirmMessage(key ? `Delete attribute "${key}"? This cannot be undone.` : 'Delete this attribute?');
+    setConfirmDestructive(true);
+    setConfirmVisible(true);
+  };
   const currentSpace = spaces.find((s) => s.id === selectedSpace);
   const currentAssets = currentSpace?.Assets || [];
   const selectedSpaceName = currentSpace?.name || "Select a Space";
@@ -368,7 +378,7 @@ export default function TradiePropertyDetails() {
               value={spec.value}
               onChangeText={(text) => handleSpecChange(spec.id, "value", text)}
             />
-            <TouchableOpacity onPress={() => removeSpecRow(spec.id)} style={styles.removeRowButton}>
+            <TouchableOpacity onPress={() => requestRemoveSpecRow(spec.id, spec.key)} style={styles.removeRowButton}>
               <Trash2 size={20} color={PALETTE.danger} />
             </TouchableOpacity>
           </View>

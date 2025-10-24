@@ -418,8 +418,18 @@ const PropertyDetails = ({
       ...prev,
       { id: Date.now(), key: "", value: "" },
     ]);
-  const removeSpecRow = (id: number) =>
+  const removeSpecRowInternal = (id: number) =>
     setEditableSpecs((prev) => prev.filter((spec) => spec.id !== id));
+
+  const requestRemoveSpecRow = (id: number, key?: string) => {
+    confirmRef.current = async () => {
+      removeSpecRowInternal(id);
+    };
+    setConfirmTitle('Delete Attribute');
+    setConfirmMessage(key ? `Delete attribute "${key}"? This cannot be undone.` : 'Delete this attribute?');
+    setConfirmDestructive(true);
+    setConfirmVisible(true);
+  };
 
   const toggleSortMode = () => {
     if (sortMode === 'space') {
@@ -597,7 +607,7 @@ const PropertyDetails = ({
           <View key={spec.id} style={styles.specRow}>
             <TextInput style={[styles.input, styles.specInputKey]} placeholder="Attribute" value={spec.key} onChangeText={(text) => handleSpecChange(spec.id, "key", text)} />
             <TextInput style={[styles.input, styles.specInputValue]} placeholder="Value" value={spec.value} onChangeText={(text) => handleSpecChange(spec.id, "value", text)} />
-            <TouchableOpacity onPress={() => removeSpecRow(spec.id)} style={styles.removeRowButton}>
+            <TouchableOpacity onPress={() => requestRemoveSpecRow(spec.id, spec.key)} style={styles.removeRowButton}>
               <Trash2 size={20} color={PALETTE.danger} />
             </TouchableOpacity>
           </View>

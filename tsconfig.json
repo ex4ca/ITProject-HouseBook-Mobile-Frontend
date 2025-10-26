@@ -1,6 +1,10 @@
 {
+  "extends": "expo/tsconfig.base",
   "compilerOptions": {
-    "moduleResolution": "bundler"
+    "moduleResolution": "bundler",
+    "types": ["jest"],
+    "skipLibCheck": true,
+    "allowJs": true
   },
-  "extends": "expo/tsconfig.base"
+  "include": ["**/*.ts", "**/*.tsx", "**/*.js", "jest.setup.js", "__tests__/**/*"]
 }

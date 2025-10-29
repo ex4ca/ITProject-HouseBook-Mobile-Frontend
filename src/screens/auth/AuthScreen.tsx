@@ -37,6 +37,41 @@ const AuthScreen = ({ onSuccessfulLogin }: AuthScreenProps) => {
   const [phone, setPhone] = useState("");
   const [agreeToTerms, setAgreeToTerms] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [isPasswordFocused, setIsPasswordFocused] = useState(false);
+
+  // Password validation helper functions
+  const validatePassword = (pwd: string) => {
+    return {
+      hasMinLength: pwd.length >= MINPASSWORDLEN,
+      hasUppercase: /[A-Z]/.test(pwd),
+      hasLowercase: /[a-z]/.test(pwd),
+      hasNumber: /[0-9]/.test(pwd),
+      hasSpecialChar: /[!@#$%^&*(),.?":{}|<>]/.test(pwd),
+    };
+  };
+
+  const getPasswordValidationMessages = (pwd: string) => {
+    const validation = validatePassword(pwd);
+    const messages = [];
+    
+    if (!validation.hasMinLength) {
+      messages.push(`At least ${MINPASSWORDLEN} characters`);
+    }
+    if (!validation.hasUppercase) {
+      messages.push("1 capital letter");
+    }
+    if (!validation.hasLowercase) {
+      messages.push("1 lowercase letter");
+    }
+    if (!validation.hasNumber) {
+      messages.push("1 number");
+    }
+    if (!validation.hasSpecialChar) {
+      messages.push("1 special character");
+    }
+    
+    return messages;
+  };
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -158,7 +193,44 @@ const AuthScreen = ({ onSuccessfulLogin }: AuthScreenProps) => {
         <View style={styles.nameContainer}><View style={[styles.inputGroup, { flex: 1 }]}><Text style={styles.label}>First Name</Text><TextField placeholder="John" value={firstName} onChangeText={setFirstName} /></View><View style={{ width: 16 }} /><View style={[styles.inputGroup, { flex: 1 }]}><Text style={styles.label}>Last Name</Text><TextField placeholder="Appleseed" value={lastName} onChangeText={setLastName} /></View></View>
         <View style={styles.inputGroup}><Text style={styles.label}>Email</Text><TextField placeholder="you@example.com" value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" /></View>
         <View style={styles.inputGroup}><Text style={styles.label}>Phone</Text><TextField placeholder="Your phone number" value={phone} onChangeText={setPhone} keyboardType="phone-pad" /></View>
-        <View style={styles.inputGroup}><Text style={styles.label}>Password</Text><TextField placeholder="Create a strong password" value={password} onChangeText={setPassword} secureTextEntry /></View>
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>Password</Text>
+          <TextField 
+            placeholder="Create a strong password" 
+            value={password} 
+            onChangeText={setPassword} 
+            secureTextEntry 
+            onFocus={() => setIsPasswordFocused(true)}
+            onBlur={() => setIsPasswordFocused(false)}
+          />
+          {(isPasswordFocused || password.length > 0) && getPasswordValidationMessages(password).length > 0 && (
+            <View style={{
+              marginTop: 8,
+              padding: 12,
+              backgroundColor: PALETTE.dangerBackground,
+              borderRadius: 8,
+              borderLeftWidth: 3,
+              borderLeftColor: PALETTE.danger,
+            }}>
+              <Text style={{
+                fontSize: 12,
+                fontWeight: '600',
+                color: PALETTE.danger,
+                marginBottom: 4,
+              }}>Password must contain:</Text>
+              {getPasswordValidationMessages(password).map((message, index) => (
+                <Text key={index} style={{
+                  fontSize: 11,
+                  color: PALETTE.danger,
+                  marginLeft: 4,
+                  marginBottom: 2,
+                }}>
+                  • {message}
+                </Text>
+              ))}
+            </View>
+          )}
+        </View>
         <View style={styles.inputGroup}><Text style={styles.label}>Confirm Password</Text><TextField placeholder="Confirm your password" value={confirmPassword} onChangeText={setConfirmPassword} secureTextEntry /></View>
         <Checkbox checked={agreeToTerms} onPress={() => setAgreeToTerms(!agreeToTerms)} label={<Text style={styles.termsText}>I agree to the <Text style={styles.linkText}>Terms & Policy</Text></Text>} />
         <Button text={loading ? "Creating Account..." : "Create Account"} onPress={handleSignUp} disabled={loading} style={styles.submitButton} textStyle={styles.submitButtonText} />

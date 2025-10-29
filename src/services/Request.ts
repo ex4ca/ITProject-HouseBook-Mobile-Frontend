@@ -63,10 +63,11 @@ export const updateRequestStatus = async (id: string, status: 'ACCEPTED' | 'DECL
     }
 };
 
-// Fetch all requests (pending and accepted) for a specific tradie and property
+// Fetch all requests (pending, accepted, and rejected) for a specific tradie and property
 export const fetchTradieRequests = async (propertyId: string, tradieUserId: string): Promise<{
   pending: PendingRequest[];
   accepted: PendingRequest[];
+  rejected: PendingRequest[];
 }> => {
     const { data, error } = await supabase
       .from('ChangeLog')
@@ -87,10 +88,10 @@ export const fetchTradieRequests = async (propertyId: string, tradieUserId: stri
       `)
       .eq('Assets.Spaces.Property.property_id', propertyId)
       .eq('changed_by_user_id', tradieUserId)
-      .in('status', ['PENDING', 'ACCEPTED']);
+      .in('status', ['PENDING', 'ACCEPTED', 'DECLINED']);
 
     if (error) {
-        return { pending: [], accepted: [] };
+        return { pending: [], accepted: [], rejected: [] };
     }
 
     const anyData = data as any[];
@@ -122,7 +123,8 @@ export const fetchTradieRequests = async (propertyId: string, tradieUserId: stri
 
     return {
         pending: requests.filter(req => req.status === 'PENDING'),
-        accepted: requests.filter(req => req.status === 'ACCEPTED')
+        accepted: requests.filter(req => req.status === 'ACCEPTED'),
+        rejected: requests.filter(req => req.status === 'DECLINED')
     };
 };
 

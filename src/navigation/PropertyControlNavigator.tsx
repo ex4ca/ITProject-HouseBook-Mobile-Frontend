@@ -50,7 +50,7 @@ const PropertyControlNavigator = ({ route }: Props) => {
       />
 
       <Tab.Screen
-        name="Details"
+        name="Timeline"
         component={PropertyDetails}
         initialParams={{ propertyId, isOwner }}
         options={{

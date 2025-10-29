@@ -18,6 +18,7 @@ import {
   Plus,
   PlusCircle,
   Trash2,
+  ArrowUpDown,
 } from "lucide-react-native";
 import {
   fetchTradieRequests,
@@ -65,8 +66,18 @@ const RequestCard = ({ item, onCancel, showActions = true }: { item: PendingRequ
           </View>
           {isExpanded ? <ChevronDown size={20} color={PALETTE.textSecondary} /> : <ChevronRight size={20} color={PALETTE.textSecondary} />}
         </View>
-        <Text style={styles.descriptionText}>"{item.change_description}"</Text>
+        <View style={styles.descriptionRow}>
+          <Text style={styles.descriptionText}>"{item.change_description}"</Text>
+          {(item.status === 'ACCEPTED' || item.status === 'DECLINED') && (
+            <View style={[styles.statusLabel, item.status === 'ACCEPTED' ? styles.statusLabelAccepted : styles.statusLabelRejected]}>
+              <Text style={[styles.statusLabelText, item.status === 'ACCEPTED' ? styles.statusLabelTextAccepted : styles.statusLabelTextRejected]}>
+                {item.status === 'ACCEPTED' ? 'Accepted' : 'Rejected'}
+              </Text>
+            </View>
+          )}
+        </View>
         <Text style={styles.submittedBy}>Submitted by: {submittedByText}</Text>
+        <Text style={styles.submittedDate}>{new Date(item.created_at).toLocaleDateString()}</Text>
       </TouchableOpacity>
 
       {isExpanded && (
@@ -228,9 +239,11 @@ export default function TradieRequestsScreen() {
   const [loading, setLoading] = useState(true);
   const [pendingRequests, setPendingRequests] = useState<PendingRequest[]>([]);
   const [acceptedRequests, setAcceptedRequests] = useState<PendingRequest[]>([]);
+  const [rejectedRequests, setRejectedRequests] = useState<PendingRequest[]>([]);
   const [propertyData, setPropertyData] = useState<any>(null);
   const [editableAssetIds, setEditableAssetIds] = useState<Set<string>>(new Set());
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [workHistorySortAscending, setWorkHistorySortAscending] = useState(false);
 
   const loadData = useCallback(async () => {
     if (!propertyId || !jobId) {
@@ -252,6 +265,7 @@ export default function TradieRequestsScreen() {
       setEditableAssetIds(propertyResult.editableAssetIds || new Set());
       setPendingRequests(requestsResult.pending);
       setAcceptedRequests(requestsResult.accepted);
+      setRejectedRequests(requestsResult.rejected);
     } catch (error: any) {
       Alert.alert("Error", "Failed to load requests data");
     } finally {
@@ -353,21 +367,38 @@ export default function TradieRequestsScreen() {
         )}
 
         {/* Work History Section */}
-        {acceptedRequests.length > 0 && (
+        {(acceptedRequests.length > 0 || rejectedRequests.length > 0) && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Work History ({acceptedRequests.length})</Text>
-            {acceptedRequests.map((request) => (
-              <RequestCard
-                key={request.id}
-                item={request}
-                showActions={false}
-              />
-            ))}
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Work History ({acceptedRequests.length + rejectedRequests.length})</Text>
+              <TouchableOpacity 
+                style={styles.sortToggle}
+                onPress={() => setWorkHistorySortAscending(!workHistorySortAscending)}
+              >
+                <ArrowUpDown size={16} color={PALETTE.textSecondary} />
+                <Text style={styles.sortToggleText}>
+                  {workHistorySortAscending ? 'Oldest' : 'Newest'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+            {[...acceptedRequests, ...rejectedRequests]
+              .sort((a, b) => {
+                const timeA = new Date(a.created_at).getTime();
+                const timeB = new Date(b.created_at).getTime();
+                return workHistorySortAscending ? timeA - timeB : timeB - timeA;
+              })
+              .map((request) => (
+                <RequestCard
+                  key={request.id}
+                  item={request}
+                  showActions={false}
+                />
+              ))}
           </View>
         )}
 
         {/* Empty State */}
-        {pendingRequests.length === 0 && acceptedRequests.length === 0 && !showCreateForm && (
+        {pendingRequests.length === 0 && acceptedRequests.length === 0 && rejectedRequests.length === 0 && !showCreateForm && (
           <View style={styles.centerContainer}>
             <Text style={styles.emptyText}>
               No requests found. Create your first request to get started.

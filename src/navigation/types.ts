@@ -6,7 +6,7 @@ export type RootStackParamList = {
 
 export type PropertyControlTabParamList = {
   General: { propertyId: string };
-  Timeline: { propertyId: string; isOwner: boolean };
+  Details: { propertyId: string; isOwner: boolean };
   Requests: { propertyId: string };
   Authority: { propertyId: string; isOwner: boolean };
 };

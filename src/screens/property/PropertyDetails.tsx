@@ -209,11 +209,11 @@ const PropertyDetails = ({
   const [assetTypes, setAssetTypes] = useState<{ id: number; name: string; discipline: string }[]>(
     []
   );
-  const [selectedSpace, setSelectedSpace] = useState<string | null>("All");
+  const [selectedSpace, setSelectedSpace] = useState<string | null>(null);
   const [expandedAssetId, setExpandedAssetId] = useState<string | null>(null);
   
   const [sortMode, setSortMode] = useState<'space' | 'discipline'>('space');
-  const [selectedDiscipline, setSelectedDiscipline] = useState<string | null>("All");
+  const [selectedDiscipline, setSelectedDiscipline] = useState<string | null>(null);
   const [availableDisciplines, setAvailableDisciplines] = useState<string[]>([]);
   const [disciplineToSpacesMap, setDisciplineToSpacesMap] = useState<Record<string, SpaceWithAssets[]>>({});
 
@@ -443,11 +443,11 @@ const PropertyDetails = ({
     }
   };
 
-  const currentSpace = selectedSpace === 'All' ? null : spaces.find((s) => s.id === selectedSpace);
-  const currentAssets = selectedSpace === 'All' ? [] : (currentSpace?.Assets || []);
-  const selectedSpaceName = selectedSpace === 'All' ? 'All' : (currentSpace?.name || "Select a Space");
+  const currentSpace = spaces.find((s) => s.id === selectedSpace);
+  const currentAssets = currentSpace?.Assets || [];
+  const selectedSpaceName = currentSpace?.name || "Select a Space";
   
-  const currentDisciplineSpaces = selectedDiscipline === 'All' ? spaces : (selectedDiscipline ? disciplineToSpacesMap[selectedDiscipline] || [] : []);
+  const currentDisciplineSpaces = selectedDiscipline ? disciplineToSpacesMap[selectedDiscipline] || [] : [];
   const selectedDisciplineName = selectedDiscipline || "Select a Discipline";
 
   if (loading && !spaces.length) {
@@ -505,25 +505,17 @@ const PropertyDetails = ({
           </View>
           <View style={styles.dropdownWrapper}>
             <DropField
-              options={sortMode === 'space' ? ['All', ...spaces.map((s) => s.name)] : ['All', ...availableDisciplines]}
+              options={sortMode === 'space' ? spaces.map((s) => s.name) : availableDisciplines}
               selectedValue={sortMode === 'space' ? selectedSpaceName : selectedDisciplineName}
               onSelect={(name) => {
                 if (sortMode === 'space') {
-                  if (name === 'All') {
-                    setSelectedSpace('All');
-                  } else {
-                    const space = spaces.find((s) => s.name === name);
-                    if (space) {
-                      setSelectedSpace(space.id);
-                    }
+                  const space = spaces.find((s) => s.name === name);
+                  if (space) {
+                    setSelectedSpace(space.id);
+                    setExpandedAssetId(null);
                   }
-                  setExpandedAssetId(null);
                 } else {
-                  if (name === 'All') {
-                    setSelectedDiscipline('All');
-                  } else {
-                    setSelectedDiscipline(name);
-                  }
+                  setSelectedDiscipline(name);
                   setExpandedAssetId(null);
                 }
               }}
@@ -534,54 +526,27 @@ const PropertyDetails = ({
         <Text style={styles.pageTitle}>{sortMode === 'space' ? selectedSpaceName : selectedDisciplineName}</Text>
         <View style={styles.contentContainer}>
           {sortMode === 'space' ? (
-            selectedSpace === 'All' ? (
-              spaces.length > 0 ? (
-                spaces.map((space) => (
-                  <View key={space.id} style={styles.disciplineSpaceContainer}>
-                    <Text style={styles.disciplineSpaceTitle}>{space.name}</Text>
-                    {space.Assets.length > 0 ? (
-                      space.Assets.map((asset) => (
-                        <AssetAccordion
-                          key={asset.id}
-                          asset={asset}
-                          isExpanded={expandedAssetId === asset.id}
-                          onToggle={() => setExpandedAssetId((prev) => prev === asset.id ? null : asset.id)}
-                          onAddHistory={openAddHistoryModal}
-                        />
-                      ))
-                    ) : (
-                      <Text style={styles.emptyText}>No assets in this space.</Text>
-                    )}
-                  </View>
-                ))
-              ) : (
-                <View style={styles.centerContainer}><Text style={styles.emptyText}>No spaces found.</Text></View>
-              )
+            currentAssets.length > 0 ? (
+              currentAssets.map((asset) => (
+                <AssetAccordion
+                  key={asset.id}
+                  asset={asset}
+                  isExpanded={expandedAssetId === asset.id}
+                  onToggle={() => setExpandedAssetId((prev) => prev === asset.id ? null : asset.id)}
+                  onAddHistory={openAddHistoryModal}
+                />
+              ))
             ) : (
-              currentAssets.length > 0 ? (
-                currentAssets.map((asset) => (
-                  <AssetAccordion
-                    key={asset.id}
-                    asset={asset}
-                    isExpanded={expandedAssetId === asset.id}
-                    onToggle={() => setExpandedAssetId((prev) => prev === asset.id ? null : asset.id)}
-                    onAddHistory={openAddHistoryModal}
-                  />
-                ))
-              ) : (
-                <View style={styles.centerContainer}><Text style={styles.emptyText}>No assets found in this space.</Text></View>
-              )
+              <View style={styles.centerContainer}><Text style={styles.emptyText}>No assets found in this space.</Text></View>
             )
           ) : (
             currentDisciplineSpaces.length > 0 ? (
               currentDisciplineSpaces.map((space) => {
-                const filteredAssets = selectedDiscipline === 'All' 
-                  ? space.Assets 
-                  : space.Assets.filter((asset) => {
-                      const assetType = assetTypes.find(type => type.id === asset.asset_type_id);
-                      const discipline = assetType?.discipline || 'General';
-                      return discipline === selectedDiscipline;
-                    });
+                const filteredAssets = space.Assets.filter((asset) => {
+                  const assetType = assetTypes.find(type => type.id === asset.asset_type_id);
+                  const discipline = assetType?.discipline || 'General';
+                  return discipline === selectedDiscipline;
+                });
                 
                 return (
                   <View key={space.id} style={styles.disciplineSpaceContainer}>
@@ -597,25 +562,13 @@ const PropertyDetails = ({
                         />
                       ))
                     ) : (
-                      <Text style={styles.emptyText}>
-                        {selectedDiscipline === 'All' 
-                          ? 'No assets in this space.' 
-                          : `No ${selectedDiscipline} assets in this space.`
-                        }
-                      </Text>
+                      <Text style={styles.emptyText}>No {selectedDiscipline} assets in this space.</Text>
                     )}
                   </View>
                 );
               })
             ) : (
-              <View style={styles.centerContainer}>
-                <Text style={styles.emptyText}>
-                  {selectedDiscipline === 'All' 
-                    ? 'No spaces found.' 
-                    : `No spaces found with ${selectedDiscipline} assets.`
-                  }
-                </Text>
-              </View>
+              <View style={styles.centerContainer}><Text style={styles.emptyText}>No spaces found with {selectedDiscipline} assets.</Text></View>
             )
           )}
         </View>
@@ -652,23 +605,9 @@ const PropertyDetails = ({
         <Text style={styles.label}>Specifications</Text>
         {editableSpecs.map((spec) => (
           <View key={spec.id} style={styles.specRow}>
-            <TextInput 
-              style={[styles.input, styles.specInputKey]} 
-              placeholder="Attribute" 
-              value={spec.key} 
-              onChangeText={(text) => handleSpecChange(spec.id, "key", text)} 
-              multiline
-              textAlignVertical="top"
-            />
-            <TextInput 
-              style={[styles.input, styles.specInputValue]} 
-              placeholder="Value" 
-              value={spec.value} 
-              onChangeText={(text) => handleSpecChange(spec.id, "value", text)} 
-              multiline
-              textAlignVertical="top"
-            />
-            <TouchableOpacity onPress={() => removeSpecRow(spec.id)} style={styles.removeRowButton}>
+            <TextInput style={[styles.input, styles.specInputKey]} placeholder="Attribute" value={spec.key} onChangeText={(text) => handleSpecChange(spec.id, "key", text)} />
+            <TextInput style={[styles.input, styles.specInputValue]} placeholder="Value" value={spec.value} onChangeText={(text) => handleSpecChange(spec.id, "value", text)} />
+            <TouchableOpacity onPress={() => requestRemoveSpecRow(spec.id, spec.key)} style={styles.removeRowButton}>
               <Trash2 size={20} color={PALETTE.danger} />
             </TouchableOpacity>
           </View>

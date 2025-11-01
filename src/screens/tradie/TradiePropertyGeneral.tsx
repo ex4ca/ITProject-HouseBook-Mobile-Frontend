@@ -167,7 +167,7 @@ export default function TradiePropertyGeneral() {
                 <FlatList
                   data={propertyImages}
                   renderItem={({ item }) => (
-                    <View style={[styles.imageSlide]}>
+                    <View style={[styles.imageSlide, { width: width - 80 }]}>
                       <Image
                         source={{ uri: item.uri! }}
                         style={styles.propertyImage}

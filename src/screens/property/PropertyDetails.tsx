@@ -616,8 +616,22 @@ const PropertyDetails = ({
         <Text style={styles.label}>Specifications</Text>
         {editableSpecs.map((spec) => (
           <View key={spec.id} style={styles.specRow}>
-            <TextInput style={[styles.input, styles.specInputKey]} placeholder="Attribute" value={spec.key} onChangeText={(text) => handleSpecChange(spec.id, "key", text)} />
-            <TextInput style={[styles.input, styles.specInputValue]} placeholder="Value" value={spec.value} onChangeText={(text) => handleSpecChange(spec.id, "value", text)} />
+            <TextInput 
+              style={[styles.input, styles.specInputKey]} 
+              placeholder="Attribute" 
+              value={spec.key} 
+              onChangeText={(text) => handleSpecChange(spec.id, "key", text)} 
+              multiline
+              textAlignVertical="top"
+            />
+            <TextInput 
+              style={[styles.input, styles.specInputValue]} 
+              placeholder="Value" 
+              value={spec.value} 
+              onChangeText={(text) => handleSpecChange(spec.id, "value", text)} 
+              multiline
+              textAlignVertical="top"
+            />
             <TouchableOpacity onPress={() => removeSpecRow(spec.id)} style={styles.removeRowButton}>
               <Trash2 size={20} color={PALETTE.danger} />
             </TouchableOpacity>

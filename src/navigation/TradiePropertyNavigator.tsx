@@ -40,9 +40,9 @@ export default function TradiePropertyNavigator() {
         }}
       />
       <Tab.Screen
-        name="Details"
+        name="Timeline"
         component={TradiePropertyDetails}
-        // Pass the necessary IDs down to the Details screen
+        // Pass the necessary IDs down to the Timeline screen
         initialParams={{ propertyId, jobId }}
         options={{
           tabBarIcon: ({ color, size }) => <List color={color} size={size} />,

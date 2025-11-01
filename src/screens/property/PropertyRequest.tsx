@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useRef } from "react";
 import {
   View,
   Text,
@@ -26,6 +26,7 @@ import {
 import { propertyRequestsStyles as styles } from "../../styles/requestStyles";
 import { PALETTE } from "../../styles/palette";
 import type { PendingRequest } from "../../types";
+import ConfirmModal from "../../components/ConfirmModal";
 
 // Renders the specification details for a change request.
 const SpecificationDetails = ({
@@ -205,18 +206,32 @@ const PropertyRequestsScreen = ({
     }, [propertyId])
   );
 
-  const handleUpdateStatus = async (
-    id: string,
-    status: "ACCEPTED" | "DECLINED"
-  ) => {
+  // Use a confirmation modal before updating status
+  const [confirmVisible, setConfirmVisible] = useState(false);
+  const [confirmTitle, setConfirmTitle] = useState('');
+  const [confirmMessage, setConfirmMessage] = useState('');
+  const [confirmDestructive, setConfirmDestructive] = useState(false);
+  const pendingRequestRef = useRef<{ id: string; status: 'ACCEPTED' | 'DECLINED' } | null>(null);
+
+  const askUpdateStatus = (id: string, status: 'ACCEPTED' | 'DECLINED') => {
+    setConfirmTitle(status === 'ACCEPTED' ? 'Accept Request' : 'Decline Request');
+    setConfirmMessage(`Are you sure you want to ${status === 'ACCEPTED' ? 'accept' : 'decline'} this request?`);
+    setConfirmDestructive(status === 'DECLINED');
+    pendingRequestRef.current = { id, status };
+    setConfirmVisible(true);
+  };
+
+  const handleConfirmUpdate = async () => {
+    const pending = pendingRequestRef.current;
+    if (!pending) return;
     try {
-      await updateRequestStatus(id, status);
-      // Refresh the list by filtering out the updated item.
-      setRequests((prevRequests) =>
-        prevRequests.filter((req) => req.id !== id)
-      );
+      await updateRequestStatus(pending.id, pending.status);
+      setRequests((prevRequests) => prevRequests.filter((req) => req.id !== pending.id));
     } catch (error: any) {
-      Alert.alert("Error", error.message);
+      Alert.alert('Error', error.message);
+    } finally {
+      pendingRequestRef.current = null;
+      setConfirmVisible(false);
     }
   };
 
@@ -243,7 +258,7 @@ const PropertyRequestsScreen = ({
       <FlatList
         data={requests}
         renderItem={({ item }) => (
-          <RequestCard item={item} onUpdateStatus={handleUpdateStatus} />
+          <RequestCard item={item} onUpdateStatus={askUpdateStatus} />
         )}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContent}
@@ -254,6 +269,14 @@ const PropertyRequestsScreen = ({
             </Text>
           </View>
         }
+      />
+      <ConfirmModal
+        visible={confirmVisible}
+        title={confirmTitle}
+        message={confirmMessage}
+        destructive={confirmDestructive}
+        onConfirm={handleConfirmUpdate}
+        onCancel={() => setConfirmVisible(false)}
       />
     </SafeAreaView>
   );

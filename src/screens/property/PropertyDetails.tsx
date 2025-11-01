@@ -96,11 +96,11 @@ const PropertyDetails = ({
   const [assetTypes, setAssetTypes] = useState<{ id: number; name: string; discipline: string }[]>(
     []
   );
-  const [selectedSpace, setSelectedSpace] = useState<string | null>(null);
+  const [selectedSpace, setSelectedSpace] = useState<string | null>("All");
   const [expandedAssetId, setExpandedAssetId] = useState<string | null>(null);
   
   const [sortMode, setSortMode] = useState<'space' | 'discipline'>('space');
-  const [selectedDiscipline, setSelectedDiscipline] = useState<string | null>(null);
+  const [selectedDiscipline, setSelectedDiscipline] = useState<string | null>("All");
   const [availableDisciplines, setAvailableDisciplines] = useState<string[]>([]);
   const [disciplineToSpacesMap, setDisciplineToSpacesMap] = useState<Record<string, SpaceWithAssets[]>>({});
 
@@ -311,11 +311,11 @@ const PropertyDetails = ({
     }
   };
 
-  const currentSpace = spaces.find((s) => s.id === selectedSpace);
-  const currentAssets = currentSpace?.Assets || [];
-  const selectedSpaceName = currentSpace?.name || "Select a Space";
+  const currentSpace = selectedSpace === 'All' ? null : spaces.find((s) => s.id === selectedSpace);
+  const currentAssets = selectedSpace === 'All' ? [] : (currentSpace?.Assets || []);
+  const selectedSpaceName = selectedSpace === 'All' ? 'All' : (currentSpace?.name || "Select a Space");
   
-  const currentDisciplineSpaces = selectedDiscipline ? disciplineToSpacesMap[selectedDiscipline] || [] : [];
+  const currentDisciplineSpaces = selectedDiscipline === 'All' ? spaces : (selectedDiscipline ? disciplineToSpacesMap[selectedDiscipline] || [] : []);
   const selectedDisciplineName = selectedDiscipline || "Select a Discipline";
 
   if (loading && !spaces.length) {
@@ -328,57 +328,128 @@ const PropertyDetails = ({
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
           <ChevronLeft size={24} color={PALETTE.textPrimary} />
         </TouchableOpacity>
-        <View style={styles.dropdownContainer}>
-          <DropField
-            options={sortMode === 'space' ? spaces.map((s) => s.name) : availableDisciplines}
-            selectedValue={sortMode === 'space' ? selectedSpaceName : selectedDisciplineName}
-            onSelect={(name) => {
-              if (sortMode === 'space') {
-                const space = spaces.find((s) => s.name === name);
-                if (space) {
-                  setSelectedSpace(space.id);
-                  setExpandedAssetId(null);
-                }
-              } else {
-                setSelectedDiscipline(name);
-                setExpandedAssetId(null);
-              }
-            }}
-          />
-        </View>
-        <TouchableOpacity style={styles.sortModeButton} onPress={toggleSortMode}>
-          <Text style={styles.sortModeButtonText}>{sortMode === 'space' ? 'Space' : 'Discipline'}</Text>
-        </TouchableOpacity>
+        <Text style={styles.headerTitle} numberOfLines={1}>
+          {"Timeline"}
+        </Text>
+        <View style={{ width: 40 }} />
       </View>
       <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator={false}>
+        
+      {/* Sort by Section */}
+      <View style={styles.sortSection}>
+        <Text style={styles.sortLabel}>Sort by:</Text>
+        <View style={styles.sortToggleGroup}>
+          <TouchableOpacity
+            style={[styles.sortToggleButton, sortMode === 'space' && styles.sortToggleButtonActive]}
+            onPress={() => setSortMode('space')}
+          >
+            <Text
+              style={[
+                styles.sortToggleText,
+                sortMode === 'space' && styles.sortToggleTextActive,
+              ]}
+            >
+              Space
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.sortToggleButton, sortMode === 'discipline' && styles.sortToggleButtonActive]}
+            onPress={() => setSortMode('discipline')}
+          >
+            <Text
+              style={[
+                styles.sortToggleText,
+                sortMode === 'discipline' && styles.sortToggleTextActive,
+              ]}
+            >
+              Discipline
+            </Text>
+          </TouchableOpacity>
+          </View>
+          <View style={styles.dropdownWrapper}>
+            <DropField
+              options={sortMode === 'space' ? ['All', ...spaces.map((s) => s.name)] : ['All', ...availableDisciplines]}
+              selectedValue={sortMode === 'space' ? selectedSpaceName : selectedDisciplineName}
+              onSelect={(name) => {
+                if (sortMode === 'space') {
+                  if (name === 'All') {
+                    setSelectedSpace('All');
+                  } else {
+                    const space = spaces.find((s) => s.name === name);
+                    if (space) {
+                      setSelectedSpace(space.id);
+                    }
+                  }
+                  setExpandedAssetId(null);
+                } else {
+                  if (name === 'All') {
+                    setSelectedDiscipline('All');
+                  } else {
+                    setSelectedDiscipline(name);
+                  }
+                  setExpandedAssetId(null);
+                }
+              }}
+            />
+          </View>
+        </View>
+
         <Text style={styles.pageTitle}>{sortMode === 'space' ? selectedSpaceName : selectedDisciplineName}</Text>
         <View style={styles.contentContainer}>
           {sortMode === 'space' ? (
-            currentAssets.length > 0 ? (
-              currentAssets.map((asset) => (
-                <AssetAccordion
-                  key={asset.id}
-                  asset={asset}
-                  isExpanded={expandedAssetId === asset.id}
-                  onToggle={() => setExpandedAssetId((prev) => prev === asset.id ? null : asset.id)}
-                  onAddHistory={openAddHistoryModal}
-                />
-              ))
+            selectedSpace === 'All' ? (
+              spaces.length > 0 ? (
+                spaces.map((space) => (
+                  <View key={space.id} style={styles.disciplineSpaceContainer}>
+                    <Text style={styles.disciplineSpaceTitle}>{space.name}</Text>
+                    {space.Assets.length > 0 ? (
+                      space.Assets.map((asset) => (
+                        <AssetAccordion
+                          key={asset.id}
+                          asset={asset}
+                          isExpanded={expandedAssetId === asset.id}
+                          onToggle={() => setExpandedAssetId((prev) => prev === asset.id ? null : asset.id)}
+                          onAddHistory={openAddHistoryModal}
+                        />
+                      ))
+                    ) : (
+                      <Text style={styles.emptyText}>No assets in this space.</Text>
+                    )}
+                  </View>
+                ))
+              ) : (
+                <View style={styles.centerContainer}><Text style={styles.emptyText}>No spaces found.</Text></View>
+              )
             ) : (
-              <View style={styles.centerContainer}><Text style={styles.emptyText}>No assets found in this space.</Text></View>
+              currentAssets.length > 0 ? (
+                currentAssets.map((asset) => (
+                  <AssetAccordion
+                    key={asset.id}
+                    asset={asset}
+                    isExpanded={expandedAssetId === asset.id}
+                    onToggle={() => setExpandedAssetId((prev) => prev === asset.id ? null : asset.id)}
+                    onAddHistory={openAddHistoryModal}
+                  />
+                ))
+              ) : (
+                <View style={styles.centerContainer}><Text style={styles.emptyText}>No assets found in this space.</Text></View>
+              )
             )
           ) : (
             currentDisciplineSpaces.length > 0 ? (
               currentDisciplineSpaces.map((space) => {
-                const filteredAssets = space.Assets.filter((asset) => {
-                  const assetType = assetTypes.find(type => type.id === asset.asset_type_id);
-                  const discipline = assetType?.discipline || 'General';
-                  return discipline === selectedDiscipline;
-                });
+                const filteredAssets = selectedDiscipline === 'All' 
+                  ? space.Assets 
+                  : space.Assets.filter((asset) => {
+                      const assetType = assetTypes.find(type => type.id === asset.asset_type_id);
+                      const discipline = assetType?.discipline || 'General';
+                      return discipline === selectedDiscipline;
+                    });
                 
                 return (
                   <View key={space.id} style={styles.disciplineSpaceContainer}>
@@ -394,13 +465,25 @@ const PropertyDetails = ({
                         />
                       ))
                     ) : (
-                      <Text style={styles.emptyText}>No {selectedDiscipline} assets in this space.</Text>
+                      <Text style={styles.emptyText}>
+                        {selectedDiscipline === 'All' 
+                          ? 'No assets in this space.' 
+                          : `No ${selectedDiscipline} assets in this space.`
+                        }
+                      </Text>
                     )}
                   </View>
                 );
               })
             ) : (
-              <View style={styles.centerContainer}><Text style={styles.emptyText}>No spaces found with {selectedDiscipline} assets.</Text></View>
+              <View style={styles.centerContainer}>
+                <Text style={styles.emptyText}>
+                  {selectedDiscipline === 'All' 
+                    ? 'No spaces found.' 
+                    : `No spaces found with ${selectedDiscipline} assets.`
+                  }
+                </Text>
+              </View>
             )
           )}
         </View>
@@ -437,8 +520,22 @@ const PropertyDetails = ({
         <Text style={styles.label}>Specifications</Text>
         {editableSpecs.map((spec) => (
           <View key={spec.id} style={styles.specRow}>
-            <TextInput style={[styles.input, styles.specInputKey]} placeholder="Attribute" value={spec.key} onChangeText={(text) => handleSpecChange(spec.id, "key", text)} />
-            <TextInput style={[styles.input, styles.specInputValue]} placeholder="Value" value={spec.value} onChangeText={(text) => handleSpecChange(spec.id, "value", text)} />
+            <TextInput 
+              style={[styles.input, styles.specInputKey]} 
+              placeholder="Attribute" 
+              value={spec.key} 
+              onChangeText={(text) => handleSpecChange(spec.id, "key", text)} 
+              multiline
+              textAlignVertical="top"
+            />
+            <TextInput 
+              style={[styles.input, styles.specInputValue]} 
+              placeholder="Value" 
+              value={spec.value} 
+              onChangeText={(text) => handleSpecChange(spec.id, "value", text)} 
+              multiline
+              textAlignVertical="top"
+            />
             <TouchableOpacity onPress={() => removeSpecRow(spec.id)} style={styles.removeRowButton}>
               <Trash2 size={20} color={PALETTE.danger} />
             </TouchableOpacity>

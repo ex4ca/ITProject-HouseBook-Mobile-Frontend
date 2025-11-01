@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import {
   View,
   Text,
@@ -6,9 +6,11 @@ import {
   ScrollView,
   Image,
   FlatList,
+  Dimensions,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context'; 
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useRoute, useNavigation } from '@react-navigation/native';
 import {
   ChevronLeft,
@@ -21,128 +23,65 @@ import {
 } from 'lucide-react-native';
 
 import { fetchPropertyGeneralData } from '../../services/Property';
+import { fetchPropertyImages } from '../../services/Image';
 import { propertyGeneralStyles as styles } from '../../styles/propertyGeneralStyles';
 import { PALETTE } from '../../styles/palette';
 import type { PropertyGeneral } from '../../types';
-
-type DisciplineGroup = {
-  [discipline: string]: {
-    [specKey: string]: {
-      specifications: Record<string, any>;
-      locations: {
-        spaceName: string;
-        assetDescription: string;
-      }[];
-    };
-  };
-};
 
 export default function TradiePropertyGeneral() {
   const route = useRoute();
   const navigation = useNavigation();
   const { propertyId } = route.params as { propertyId: string };
-
   const [loading, setLoading] = useState(true);
   const [property, setProperty] = useState<PropertyGeneral | null>(null);
-  const [propertyImages, setPropertyImages] = useState<{ id: string; uri: string | null; title: string }[]>([]);
+  const [propertyImages, setPropertyImages] = useState<{ id: string; uri: string }[]>([]);
   const [spaceCounts, setSpaceCounts] = useState<Record<string, number>>({});
 
-  const disciplineData = useMemo<DisciplineGroup>(() => {
-    if (!property?.Spaces) return {};
 
-    const groups: DisciplineGroup = {};
+  const loadData = useCallback(async () => {
+    if (propertyId) {
+      setLoading(true);
+      try {
+        const [propertyData, fetchedImages] = await Promise.all([
+          fetchPropertyGeneralData(propertyId),
+          fetchPropertyImages(propertyId),
+        ]);
 
-    property.Spaces.forEach(space => {
-      space.Assets?.forEach(asset => {
-        const discipline = asset.AssetTypes?.discipline || 'General';
-        const latestLog = asset.ChangeLog
-          ?.filter(log => log.status === 'ACCEPTED')
-          .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
-        
-        const specifications = latestLog?.specifications || {};
-        
-        if (Object.keys(specifications).length === 0) {
-            return;
+        if (propertyData) {
+          setProperty(propertyData);
+
+          const counts = (propertyData.Spaces || []).reduce(
+            (acc, space) => {
+              const type = space.type.toLowerCase();
+              acc[type] = (acc[type] || 0) + 1;
+              return acc;
+            },
+            {} as Record<string, number>
+          );
+          setSpaceCounts(counts);
         }
 
-        const sortedSpec = Object.keys(specifications).sort().reduce(
-          (obj, key) => { 
-            obj[key] = specifications[key]; 
-            return obj;
-          }, 
-          {} as Record<string, any>
-        );
-        const specKey = JSON.stringify(sortedSpec);
+        setPropertyImages(fetchedImages.map((uri, index) => ({ id: `image-${index}`, uri })));
 
-        if (!groups[discipline]) {
-          groups[discipline] = {};
-        }
-        if (!groups[discipline][specKey]) {
-          groups[discipline][specKey] = {
-            specifications: specifications,
-            locations: [],
-          };
-        }
-
-        groups[discipline][specKey].locations.push({
-          spaceName: space.name,
-          assetDescription: asset.description,
-        });
-      });
-    });
-
-    return groups;
-  }, [property]);
+      } catch (err: any) {
+        console.error("Error loading general property data for tradie:", err.message);
+        Alert.alert("Error", "Could not load property data.");
+      } finally {
+        setLoading(false);
+      }
+    } else {
+      // If there's no propertyId, we shouldn't be in a loading state.
+      setLoading(false);
+    }
+  }, [propertyId]);
 
   useFocusEffect(
     useCallback(() => {
-      const loadData = async () => {
-        if (propertyId) {
-          setLoading(true);
-          try {
-            const propertyData = await fetchPropertyGeneralData(propertyId);
-            if (propertyData) {
-              setProperty(propertyData);
-
-              const counts = (propertyData.Spaces || []).reduce(
-                (acc, space) => {
-                  const type = space.type.toLowerCase();
-                  acc[type] = (acc[type] || 0) + 1;
-                  return acc;
-                },
-                {} as Record<string, number>
-              );
-              setSpaceCounts(counts);
-
-              const formattedImages = (propertyData.PropertyImages || []).map(
-                (img, index) => ({
-                  id: `${propertyId}-${index}`,
-                  uri: img.image_link,
-                  title: img.image_name,
-                })
-              );
-              setPropertyImages(
-                formattedImages.length > 0
-                  ? formattedImages
-                  : [{ id: "placeholder-1", uri: null, title: "No Images" }]
-              );
-            }
-          } catch (err: any) {
-            console.error("Error loading general property data for tradie:", err.message);
-            setPropertyImages([{ id: "placeholder-1", uri: null, title: "Error Loading" }]);
-          } finally {
-            setLoading(false);
-          }
-        } else {
-          setLoading(false);
-        }
-      };
       loadData();
-    }, [propertyId])
+    }, [loadData])
   );
 
   const PropertyStats = useMemo(() => {
-      // Only show these types, in this order
       const statTypes = [
         { key: 'bedroom', label: 'Bedrooms', icon: <Bed color={PALETTE.primary} size={20} /> },
         { key: 'bathroom', label: 'Bathrooms', icon: <Bath color={PALETTE.primary} size={20} /> },
@@ -150,7 +89,6 @@ export default function TradiePropertyGeneral() {
         { key: 'living', label: 'Living Rooms', icon: <HomeIcon color={PALETTE.primary} size={20} /> },
         { key: 'garage', label: 'Garages', icon: <Car color={PALETTE.primary} size={20} /> },
       ];
-      // Only use allowed keys from spaceCounts
       const allowedKeys = statTypes.map(stat => stat.key);
       const filteredSpaceCounts = Object.fromEntries(
         Object.entries(spaceCounts).filter(([key]) => allowedKeys.includes(key))
@@ -221,28 +159,35 @@ export default function TradiePropertyGeneral() {
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false}>
-        <View style={styles.imageSection}>
-          <FlatList
-            data={propertyImages}
-            renderItem={({ item }) => (
-              <View style={styles.imageSlide}>
-                <Image
-                  source={{ uri: item.uri! }}
-                  style={styles.propertyImage}
+          {/* --- IMAGE SECTION --- */}
+          <View style={styles.detailsCard}>
+            <Text style={styles.cardTitle}>Property Images</Text>
+            {propertyImages.length > 0 ? (
+              <View style={{ height: 250, marginTop: 12, borderRadius: 8 }}>
+                <FlatList
+                  data={propertyImages}
+                  renderItem={({ item }) => (
+                    <View style={[styles.imageSlide]}>
+                      <Image
+                        source={{ uri: item.uri! }}
+                        style={styles.propertyImage}
+                      />
+                    </View>
+                  )}
+                  keyExtractor={(item) => item.id}
+                  horizontal
+                  pagingEnabled
+                  showsHorizontalScrollIndicator={false}
                 />
               </View>
+            ) : (
+                <Text style={styles.emptyText}>No images found for this property.</Text>
             )}
-            keyExtractor={(item) => item.id}
-            horizontal
-            pagingEnabled
-            showsHorizontalScrollIndicator={false}
-          />
         </View>
         <View style={styles.detailsContainer}>
           <Text style={styles.propertyName}>{property?.name}</Text>
           <Text style={styles.propertyAddress}>{property?.address}</Text>
           
-          {/* Property Details Card */}
           <View style={styles.detailsCard}>
             <Text style={styles.cardTitle}>Property Details</Text>
             <View style={styles.statsGrid}>
@@ -258,7 +203,6 @@ export default function TradiePropertyGeneral() {
             </View>
           </View>
 
-          {/* Description Card */}
           {property?.description && (
             <View style={styles.detailsCard}>
               <Text style={styles.cardTitle}>Description</Text>

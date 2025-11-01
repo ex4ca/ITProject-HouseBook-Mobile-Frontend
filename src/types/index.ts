@@ -1,4 +1,4 @@
-export type UserRole = 'owner' | 'tradie' | 'admin';
+export type UserRole = 'owner' | 'tradesperson' | 'admin';
 
 export type Property = {
   created_at: any;
@@ -11,6 +11,8 @@ export type Property = {
   status?: string;
   last_updated?: string;
   completionStatus?: number;
+  isActive?: boolean;
+  splash_image?: string | null; 
 };
 
 // Defines the shape of a user profile. The 'id' here is the user_id.
@@ -97,6 +99,7 @@ export interface PendingRequest {
   change_description: string;
   specifications: Record<string, any>; 
   created_at: string;
+  status?: 'PENDING' | 'ACCEPTED' | 'DECLINED';
   User: {
     first_name: string;
     last_name: string;

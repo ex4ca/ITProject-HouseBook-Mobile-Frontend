@@ -176,9 +176,9 @@ const AuthScreen = ({ onSuccessfulLogin }: AuthScreenProps) => {
                   <Home size={16} color={userType === "owner" ? PALETTE.primary : PALETTE.textSecondary} />
                   <Text style={[styles.roleText, userType === "owner" ? styles.activeRoleText : {}]}>Owner</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={[styles.roleBadge, userType === "tradie" ? styles.activeRoleBadge : {}]} onPress={() => setUserType("tradie")}>
-                  <Wrench size={16} color={userType === "tradie" ? PALETTE.primary : PALETTE.textSecondary} />
-                  <Text style={[styles.roleText, userType === "tradie" ? styles.activeRoleText : {}]}>Tradie</Text>
+              <TouchableOpacity style={[styles.roleBadge, userType === "tradesperson" ? styles.activeRoleBadge : {}]} onPress={() => setUserType("tradesperson")}>
+                  <Wrench size={16} color={userType === "tradesperson" ? PALETTE.primary : PALETTE.textSecondary} />
+                  <Text style={[styles.roleText, userType === "tradesperson" ? styles.activeRoleText : {}]}>Tradie</Text>
               </TouchableOpacity>
             </View>
             <View style={styles.tabContainer}>

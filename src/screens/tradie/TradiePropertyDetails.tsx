@@ -332,19 +332,28 @@ export default function TradiePropertyDetails() {
       return acc;
     }, {} as Record<string, string>);
 
-    try {
-      await addHistoryTradie(
-        currentAsset,
-        newHistoryDescription,
-        newSpecifications
-      );
-      setNewHistoryDescription("");
-      setEditableSpecs([]);
-      setAddHistoryModalVisible(false);
-      setCurrentAsset(null);
-    } catch (error: any) {
-      Alert.alert("Error", error.message);
-    }
+    Alert.alert(
+      'Submit Update',
+      `Submit this update for ${currentAsset?.description}?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Submit',
+          onPress: async () => {
+            try {
+              await addHistoryTradie(currentAsset, newHistoryDescription, newSpecifications);
+              setNewHistoryDescription('');
+              setEditableSpecs([]);
+              setAddHistoryModalVisible(false);
+              setCurrentAsset(null);
+            } catch (error: any) {
+              Alert.alert('Error', error.message);
+            }
+          },
+        },
+      ],
+      { cancelable: true }
+    );
   };
 
   const openAddHistoryModal = (asset: AssetWithChangelog) => {
@@ -378,8 +387,20 @@ export default function TradiePropertyDetails() {
       ...prev,
       { id: Date.now(), key: "", value: "" },
     ]);
-  const removeSpecRow = (id: number) =>
+  const removeSpecRowInternal = (id: number) =>
     setEditableSpecs((prev) => prev.filter((spec) => spec.id !== id));
+
+  const requestRemoveSpecRow = (id: number, key?: string) => {
+    Alert.alert(
+      'Delete Attribute',
+      key ? `Delete attribute "${key}"? This cannot be undone.` : 'Delete this attribute? This cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Delete', style: 'destructive', onPress: () => removeSpecRowInternal(id) },
+      ],
+      { cancelable: true }
+    );
+  };
   
   // --- UPDATED: Helper variables for both sort modes ---
   const currentSpace = selectedSpace === 'All' ? null : spaces.find((s) => s.id === selectedSpace);
@@ -634,7 +655,7 @@ export default function TradiePropertyDetails() {
               onChangeText={(text) => handleSpecChange(spec.id, "value", text)}
             />
             <TouchableOpacity
-              onPress={() => removeSpecRow(spec.id)}
+              onPress={() => requestRemoveSpecRow(spec.id, spec.key)}
               style={styles.removeRowButton}
             >
               <Trash2 size={20} color={PALETTE.danger} />

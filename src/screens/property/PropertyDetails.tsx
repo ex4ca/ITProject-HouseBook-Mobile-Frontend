@@ -317,14 +317,27 @@ const PropertyDetails = ({
       Alert.alert("Missing Information", "Please provide a name and select a type.");
       return;
     }
-    try {
-      await addSpace(propertyId, newSpaceName, newSpaceType);
-      setNewSpaceName("");
-      setNewSpaceType(null);
-      setAddSpaceModalVisible(false);
-    } catch (error: any) {
-      Alert.alert("Error", error.message);
-    }
+    Alert.alert(
+      'Add Space',
+      `Create new space "${newSpaceName}" of type "${newSpaceType}"?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Add',
+          onPress: async () => {
+            try {
+              await addSpace(propertyId, newSpaceName, newSpaceType);
+              setNewSpaceName('');
+              setNewSpaceType(null);
+              setAddSpaceModalVisible(false);
+            } catch (error: any) {
+              Alert.alert('Error', error.message);
+            }
+          },
+        },
+      ],
+      { cancelable: true }
+    );
   };
 
   const handleAddAsset = async () => {
@@ -332,14 +345,27 @@ const PropertyDetails = ({
       Alert.alert("Missing Information", "Please select an asset type and provide a description.");
       return;
     }
-    try {
-      await addAsset(newAssetDescription, selectedSpace, selectedAssetType);
-      setNewAssetDescription("");
-      setSelectedAssetType(null);
-      setAddAssetModalVisible(false);
-    } catch (error: any) {
-      Alert.alert("Error", error.message);
-    }
+    Alert.alert(
+      'Add Asset',
+      `Add "${newAssetDescription}" to the selected space?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Add',
+          onPress: async () => {
+            try {
+              await addAsset(newAssetDescription, selectedSpace, selectedAssetType);
+              setNewAssetDescription('');
+              setSelectedAssetType(null);
+              setAddAssetModalVisible(false);
+            } catch (error: any) {
+              Alert.alert('Error', error.message);
+            }
+          },
+        },
+      ],
+      { cancelable: true }
+    );
   };
 
   const handleAddHistory = async () => {
@@ -354,14 +380,27 @@ const PropertyDetails = ({
       return acc;
     }, {} as Record<string, string>);
 
-    try {
-      await addHistoryOwner(currentAsset, newHistoryDescription, newSpecifications);
-      setNewHistoryDescription("");
-      setAddHistoryModalVisible(false);
-      setCurrentAsset(null);
-    } catch (error: any) {
-      Alert.alert("Error", error.message);
-    }
+    Alert.alert(
+      'Submit Update',
+      `Submit this update for ${currentAsset?.description}?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Submit',
+          onPress: async () => {
+            try {
+              await addHistoryOwner(currentAsset, newHistoryDescription, newSpecifications);
+              setNewHistoryDescription('');
+              setAddHistoryModalVisible(false);
+              setCurrentAsset(null);
+            } catch (error: any) {
+              Alert.alert('Error', error.message);
+            }
+          },
+        },
+      ],
+      { cancelable: true }
+    );
   };
 
   const openAddHistoryModal = (asset: AssetWithChangelog) => {
@@ -392,8 +431,20 @@ const PropertyDetails = ({
       ...prev,
       { id: Date.now(), key: "", value: "" },
     ]);
-  const removeSpecRow = (id: number) =>
+  const removeSpecRowInternal = (id: number) =>
     setEditableSpecs((prev) => prev.filter((spec) => spec.id !== id));
+
+  const requestRemoveSpecRow = (id: number, key?: string) => {
+    Alert.alert(
+      'Delete Attribute',
+      key ? `Delete attribute "${key}"? This cannot be undone.` : 'Delete this attribute? This cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Delete', style: 'destructive', onPress: () => removeSpecRowInternal(id) },
+      ],
+      { cancelable: true }
+    );
+  };
 
   const toggleSortMode = () => {
     if (sortMode === 'space') {
@@ -632,7 +683,7 @@ const PropertyDetails = ({
               multiline
               textAlignVertical="top"
             />
-            <TouchableOpacity onPress={() => removeSpecRow(spec.id)} style={styles.removeRowButton}>
+            <TouchableOpacity onPress={() => requestRemoveSpecRow(spec.id, spec.key)} style={styles.removeRowButton}>
               <Trash2 size={20} color={PALETTE.danger} />
             </TouchableOpacity>
           </View>

@@ -209,15 +209,29 @@ const PropertyRequestsScreen = ({
     id: string,
     status: "ACCEPTED" | "DECLINED"
   ) => {
-    try {
-      await updateRequestStatus(id, status);
-      // Refresh the list by filtering out the updated item.
-      setRequests((prevRequests) =>
-        prevRequests.filter((req) => req.id !== id)
-      );
-    } catch (error: any) {
-      Alert.alert("Error", error.message);
-    }
+    // Confirm with native alert before changing status
+    const title = status === 'ACCEPTED' ? 'Accept Request' : 'Decline Request';
+    const message = status === 'ACCEPTED' ? 'Are you sure you want to accept this request?' : 'Are you sure you want to decline this request?';
+    Alert.alert(
+      title,
+      message,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: status === 'ACCEPTED' ? 'Accept' : 'Decline',
+          style: status === 'DECLINED' ? 'destructive' : 'default',
+          onPress: async () => {
+            try {
+              await updateRequestStatus(id, status);
+              setRequests((prevRequests) => prevRequests.filter((req) => req.id !== id));
+            } catch (error: any) {
+              Alert.alert('Error', error.message);
+            }
+          },
+        },
+      ],
+      { cancelable: true }
+    );
   };
 
   if (loading) {

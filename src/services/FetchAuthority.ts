@@ -213,14 +213,17 @@ export const getPropertiesByOwner = async (userId: string): Promise<Property[] |
     
     if (!data) return [];
 
+    // Guard against null OwnerProperty entries and missing Property objects.
     const properties: Property[] = data
-        .flatMap((owner: any) => owner.OwnerProperty)
-        .map((op: any) => op.Property);
+        .flatMap((owner: any) => owner?.OwnerProperty || [])
+        .map((op: any) => op?.Property)
+        .filter((p: any) => p != null);
 
     // Process both splash images and activity status concurrently.
     const processedProperties = await Promise.all(
         properties.map(async (property) => {
-            let processedProperty = { ...property };
+            if (!property) return null;
+            let processedProperty = { ...property } as any;
 
             // Set activity status based on the Property.status field.
             processedProperty.isActive = property.status === 'ACTIVE';
@@ -243,7 +246,8 @@ export const getPropertiesByOwner = async (userId: string): Promise<Property[] |
         })
     );
 
-    return processedProperties;
+    // Filter any null results and return.
+    return processedProperties.filter(Boolean);
 }
 
 export const fetchMyFirstName = async (): Promise<string | null> => {
@@ -307,32 +311,42 @@ export const getJobsForTradie = async (tradieUserId: string): Promise<any[]> => 
     // Map the nested data and generate signed URLs for each splash image.
     const jobsWithSignedUrls = await Promise.all(
         data.map(async (jobTradie: any) => {
+            const job = jobTradie?.Jobs;
+            const property = job?.Property;
+
+            // If the expected nested objects are missing, skip this entry.
+            if (!job || !property) {
+                console.warn('Skipping jobTradie with missing Jobs/Property:', jobTradie);
+                return null;
+            }
+
             let splashImageUrl = null;
-            if (jobTradie.Jobs.Property.splash_image) {
+            if (property.splash_image) {
                 const { data: signedUrlData, error: signedUrlError } = await supabase.storage
                     .from('Property_Images')
-                    .createSignedUrl(jobTradie.Jobs.Property.splash_image, 60 * 5); // 5-minute expiry
+                    .createSignedUrl(property.splash_image, 60 * 5); // 5-minute expiry
 
                 if (signedUrlError) {
-                    console.error(`Error creating signed URL for ${jobTradie.Jobs.Property.splash_image}:`, signedUrlError);
+                    console.error(`Error creating signed URL for ${property.splash_image}:`, signedUrlError);
                 } else {
                     splashImageUrl = signedUrlData.signedUrl;
                 }
             }
             
             return {
-                job_id: jobTradie.Jobs.id,
-                title: jobTradie.Jobs.title,
+                job_id: job.id,
+                title: job.title,
                 status: jobTradie.status,
-                property_id: jobTradie.Jobs.Property.property_id,
-                name: jobTradie.Jobs.Property.name,
-                address: jobTradie.Jobs.Property.address,
+                property_id: property.property_id,
+                name: property.name,
+                address: property.address,
                 splash_image: splashImageUrl, // Use the new signed URL
             };
         })
     );
 
-    return jobsWithSignedUrls;
+    // Filter out any skipped (null) entries.
+    return jobsWithSignedUrls.filter(Boolean);
 };
 
 

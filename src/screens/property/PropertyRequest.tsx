@@ -26,7 +26,6 @@ import {
 import { propertyRequestsStyles as styles } from "../../styles/requestStyles";
 import { PALETTE } from "../../styles/palette";
 import type { PendingRequest } from "../../types";
-import ConfirmModal from "../../components/ConfirmModal";
 
 // Renders the specification details for a change request.
 const SpecificationDetails = ({
@@ -206,33 +205,33 @@ const PropertyRequestsScreen = ({
     }, [propertyId])
   );
 
-  // Use a confirmation modal before updating status
-  const [confirmVisible, setConfirmVisible] = useState(false);
-  const [confirmTitle, setConfirmTitle] = useState('');
-  const [confirmMessage, setConfirmMessage] = useState('');
-  const [confirmDestructive, setConfirmDestructive] = useState(false);
-  const pendingRequestRef = useRef<{ id: string; status: 'ACCEPTED' | 'DECLINED' } | null>(null);
-
-  const askUpdateStatus = (id: string, status: 'ACCEPTED' | 'DECLINED') => {
-    setConfirmTitle(status === 'ACCEPTED' ? 'Accept Request' : 'Decline Request');
-    setConfirmMessage(`Are you sure you want to ${status === 'ACCEPTED' ? 'accept' : 'decline'} this request?`);
-    setConfirmDestructive(status === 'DECLINED');
-    pendingRequestRef.current = { id, status };
-    setConfirmVisible(true);
-  };
-
-  const handleConfirmUpdate = async () => {
-    const pending = pendingRequestRef.current;
-    if (!pending) return;
-    try {
-      await updateRequestStatus(pending.id, pending.status);
-      setRequests((prevRequests) => prevRequests.filter((req) => req.id !== pending.id));
-    } catch (error: any) {
-      Alert.alert('Error', error.message);
-    } finally {
-      pendingRequestRef.current = null;
-      setConfirmVisible(false);
-    }
+  const handleUpdateStatus = async (
+    id: string,
+    status: "ACCEPTED" | "DECLINED"
+  ) => {
+    // Confirm with native alert before changing status
+    const title = status === 'ACCEPTED' ? 'Accept Request' : 'Decline Request';
+    const message = status === 'ACCEPTED' ? 'Are you sure you want to accept this request?' : 'Are you sure you want to decline this request?';
+    Alert.alert(
+      title,
+      message,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: status === 'ACCEPTED' ? 'Accept' : 'Decline',
+          style: status === 'DECLINED' ? 'destructive' : 'default',
+          onPress: async () => {
+            try {
+              await updateRequestStatus(id, status);
+              setRequests((prevRequests) => prevRequests.filter((req) => req.id !== id));
+            } catch (error: any) {
+              Alert.alert('Error', error.message);
+            }
+          },
+        },
+      ],
+      { cancelable: true }
+    );
   };
 
   if (loading) {

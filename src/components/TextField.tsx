@@ -25,6 +25,11 @@ interface TextFieldProps {
   multiline?: boolean;
   editable?: boolean;
   autoCapitalize?: TextInputProps["autoCapitalize"];
+  onFocus?: () => void;
+  onBlur?: () => void;
+  autoCorrect?: boolean;
+  textContentType?: TextInputProps["textContentType"];
+  autoComplete?: TextInputProps["autoComplete"];
 }
 
 const TextField = ({
@@ -38,6 +43,11 @@ const TextField = ({
   multiline = false,
   editable = true,
   autoCapitalize = "sentences", // Default value
+  onFocus,
+  onBlur,
+  autoCorrect,
+  textContentType,
+  autoComplete,
 }: TextFieldProps) => {
   const [isFocused, setIsFocused] = useState(false);
 
@@ -58,13 +68,22 @@ const TextField = ({
         placeholderTextColor={PALETTE.textSecondary}
         value={value}
         onChangeText={onChangeText}
-        onFocus={() => setIsFocused(true)}
-        onBlur={() => setIsFocused(false)}
+        onFocus={() => {
+          setIsFocused(true);
+          onFocus?.();
+        }}
+        onBlur={() => {
+          setIsFocused(false);
+          onBlur?.();
+        }}
         secureTextEntry={secureTextEntry}
         keyboardType={keyboardType}
         multiline={multiline}
         editable={editable}
         autoCapitalize={autoCapitalize}
+        autoCorrect={autoCorrect}
+        textContentType={textContentType}
+        autoComplete={autoComplete}
         textAlignVertical={multiline ? "top" : "center"}
       />
     </View>

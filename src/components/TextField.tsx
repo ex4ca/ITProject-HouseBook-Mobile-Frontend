@@ -27,6 +27,9 @@ interface TextFieldProps {
   autoCapitalize?: TextInputProps["autoCapitalize"];
   onFocus?: () => void;
   onBlur?: () => void;
+  autoCorrect?: boolean;
+  textContentType?: TextInputProps["textContentType"];
+  autoComplete?: TextInputProps["autoComplete"];
 }
 
 const TextField = ({
@@ -42,6 +45,9 @@ const TextField = ({
   autoCapitalize = "sentences", // Default value
   onFocus,
   onBlur,
+  autoCorrect,
+  textContentType,
+  autoComplete,
 }: TextFieldProps) => {
   const [isFocused, setIsFocused] = useState(false);
 
@@ -75,6 +81,9 @@ const TextField = ({
         multiline={multiline}
         editable={editable}
         autoCapitalize={autoCapitalize}
+        autoCorrect={autoCorrect}
+        textContentType={textContentType}
+        autoComplete={autoComplete}
         textAlignVertical={multiline ? "top" : "center"}
       />
     </View>

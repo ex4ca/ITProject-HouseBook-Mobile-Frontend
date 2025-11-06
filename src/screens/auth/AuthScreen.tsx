@@ -202,6 +202,10 @@ const AuthScreen = ({ onSuccessfulLogin }: AuthScreenProps) => {
             secureTextEntry 
             onFocus={() => setIsPasswordFocused(true)}
             onBlur={() => setIsPasswordFocused(false)}
+            autoCapitalize="none"
+            autoCorrect={false}
+            textContentType={Platform.OS === 'ios' ? 'newPassword' : undefined}
+            autoComplete={Platform.OS === 'ios' ? 'off' : 'off'}
           />
           {(isPasswordFocused || password.length > 0) && getPasswordValidationMessages(password).length > 0 && (
             <View style={{
@@ -218,16 +222,14 @@ const AuthScreen = ({ onSuccessfulLogin }: AuthScreenProps) => {
                 color: PALETTE.danger,
                 marginBottom: 4,
               }}>Password must contain:</Text>
-              {getPasswordValidationMessages(password).map((message, index) => (
-                <Text key={index} style={{
-                  fontSize: 11,
-                  color: PALETTE.danger,
-                  marginLeft: 4,
-                  marginBottom: 2,
-                }}>
-                  • {message}
-                </Text>
-              ))}
+              <Text style={{
+                fontSize: 11,
+                color: PALETTE.danger,
+                marginLeft: 4,
+                lineHeight: 16,
+              }}>
+                {`• ${getPasswordValidationMessages(password).join('\n• ')}`}
+              </Text>
             </View>
           )}
         </View>

@@ -354,7 +354,9 @@ export default function TradieRequestsScreen() {
         {/* Pending Requests Section */}
         {pendingRequests.length > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Awaiting Approval ({pendingRequests.length})</Text>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Awaiting Approval ({pendingRequests.length})</Text>
+            </View>
             {pendingRequests.map((request) => (
               <RequestCard
                 key={request.id}

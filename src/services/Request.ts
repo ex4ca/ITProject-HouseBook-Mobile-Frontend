@@ -169,3 +169,57 @@ export const cancelTradieRequest = async (id: string) => {
         throw new Error(`Failed to cancel request: ${error.message}`);
     }
 };
+
+// Fetch work history (accepted and declined) for a property (owner view)
+export const fetchPropertyWorkHistory = async (propertyId: string): Promise<PendingRequest[]> => {
+    const { data, error } = await supabase
+      .from('ChangeLog')
+      .select(`
+        id, 
+        change_description, 
+        specifications, 
+        created_at,
+        status,
+        User:User!ChangeLog_changed_by_user_id_fkey(first_name, last_name),
+        Assets:Assets!inner(
+            description,
+            Spaces:Spaces!inner(
+                name,
+                Property:Property!inner(name, property_id)
+            )
+        )
+      `)
+      .eq('Assets.Spaces.Property.property_id', propertyId)
+      .in('status', ['ACCEPTED', 'DECLINED']);
+
+    if (error) {
+        return [];
+    }
+
+    const anyData = data as any[];
+
+    return (anyData || []).map(item => {
+        const asset = item.Assets;
+        const space = asset?.Spaces;
+        const property = space?.Property;
+        
+        return {
+            id: item.id,
+            change_description: item.change_description,
+            specifications: item.specifications,
+            created_at: item.created_at,
+            status: item.status,
+            User: item.User,
+            Assets: {
+                description: asset?.description || 'No description',
+                Spaces: {
+                    name: space?.name || 'Unknown space',
+                    Property: {
+                        name: property?.name || 'Unknown property',
+                        property_id: property?.property_id || 'unknown'
+                    }
+                }
+            }
+        };
+    });
+};

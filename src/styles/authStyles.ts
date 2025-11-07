@@ -126,4 +126,24 @@ export const authStyles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
   },
+  passwordValidationContainer: {
+    marginTop: 8,
+    padding: 12,
+    backgroundColor: PALETTE.dangerBackground,
+    borderRadius: 8,
+    borderLeftWidth: 3,
+    borderLeftColor: PALETTE.danger,
+  },
+  passwordValidationTitle: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: PALETTE.danger,
+    marginBottom: 4,
+  },
+  passwordValidationMessage: {
+    fontSize: 11,
+    color: PALETTE.danger,
+    marginLeft: 4,
+    marginBottom: 2,
+  },
 });

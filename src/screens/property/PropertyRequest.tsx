@@ -18,10 +18,12 @@ import {
   ChevronDown,
   ChevronRight,
   ChevronLeft,
+  ArrowUpDown,
 } from "lucide-react-native";
 import {
   fetchPendingRequests,
   updateRequestStatus,
+  fetchPropertyWorkHistory,
 } from "../../services/Request";
 import { propertyRequestsStyles as styles } from "../../styles/requestStyles";
 import { PALETTE } from "../../styles/palette";
@@ -47,9 +49,11 @@ const SpecificationDetails = ({
 const RequestCard = ({
   item,
   onUpdateStatus,
+  showActions = true,
 }: {
   item: PendingRequest;
-  onUpdateStatus: (id: string, status: "ACCEPTED" | "DECLINED") => void;
+  onUpdateStatus?: (id: string, status: "ACCEPTED" | "DECLINED") => void;
+  showActions?: boolean;
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
 
@@ -82,8 +86,18 @@ const RequestCard = ({
             <ChevronRight size={20} color={PALETTE.textSecondary} />
           )}
         </View>
-        <Text style={styles.descriptionText}>“{item.change_description}”</Text>
+        <View style={styles.descriptionRow}>
+          <Text style={styles.descriptionText}>"{item.change_description}"</Text>
+          {(item.status === 'ACCEPTED' || item.status === 'DECLINED') && (
+            <View style={[styles.statusLabel, item.status === 'ACCEPTED' ? styles.statusLabelAccepted : styles.statusLabelRejected]}>
+              <Text style={[styles.statusLabelText, item.status === 'ACCEPTED' ? styles.statusLabelTextAccepted : styles.statusLabelTextRejected]}>
+                {item.status === 'ACCEPTED' ? 'Accepted' : 'Rejected'}
+              </Text>
+            </View>
+          )}
+        </View>
         <Text style={styles.submittedBy}>Submitted by: {submittedByText}</Text>
+        <Text style={styles.submittedDate}>{new Date(item.created_at).toLocaleDateString()}</Text>
       </TouchableOpacity>
 
       {isExpanded && (
@@ -93,26 +107,28 @@ const RequestCard = ({
         </View>
       )}
 
-      <View style={styles.actionButtons}>
-        <TouchableOpacity
-          style={[styles.statusButton, styles.declineButton]}
-          onPress={() => onUpdateStatus(item.id, "DECLINED")}
-        >
-          <XCircle size={18} color={PALETTE.danger} />
-          <Text style={[styles.statusButtonText, { color: PALETTE.danger }]}>
-            Decline
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.statusButton, styles.acceptButton]}
-          onPress={() => onUpdateStatus(item.id, "ACCEPTED")}
-        >
-          <CheckCircle size={18} color={PALETTE.success} />
-          <Text style={[styles.statusButtonText, { color: PALETTE.success }]}>
-            Accept
-          </Text>
-        </TouchableOpacity>
-      </View>
+      {showActions && onUpdateStatus && (
+        <View style={styles.actionButtons}>
+          <TouchableOpacity
+            style={[styles.statusButton, styles.declineButton]}
+            onPress={() => onUpdateStatus(item.id, "DECLINED")}
+          >
+            <XCircle size={18} color={PALETTE.danger} />
+            <Text style={[styles.statusButtonText, { color: PALETTE.danger }]}>
+              Decline
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.statusButton, styles.acceptButton]}
+            onPress={() => onUpdateStatus(item.id, "ACCEPTED")}
+          >
+            <CheckCircle size={18} color={PALETTE.success} />
+            <Text style={[styles.statusButtonText, { color: PALETTE.success }]}>
+              Accept
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
     </View>
   );
 };
@@ -130,6 +146,8 @@ const PropertyRequestsScreen = ({
   const [simulating, setSimulating] = useState(false);
   const [loading, setLoading] = useState(true);
   const [requests, setRequests] = useState<PendingRequest[]>([]);
+  const [workHistory, setWorkHistory] = useState<PendingRequest[]>([]);
+  const [workHistorySortAscending, setWorkHistorySortAscending] = useState(false);
 
   // If no propertyId is provided, show the Add Property (QR scan) UI
   if (!propertyId) {
@@ -191,11 +209,16 @@ const PropertyRequestsScreen = ({
         }
         setLoading(true);
         try {
-          const data = await fetchPendingRequests(propertyId);
-          setRequests(data);
+          const [pendingData, historyData] = await Promise.all([
+            fetchPendingRequests(propertyId),
+            fetchPropertyWorkHistory(propertyId)
+          ]);
+          setRequests(pendingData);
+          setWorkHistory(historyData);
         } catch (err: any) {
           console.error(err.message);
           setRequests([]);
+          setWorkHistory([]);
         } finally {
           setLoading(false);
         }
@@ -223,7 +246,13 @@ const PropertyRequestsScreen = ({
           onPress: async () => {
             try {
               await updateRequestStatus(id, status);
-              setRequests((prevRequests) => prevRequests.filter((req) => req.id !== id));
+              // Refresh both lists to update pending requests and work history
+              const [pendingData, historyData] = await Promise.all([
+                fetchPendingRequests(propertyId),
+                fetchPropertyWorkHistory(propertyId)
+              ]);
+              setRequests(pendingData);
+              setWorkHistory(historyData);
             } catch (error: any) {
               Alert.alert('Error', error.message);
             }
@@ -251,32 +280,67 @@ const PropertyRequestsScreen = ({
         >
           <ChevronLeft size={24} color={PALETTE.textPrimary} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Pending Requests</Text>
+        <Text style={styles.headerTitle}>Requests</Text>
         <View style={{ width: 40 }} />
       </View>
-      <FlatList
-        data={requests}
-        renderItem={({ item }) => (
-          <RequestCard item={item} onUpdateStatus={askUpdateStatus} />
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.listContent}>
+        {/* Pending Requests Section */}
+        {requests.length > 0 && (
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Pending Requests ({requests.length})</Text>
+            </View>
+            {requests.map((request) => (
+              <RequestCard
+                key={request.id}
+                item={request}
+                onUpdateStatus={handleUpdateStatus}
+                showActions={true}
+              />
+            ))}
+          </View>
         )}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.listContent}
-        ListEmptyComponent={
+
+        {/* Work History Section */}
+        {workHistory.length > 0 && (
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Work History ({workHistory.length})</Text>
+              <TouchableOpacity 
+                style={styles.sortToggle}
+                onPress={() => setWorkHistorySortAscending(!workHistorySortAscending)}
+              >
+                <ArrowUpDown size={16} color={PALETTE.textSecondary} />
+                <Text style={styles.sortToggleText}>
+                  {workHistorySortAscending ? 'Oldest' : 'Newest'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+            {workHistory
+              .sort((a, b) => {
+                const timeA = new Date(a.created_at).getTime();
+                const timeB = new Date(b.created_at).getTime();
+                return workHistorySortAscending ? timeA - timeB : timeB - timeA;
+              })
+              .map((request) => (
+                <RequestCard
+                  key={request.id}
+                  item={request}
+                  showActions={false}
+                />
+              ))}
+          </View>
+        )}
+
+        {/* Empty State */}
+        {requests.length === 0 && workHistory.length === 0 && (
           <View style={styles.centerContainer}>
             <Text style={styles.emptyText}>
-              No pending requests for this property.
+              No requests for this property.
             </Text>
           </View>
-        }
-      />
-      <ConfirmModal
-        visible={confirmVisible}
-        title={confirmTitle}
-        message={confirmMessage}
-        destructive={confirmDestructive}
-        onConfirm={handleConfirmUpdate}
-        onCancel={() => setConfirmVisible(false)}
-      />
+        )}
+      </ScrollView>
     </SafeAreaView>
   );
 };

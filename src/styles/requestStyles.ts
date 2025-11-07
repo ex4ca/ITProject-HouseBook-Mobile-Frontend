@@ -63,14 +63,52 @@ export const propertyRequestsStyles = StyleSheet.create({
       color: PALETTE.textSecondary,
       marginTop: 2,
   },
+  descriptionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+    paddingHorizontal: 16,
+    flexWrap: 'wrap',
+  },
   descriptionText: {
     fontSize: 16,
     fontStyle: 'italic',
     color: PALETTE.textPrimary,
-    marginBottom: 8,
-    paddingHorizontal: 16,
+    flex: 1,
+    marginRight: 8,
+  },
+  statusLabel: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 4,
+    alignSelf: 'flex-start',
+  },
+  statusLabelAccepted: {
+    backgroundColor: PALETTE.successBackground,
+  },
+  statusLabelRejected: {
+    backgroundColor: PALETTE.dangerBackground,
+  },
+  statusLabelText: {
+    fontSize: 11,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+  },
+  statusLabelTextAccepted: {
+    color: PALETTE.success,
+  },
+  statusLabelTextRejected: {
+    color: PALETTE.danger,
   },
   submittedBy: {
+      fontSize: 12,
+      color: PALETTE.textSecondary,
+      textAlign: 'right',
+      paddingHorizontal: 16,
+      paddingBottom: 2,
+  },
+  submittedDate: {
       fontSize: 12,
       color: PALETTE.textSecondary,
       textAlign: 'right',
@@ -189,7 +227,28 @@ export const propertyRequestsStyles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
     color: PALETTE.textPrimary,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: 16,
+  },
+  sortToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    backgroundColor: PALETTE.background,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: PALETTE.border,
+  },
+  sortToggleText: {
+    fontSize: 12,
+    color: PALETTE.textSecondary,
+    marginLeft: 4,
+    fontWeight: '500',
   },
   createButton: {
     backgroundColor: PALETTE.primary,

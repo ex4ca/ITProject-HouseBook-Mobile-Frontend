@@ -63,10 +63,11 @@ export const updateRequestStatus = async (id: string, status: 'ACCEPTED' | 'DECL
     }
 };
 
-// Fetch all requests (pending and accepted) for a specific tradie and property
+// Fetch all requests (pending, accepted, and rejected) for a specific tradie and property
 export const fetchTradieRequests = async (propertyId: string, tradieUserId: string): Promise<{
   pending: PendingRequest[];
   accepted: PendingRequest[];
+  rejected: PendingRequest[];
 }> => {
     const { data, error } = await supabase
       .from('ChangeLog')
@@ -87,10 +88,10 @@ export const fetchTradieRequests = async (propertyId: string, tradieUserId: stri
       `)
       .eq('Assets.Spaces.Property.property_id', propertyId)
       .eq('changed_by_user_id', tradieUserId)
-      .in('status', ['PENDING', 'ACCEPTED']);
+      .in('status', ['PENDING', 'ACCEPTED', 'DECLINED']);
 
     if (error) {
-        return { pending: [], accepted: [] };
+        return { pending: [], accepted: [], rejected: [] };
     }
 
     const anyData = data as any[];
@@ -122,7 +123,8 @@ export const fetchTradieRequests = async (propertyId: string, tradieUserId: stri
 
     return {
         pending: requests.filter(req => req.status === 'PENDING'),
-        accepted: requests.filter(req => req.status === 'ACCEPTED')
+        accepted: requests.filter(req => req.status === 'ACCEPTED'),
+        rejected: requests.filter(req => req.status === 'DECLINED')
     };
 };
 
@@ -166,4 +168,58 @@ export const cancelTradieRequest = async (id: string) => {
     if (error) {
         throw new Error(`Failed to cancel request: ${error.message}`);
     }
+};
+
+// Fetch work history (accepted and declined) for a property (owner view)
+export const fetchPropertyWorkHistory = async (propertyId: string): Promise<PendingRequest[]> => {
+    const { data, error } = await supabase
+      .from('ChangeLog')
+      .select(`
+        id, 
+        change_description, 
+        specifications, 
+        created_at,
+        status,
+        User:User!ChangeLog_changed_by_user_id_fkey(first_name, last_name),
+        Assets:Assets!inner(
+            description,
+            Spaces:Spaces!inner(
+                name,
+                Property:Property!inner(name, property_id)
+            )
+        )
+      `)
+      .eq('Assets.Spaces.Property.property_id', propertyId)
+      .in('status', ['ACCEPTED', 'DECLINED']);
+
+    if (error) {
+        return [];
+    }
+
+    const anyData = data as any[];
+
+    return (anyData || []).map(item => {
+        const asset = item.Assets;
+        const space = asset?.Spaces;
+        const property = space?.Property;
+        
+        return {
+            id: item.id,
+            change_description: item.change_description,
+            specifications: item.specifications,
+            created_at: item.created_at,
+            status: item.status,
+            User: item.User,
+            Assets: {
+                description: asset?.description || 'No description',
+                Spaces: {
+                    name: space?.name || 'Unknown space',
+                    Property: {
+                        name: property?.name || 'Unknown property',
+                        property_id: property?.property_id || 'unknown'
+                    }
+                }
+            }
+        };
+    });
 };

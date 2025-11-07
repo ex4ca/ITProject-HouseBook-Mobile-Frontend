@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useRef } from "react";
 import {
   View,
   Text,
@@ -22,6 +22,9 @@ import {
 } from "lucide-react-native";
 import { SafeAreaView } from 'react-native-safe-area-context'; 
 import { DropField } from "../../components";
+import ConfirmModal from "../../components/ConfirmModal";
+import SpecificationDetails from '../../components/SpecificationDetails';
+import AssetAccordion from '../../components/AssetAccordion';
 
 import {
   fetchPropertyDetails,
@@ -37,6 +40,7 @@ import type {
   AssetWithChangelog,
   EditableSpec,
 } from "../../types";
+import { getDisciplinesAndMapping } from '../../utils/propertyHelpers';
 
 if (
   Platform.OS === "android" &&
@@ -76,123 +80,7 @@ const FormModal = ({
   </Modal>
 );
 
-const SpecificationDetails = ({
-  specifications,
-}: {
-  specifications: Record<string, any>;
-}) => (
-  <View style={styles.specificationsBox}>
-    {Object.entries(specifications).map(([key, value]) => (
-      <View key={key} style={styles.specPair}>
-        {/* FIX: Display the key directly without replacing underscores. */}
-        <Text style={styles.specKey}>{key}</Text>
-        <Text style={styles.specValue}>{String(value)}</Text>
-      </View>
-    ))}
-  </View>
-);
-
-const AssetAccordion = ({
-  asset,
-  isExpanded,
-  onToggle,
-  onAddHistory,
-}: {
-  asset: AssetWithChangelog;
-  isExpanded: boolean;
-  onToggle: () => void;
-  onAddHistory: (asset: AssetWithChangelog) => void;
-}) => {
-  const [expandedHistoryId, setExpandedHistoryId] = useState<string | null>(
-    null
-  );
-  const acceptedLogs = asset.ChangeLog.filter(
-    (log) => log.status === "ACCEPTED"
-  );
-  const latestChange = acceptedLogs[0] || null;
-
-  return (
-    <View style={styles.assetContainer}>
-      <TouchableOpacity style={styles.assetHeader} onPress={onToggle}>
-        <Text style={styles.assetTitle}>{asset.description}</Text>
-        {isExpanded ? (
-          <ChevronDown color={PALETTE.textPrimary} size={20} />
-        ) : (
-          <ChevronRight color={PALETTE.textPrimary} size={20} />
-        )}
-      </TouchableOpacity>
-      {isExpanded && (
-        <View style={styles.assetContent}>
-          <Text style={styles.contentSectionTitle}>Current Specifications</Text>
-          {latestChange ? (
-            <SpecificationDetails
-              specifications={latestChange.specifications}
-            />
-          ) : (
-            <Text style={styles.emptyText}>
-              No accepted specifications yet.
-            </Text>
-          )}
-          <View style={styles.historySectionHeader}>
-            <Text style={styles.contentSectionTitle}>History</Text>
-            <TouchableOpacity
-              style={styles.addButtonSmall}
-              onPress={() => onAddHistory(asset)}
-            >
-              <PlusCircle size={18} color={PALETTE.primary} />
-              <Text style={styles.addButtonSmallText}>Add Entry</Text>
-            </TouchableOpacity>
-          </View>
-          {acceptedLogs.length > 1 ? (
-            acceptedLogs.slice(1).map((entry) => (
-              <View key={entry.id} style={styles.historyItemContainer}>
-                <TouchableOpacity
-                  style={styles.historyEntry}
-                  onPress={() =>
-                    setExpandedHistoryId((prev) =>
-                      prev === entry.id ? null : entry.id
-                    )
-                  }
-                >
-                  <View style={styles.historyHeader}>
-                    <Text style={styles.historyDate}>
-                      {new Date(entry.created_at).toLocaleString()}
-                    </Text>
-                    {expandedHistoryId === entry.id ? (
-                      <ChevronDown color={PALETTE.textSecondary} size={16} />
-                    ) : (
-                      <ChevronRight color={PALETTE.textSecondary} size={16} />
-                    )}
-                  </View>
-                  <Text style={styles.historyDescription}>
-                    “{entry.change_description}”
-                  </Text>
-                  <Text style={styles.historyAuthor}>
-                    By:{" "}
-                    {entry.User
-                      ? `${entry.User.first_name} ${entry.User.last_name}`
-                      : "System"}
-                  </Text>
-                </TouchableOpacity>
-                {expandedHistoryId === entry.id && (
-                  <View style={styles.historySpecBox}>
-                    <SpecificationDetails
-                      specifications={entry.specifications}
-                    />
-                  </View>
-                )}
-              </View>
-            ))
-          ) : (
-            <Text style={styles.emptyText}>
-              No other accepted history entries.
-            </Text>
-          )}
-        </View>
-      )}
-    </View>
-  );
-};
+// SpecificationDetails and AssetAccordion are now extracted to separate files
 
 const PropertyDetails = ({
   route,
@@ -232,6 +120,13 @@ const PropertyDetails = ({
   const [newHistoryDescription, setNewHistoryDescription] = useState("");
   const [editableSpecs, setEditableSpecs] = useState<EditableSpec[]>([]);
 
+  // Confirmation modal state & ref for deferred actions
+  const [confirmVisible, setConfirmVisible] = useState(false);
+  const [confirmTitle, setConfirmTitle] = useState('');
+  const [confirmMessage, setConfirmMessage] = useState('');
+  const [confirmDestructive, setConfirmDestructive] = useState(false);
+  const onConfirmRef = useRef<(() => Promise<void>) | null>(null);
+
   const spaceTypeOptions = [
     "Bedroom",
     "Bathroom",
@@ -246,31 +141,10 @@ const PropertyDetails = ({
   ];
 
   const extractDisciplinesAndMapping = useCallback((spacesData: SpaceWithAssets[]) => {
-    const disciplinesSet = new Set<string>();
-    const mapping: Record<string, SpaceWithAssets[]> = {};
-
-    spacesData.forEach(space => {
-      space.Assets.forEach(asset => {
-        const assetType = assetTypes.find(type => type.id === asset.asset_type_id);
-        const discipline = assetType?.discipline || 'General';
-        
-        disciplinesSet.add(discipline);
-        
-        if (!mapping[discipline]) {
-          mapping[discipline] = [];
-        }
-        
-        const existingSpace = mapping[discipline].find(s => s.id === space.id);
-        if (!existingSpace) {
-          mapping[discipline].push(space);
-        }
-      });
-    });
-
-    const disciplines = Array.from(disciplinesSet).sort();
+    const { disciplines, mapping } = getDisciplinesAndMapping(spacesData, assetTypes);
     setAvailableDisciplines(disciplines);
     setDisciplineToSpacesMap(mapping);
-    
+
     if (sortMode === 'discipline' && !selectedDiscipline && disciplines.length > 0) {
       setSelectedDiscipline(disciplines[0]);
     }
@@ -693,6 +567,14 @@ const PropertyDetails = ({
           <Text style={styles.addRowButtonText}>Add Attribute</Text>
         </TouchableOpacity>
       </FormModal>
+      <ConfirmModal
+        visible={confirmVisible}
+        title={confirmTitle}
+        message={confirmMessage}
+        destructive={confirmDestructive}
+        onConfirm={handleConfirm}
+        onCancel={() => setConfirmVisible(false)}
+      />
     </SafeAreaView>
   );
 };

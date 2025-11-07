@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef } from "react";
+import React, { useState, useCallback } from "react";
 import {
   View,
   Text,
@@ -22,7 +22,6 @@ import {
 } from "lucide-react-native";
 import { SafeAreaView } from 'react-native-safe-area-context'; 
 import { DropField } from "../../components";
-import ConfirmModal from "../../components/ConfirmModal";
 import SpecificationDetails from '../../components/SpecificationDetails';
 import AssetAccordion from '../../components/AssetAccordion';
 
@@ -119,13 +118,6 @@ const PropertyDetails = ({
   );
   const [newHistoryDescription, setNewHistoryDescription] = useState("");
   const [editableSpecs, setEditableSpecs] = useState<EditableSpec[]>([]);
-
-  // Confirmation modal state & ref for deferred actions
-  const [confirmVisible, setConfirmVisible] = useState(false);
-  const [confirmTitle, setConfirmTitle] = useState('');
-  const [confirmMessage, setConfirmMessage] = useState('');
-  const [confirmDestructive, setConfirmDestructive] = useState(false);
-  const onConfirmRef = useRef<(() => Promise<void>) | null>(null);
 
   const spaceTypeOptions = [
     "Bedroom",
@@ -567,14 +559,6 @@ const PropertyDetails = ({
           <Text style={styles.addRowButtonText}>Add Attribute</Text>
         </TouchableOpacity>
       </FormModal>
-      <ConfirmModal
-        visible={confirmVisible}
-        title={confirmTitle}
-        message={confirmMessage}
-        destructive={confirmDestructive}
-        onConfirm={handleConfirm}
-        onCancel={() => setConfirmVisible(false)}
-      />
     </SafeAreaView>
   );
 };

@@ -10,7 +10,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { Home, Wrench } from "lucide-react-native";
-import { SafeAreaView } from 'react-native-safe-area-context'; 
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Button, TextField, Checkbox } from "../../components";
 
 import { loginUser, signupUser } from "../../services/AuthService";
@@ -18,10 +18,20 @@ import { authStyles as styles } from "../../styles/authStyles";
 import { PALETTE } from "../../styles/palette";
 import type { UserRole } from "../../types";
 
+/**
+ * Defines the properties accepted by the AuthScreen component.
+ */
 interface AuthScreenProps {
   onSuccessfulLogin: (role: UserRole) => void;
 }
 
+/**
+ * A screen component responsible for handling user authentication.
+ *
+ * It provides a tabbed interface for "Sign In" and "Sign Up",
+ * a role selector for "Owner" and "Tradie", and manages
+ * form state, validation, and API calls for authentication.
+ */
 const AuthScreen = ({ onSuccessfulLogin }: AuthScreenProps) => {
   const MINPASSWORDLEN = 6;
   const MAXEMAILLEN = 254;
@@ -39,7 +49,9 @@ const AuthScreen = ({ onSuccessfulLogin }: AuthScreenProps) => {
   const [loading, setLoading] = useState(false);
   const [isPasswordFocused, setIsPasswordFocused] = useState(false);
 
-  // Password validation helper functions
+  /**
+   * Validates a password string against a set of criteria.
+   */  
   const validatePassword = (pwd: string) => {
     return {
       hasMinLength: pwd.length >= MINPASSWORDLEN,
@@ -50,10 +62,13 @@ const AuthScreen = ({ onSuccessfulLogin }: AuthScreenProps) => {
     };
   };
 
+  /**
+   * Gets a list of unmet password requirements.
+   */
   const getPasswordValidationMessages = (pwd: string) => {
     const validation = validatePassword(pwd);
     const messages = [];
-    
+
     if (!validation.hasMinLength) {
       messages.push(`At least ${MINPASSWORDLEN} characters`);
     }
@@ -69,10 +84,15 @@ const AuthScreen = ({ onSuccessfulLogin }: AuthScreenProps) => {
     if (!validation.hasSpecialChar) {
       messages.push("1 special character");
     }
-    
+
     return messages;
   };
 
+  /**
+   * Handles the user login attempt.
+   * Validates inputs, calls the `loginUser` service, and triggers
+   * `onSuccessfulLogin` or shows an alert on error.
+   */
   const handleLogin = async () => {
     if (!email || !password) {
       Alert.alert("Error", "Please enter both an email and password.");
@@ -89,8 +109,20 @@ const AuthScreen = ({ onSuccessfulLogin }: AuthScreenProps) => {
     }
   };
 
+  /**
+   * Handles the user sign-up attempt.
+   * Performs comprehensive validation on all fields before
+   * calling the `signupUser` service or showing alerts on error.
+   */
   const handleSignUp = async () => {
-    if (!firstName || !lastName || !email || !password || !confirmPassword || !phone) {
+    if (
+      !firstName ||
+      !lastName ||
+      !email ||
+      !password ||
+      !confirmPassword ||
+      !phone
+    ) {
       Alert.alert("Missing Information", "Please fill in all fields.");
       return;
     }
@@ -99,15 +131,24 @@ const AuthScreen = ({ onSuccessfulLogin }: AuthScreenProps) => {
       return;
     }
     if (!agreeToTerms) {
-      Alert.alert("Terms and Conditions", "You must agree to the terms to continue.");
+      Alert.alert(
+        "Terms and Conditions",
+        "You must agree to the terms to continue.",
+      );
       return;
     }
     if (!firstName.trim().match(/^[\p{L}]+(?:[\s'-][\p{L}]+)*$/u)) {
-      Alert.alert("Invalid First Name", "First name can only contain letters, spaces, hyphens, and apostrophes.");
+      Alert.alert(
+        "Invalid First Name",
+        "First name can only contain letters, spaces, hyphens, and apostrophes.",
+      );
       return;
     }
     if (!lastName.trim().match(/^[\p{L}]+(?:[\s'-][\p{L}]+)*$/u)) {
-      Alert.alert("Invalid Last Name", "Last name can only contain letters, spaces, hyphens, and apostrophes.");
+      Alert.alert(
+        "Invalid Last Name",
+        "Last name can only contain letters, spaces, hyphens, and apostrophes.",
+      );
       return;
     }
     if (!email.match(/^[\w-]+(\.[\w-]+)*@([\w-]+\.)+[a-zA-Z]{2,7}$/)) {
@@ -119,41 +160,69 @@ const AuthScreen = ({ onSuccessfulLogin }: AuthScreenProps) => {
       return;
     }
     if (password.length < MINPASSWORDLEN) {
-      Alert.alert("Weak Password", `Password must be at least ${MINPASSWORDLEN} characters long.`);
+      Alert.alert(
+        "Weak Password",
+        `Password must be at least ${MINPASSWORDLEN} characters long.`,
+      );
       return;
     }
     if (!password.match(/[A-Z]/)) {
-      Alert.alert("Weak Password", "Password must contain at least one uppercase letter.");
+      Alert.alert(
+        "Weak Password",
+        "Password must contain at least one uppercase letter.",
+      );
       return;
     }
     if (!password.match(/[a-z]/)) {
-      Alert.alert("Weak Password", "Password must contain at least one lowercase letter.");
+      Alert.alert(
+        "Weak Password",
+        "Password must contain at least one lowercase letter.",
+      );
       return;
     }
     if (!password.match(/[0-9]/)) {
-      Alert.alert("Weak Password", "Password must contain at least one number.");
+      Alert.alert(
+        "Weak Password",
+        "Password must contain at least one number.",
+      );
       return;
     }
     if (!password.match(/[!@#$%^&*(),.?":{}|<>]/)) {
-      Alert.alert("Weak Password", "Password must contain at least one special character.");
+      Alert.alert(
+        "Weak Password",
+        "Password must contain at least one special character.",
+      );
       return;
     }
     if (email.length > MAXEMAILLEN) {
-      Alert.alert("Input Too Long", `Email cannot exceed ${MAXEMAILLEN} characters.`);
+      Alert.alert(
+        "Input Too Long",
+        `Email cannot exceed ${MAXEMAILLEN} characters.`,
+      );
       return;
     }
     if (firstName.length > MAXNAMELEN) {
-      Alert.alert("Input Too Long", `First name cannot exceed ${MAXNAMELEN} characters.`);
+      Alert.alert(
+        "Input Too Long",
+        `First name cannot exceed ${MAXNAMELEN} characters.`,
+      );
       return;
     }
     if (lastName.length > MAXNAMELEN) {
-      Alert.alert("Input Too Long", `Last name cannot exceed ${MAXNAMELEN} characters.`);
+      Alert.alert(
+        "Input Too Long",
+        `Last name cannot exceed ${MAXNAMELEN} characters.`,
+      );
       return;
     }
     if (password.length > MAXPASSWORDLEN) {
-      Alert.alert("Input Too Long", `Password cannot exceed ${MAXPASSWORDLEN} characters.`);
+      Alert.alert(
+        "Input Too Long",
+        `Password cannot exceed ${MAXPASSWORDLEN} characters.`,
+      );
       return;
     }
+
 
     setLoading(true);
     try {
@@ -165,7 +234,10 @@ const AuthScreen = ({ onSuccessfulLogin }: AuthScreenProps) => {
         userType,
         phone,
       });
-      Alert.alert("Success!", "Your account has been created. Please check your email for a confirmation link.");
+      Alert.alert(
+        "Success!",
+        "Your account has been created. Please check your email for a confirmation link.",
+      );
       setActiveTab("login");
     } catch (error: any) {
       Alert.alert("Sign Up Error", error.message);
@@ -174,92 +246,266 @@ const AuthScreen = ({ onSuccessfulLogin }: AuthScreenProps) => {
     }
   };
 
+  /**
+   * Renders the "Sign In" form.
+   */
   const renderLoginForm = () => (
     <View style={styles.formContainer}>
       <View style={styles.inputGroup}>
         <Text style={styles.label}>Email</Text>
-        <TextField placeholder="you@example.com" value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" />
+        <TextField
+          placeholder="you@example.com"
+          value={email}
+          onChangeText={setEmail}
+          keyboardType="email-address"
+          autoCapitalize="none"
+        />
       </View>
       <View style={styles.inputGroup}>
         <Text style={styles.label}>Password</Text>
-        <TextField placeholder="••••••••" value={password} onChangeText={setPassword} secureTextEntry />
+        <TextField
+          placeholder="••••••••"
+          value={password}
+          onChangeText={setPassword}
+          secureTextEntry
+        />
       </View>
-      <Button text={loading ? "Signing In..." : "Sign In"} onPress={handleLogin} disabled={loading} style={styles.submitButton} textStyle={styles.submitButtonText} />
+      <Button
+        text={loading ? "Signing In..." : "Sign In"}
+        onPress={handleLogin}
+        disabled={loading}
+        style={styles.submitButton}
+        textStyle={styles.submitButtonText}
+      />
     </View>
   );
 
+  /**
+   * Renders the "Sign Up" form.
+   * Includes real-time password validation hints.
+   */
   const renderSignUpForm = () => (
     <View style={styles.formContainer}>
-        <View style={styles.nameContainer}><View style={[styles.inputGroup, { flex: 1 }]}><Text style={styles.label}>First Name</Text><TextField placeholder="John" value={firstName} onChangeText={setFirstName} /></View><View style={{ width: 16 }} /><View style={[styles.inputGroup, { flex: 1 }]}><Text style={styles.label}>Last Name</Text><TextField placeholder="Appleseed" value={lastName} onChangeText={setLastName} /></View></View>
-        <View style={styles.inputGroup}><Text style={styles.label}>Email</Text><TextField placeholder="you@example.com" value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" /></View>
-        <View style={styles.inputGroup}><Text style={styles.label}>Phone</Text><TextField placeholder="Your phone number" value={phone} onChangeText={setPhone} keyboardType="phone-pad" /></View>
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>Password</Text>
-          <TextField 
-            placeholder="Create a strong password" 
-            value={password} 
-            onChangeText={setPassword} 
-            secureTextEntry 
-            onFocus={() => setIsPasswordFocused(true)}
-            onBlur={() => setIsPasswordFocused(false)}
-            autoCapitalize="none"
-            autoCorrect={false}
-            textContentType={Platform.OS === 'ios' ? 'newPassword' : undefined}
-            autoComplete={Platform.OS === 'ios' ? 'off' : 'off'}
+      <View style={styles.nameContainer}>
+        <View style={[styles.inputGroup, { flex: 1 }]}>
+          <Text style={styles.label}>First Name</Text>
+          <TextField
+            placeholder="John"
+            value={firstName}
+            onChangeText={setFirstName}
           />
-          {(isPasswordFocused || password.length > 0) && getPasswordValidationMessages(password).length > 0 && (
-            <View style={{
-              marginTop: 8,
-              padding: 12,
-              backgroundColor: PALETTE.dangerBackground,
-              borderRadius: 8,
-              borderLeftWidth: 3,
-              borderLeftColor: PALETTE.danger,
-            }}>
-              <Text style={{
-                fontSize: 12,
-                fontWeight: '600',
-                color: PALETTE.danger,
-                marginBottom: 4,
-              }}>Password must contain:</Text>
-              <Text style={{
-                fontSize: 11,
-                color: PALETTE.danger,
-                marginLeft: 4,
-                lineHeight: 16,
-              }}>
-                {`• ${getPasswordValidationMessages(password).join('\n• ')}`}
+        </View>
+        <View style={{ width: 16 }} />
+        <View style={[styles.inputGroup, { flex: 1 }]}>
+          <Text style={styles.label}>Last Name</Text>
+          <TextField
+            placeholder="Appleseed"
+            value={lastName}
+            onChangeText={setLastName}
+          />
+        </View>
+      </View>
+      <View style={styles.inputGroup}>
+        <Text style={styles.label}>Email</Text>
+        <TextField
+          placeholder="you@example.com"
+          value={email}
+          onChangeText={setEmail}
+          keyboardType="email-address"
+          autoCapitalize="none"
+        />
+      </View>
+      <View style={styles.inputGroup}>
+        <Text style={styles.label}>Phone</Text>
+        <TextField
+          placeholder="Your phone number"
+          value={phone}
+          onChangeText={setPhone}
+          keyboardType="phone-pad"
+        />
+      </View>
+      <View style={styles.inputGroup}>
+        <Text style={styles.label}>Password</Text>
+        <TextField
+          placeholder="Create a strong password"
+          value={password}
+          onChangeText={setPassword}
+          secureTextEntry
+          onFocus={() => setIsPasswordFocused(true)}
+          onBlur={() => setIsPasswordFocused(false)}
+          autoCapitalize="none"
+          autoCorrect={false}
+          textContentType={Platform.OS === "ios" ? "newPassword" : undefined}
+          autoComplete={Platform.OS === "ios" ? "off" : "off"}
+        />
+        {(isPasswordFocused || password.length > 0) &&
+          getPasswordValidationMessages(password).length > 0 && (
+            <View
+              style={{
+                marginTop: 8,
+                padding: 12,
+                backgroundColor: PALETTE.dangerBackground,
+                borderRadius: 8,
+                borderLeftWidth: 3,
+                borderLeftColor: PALETTE.danger,
+              }}
+            >
+              <Text
+                style={{
+                  fontSize: 12,
+                  fontWeight: "600",
+                  color: PALETTE.danger,
+                  marginBottom: 4,
+                }}
+              >
+                Password must contain:
+              </Text>
+              <Text
+                style={{
+                  fontSize: 11,
+                  color: PALETTE.danger,
+                  marginLeft: 4,
+                  lineHeight: 16,
+                }}
+              >
+                {`• ${getPasswordValidationMessages(password).join("\n• ")}`}
               </Text>
             </View>
           )}
-        </View>
-        <View style={styles.inputGroup}><Text style={styles.label}>Confirm Password</Text><TextField placeholder="Confirm your password" value={confirmPassword} onChangeText={setConfirmPassword} secureTextEntry /></View>
-        <Checkbox checked={agreeToTerms} onPress={() => setAgreeToTerms(!agreeToTerms)} label={<Text style={styles.termsText}>I agree to the <Text style={styles.linkText}>Terms & Policy</Text></Text>} />
-        <Button text={loading ? "Creating Account..." : "Create Account"} onPress={handleSignUp} disabled={loading} style={styles.submitButton} textStyle={styles.submitButtonText} />
+      </View>
+      <View style={styles.inputGroup}>
+        <Text style={styles.label}>Confirm Password</Text>
+        <TextField
+          placeholder="Confirm your password"
+          value={confirmPassword}
+          onChangeText={setConfirmPassword}
+          secureTextEntry
+        />
+      </View>
+      <Checkbox
+        checked={agreeToTerms}
+        onPress={() => setAgreeToTerms(!agreeToTerms)}
+        label={
+          <Text style={styles.termsText}>
+            I agree to the <Text style={styles.linkText}>Terms & Policy</Text>
+          </Text>
+        }
+      />
+      <Button
+        text={loading ? "Creating Account..." : "Create Account"}
+        onPress={handleSignUp}
+        disabled={loading}
+        style={styles.submitButton}
+        textStyle={styles.submitButtonText}
+      />
     </View>
   );
 
   return (
     <SafeAreaView style={styles.container}>
-      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={{ flex: 1 }}
+      >
         <ScrollView contentContainerStyle={styles.scrollContainer}>
-          <View style={styles.header}><Text style={styles.appName}>Housebook</Text><Text style={styles.subtitle}>Property management made simple.</Text></View>
+          <View style={styles.header}>
+            <Text style={styles.appName}>Housebook</Text>
+            <Text style={styles.subtitle}>
+              Property management made simple.
+            </Text>
+          </View>
           <View style={styles.card}>
             <View style={styles.roleSelector}>
-              <TouchableOpacity style={[styles.roleBadge, userType === "owner" ? styles.activeRoleBadge : {}]} onPress={() => setUserType("owner")}>
-                  <Home size={16} color={userType === "owner" ? PALETTE.primary : PALETTE.textSecondary} />
-                  <Text style={[styles.roleText, userType === "owner" ? styles.activeRoleText : {}]}>Owner</Text>
+              <TouchableOpacity
+                style={[
+                  styles.roleBadge,
+                  userType === "owner" ? styles.activeRoleBadge : {},
+                ]}
+                onPress={() => setUserType("owner")}
+              >
+                <Home
+                  size={16}
+                  color={
+                    userType === "owner"
+                      ? PALETTE.primary
+                      : PALETTE.textSecondary
+                  }
+                />
+                <Text
+                  style={[
+                    styles.roleText,
+                    userType === "owner" ? styles.activeRoleText : {},
+                  ]}
+                >
+                  Owner
+                </Text>
               </TouchableOpacity>
-              <TouchableOpacity style={[styles.roleBadge, userType === "tradesperson" ? styles.activeRoleBadge : {}]} onPress={() => setUserType("tradesperson")}>
-                  <Wrench size={16} color={userType === "tradesperson" ? PALETTE.primary : PALETTE.textSecondary} />
-                  <Text style={[styles.roleText, userType === "tradesperson" ? styles.activeRoleText : {}]}>Tradie</Text>
+              <TouchableOpacity
+                style={[
+                  styles.roleBadge,
+                  userType === "tradesperson" ? styles.activeRoleBadge : {},
+                ]}
+                onPress={() => setUserType("tradesperson")}
+              >
+                <Wrench
+                  size={16}
+                  color={
+                    userType === "tradesperson"
+                      ? PALETTE.primary
+                      : PALETTE.textSecondary
+                  }
+                />
+                <Text
+                  style={[
+                    styles.roleText,
+                    userType === "tradesperson" ? styles.activeRoleText : {},
+                  ]}
+                >
+                  Tradie
+                </Text>
               </TouchableOpacity>
             </View>
             <View style={styles.tabContainer}>
-              <TouchableOpacity style={[styles.tab, activeTab === "login" ? styles.activeTab : {}]} onPress={() => setActiveTab("login")}><Text style={[styles.tabText, activeTab === "login" ? styles.activeTabText : {}]}>Sign In</Text></TouchableOpacity>
-              <TouchableOpacity style={[styles.tab, activeTab === "signup" ? styles.activeTab : {}]} onPress={() => setActiveTab("signup")}><Text style={[styles.tabText, activeTab === "signup" ? styles.activeTabText : {}]}>Sign Up</Text></TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.tab,
+                  activeTab === "login" ? styles.activeTab : {},
+                ]}
+                onPress={() => setActiveTab("login")}
+              >
+                <Text
+                  style={[
+                    styles.tabText,
+                    activeTab === "login" ? styles.activeTabText : {},
+                  ]}
+                >
+                  Sign In
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.tab,
+                  activeTab === "signup" ? styles.activeTab : {},
+                ]}
+                onPress={() => setActiveTab("signup")}
+              >
+                <Text
+                  style={[
+                    styles.tabText,
+                    activeTab === "signup" ? styles.activeTabText : {},
+                  ]}
+                >
+                  Sign Up
+                </Text>
+              </TouchableOpacity>
             </View>
-            {loading ? <ActivityIndicator size="large" color={PALETTE.primary} /> : activeTab === "login" ? renderLoginForm() : renderSignUpForm()}
+            {loading ? (
+              <ActivityIndicator size="large" color={PALETTE.primary} />
+            ) : activeTab === "login" ? (
+              renderLoginForm()
+            ) : (
+              renderSignUpForm()
+            )}
           </View>
         </ScrollView>
       </KeyboardAvoidingView>

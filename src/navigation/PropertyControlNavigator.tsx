@@ -14,20 +14,39 @@ import PropertyDetails from "../screens/property/PropertyDetails";
 import PropertyRequestsScreen from "../screens/property/PropertyRequest";
 import Role from "../screens/property/Role";
 
+/**
+ * Creates a new BottomTabNavigator instance typed with the
+ * `PropertyControlTabParamList` to ensure type safety for tab routes.
+ */
 const Tab = createBottomTabNavigator<PropertyControlTabParamList>();
 
-// Define the type for the route props passed to this navigator.
+/**
+ * Defines the type for the route props expected by this navigator.
+ * It specifies that this component receives route params from the "PropertyDetails"
+ * route defined in the `RootStackParamList`.
+ */
 type PropertyControlNavigatorRouteProp = RouteProp<
   RootStackParamList,
   "PropertyDetails"
 >;
+
+/**
+ * Defines the shape of the props object for the PropertyControlNavigator.
+ */
 type Props = {
   route: PropertyControlNavigatorRouteProp;
 };
 
-// This Tab Navigator displays details for a single property.
+/**
+ * A bottom tab navigator that displays various aspects of a *single* property.
+ *
+ * This component acts as a nested navigator, typically pushed onto the main
+ * stack. It receives a `propertyId` and an `isOwner` flag via route parameters.
+ *
+ * It displays "General" and "Timeline" tabs for all users.
+ * If the `isOwner` flag is true, it additionally displays "Requests" and "Authority" tabs.
+ */
 const PropertyControlNavigator = ({ route }: Props) => {
-  // Receives propertyId and isOwner from the navigation route params.
   const { propertyId, isOwner } = route.params;
 
   return (

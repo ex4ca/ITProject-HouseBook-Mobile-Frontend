@@ -1,24 +1,35 @@
-import React from 'react';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { useRoute } from '@react-navigation/native';
-import { Layout, List, Bell } from 'lucide-react-native';
-import { PALETTE } from '../styles/palette';
-import { globalStyles } from '../styles/globalStyles';
+import React from "react";
+import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
+import { useRoute } from "@react-navigation/native";
+import { Layout, List, Bell } from "lucide-react-native";
+import { PALETTE } from "../styles/palette";
+import { globalStyles } from "../styles/globalStyles";
 
-import TradiePropertyGeneral from '../screens/tradie/TradiePropertyGeneral';
-import TradiePropertyDetails from '../screens/tradie/TradiePropertyDetails';
-import TradieRequestsScreen from '../screens/tradie/TradieRequestsScreen';
+import TradiePropertyGeneral from "../screens/tradie/TradiePropertyGeneral";
+import TradiePropertyDetails from "../screens/tradie/TradiePropertyDetails";
+import TradieRequestsScreen from "../screens/tradie/TradieRequestsScreen";
 
+/**
+ * Creates a new BottomTabNavigator instance for this navigator.
+ */
 const Tab = createBottomTabNavigator();
 
 /**
- * This navigator creates a tabbed interface for a tradie viewing a specific property.
- * It's displayed after a tradie selects a job from their job board.
+ * A bottom tab navigator for a "Tradie" user viewing a specific property/job.
+ *
+ * This component is typically navigated to from a job board or job list.
+ * It uses the `useRoute` hook to access route parameters (`propertyId` and `jobId`)
+ * and passes them down as initial parameters to its child tab screens. 
  */
 export default function TradiePropertyNavigator() {
+  // Access the route object to get parameters passed to this navigator.
   const route = useRoute();
-  // Receive propertyId and jobId from the previous screen (JobBoard)
-  const { propertyId, jobId } = route.params as { propertyId: string; jobId: string };
+  
+  // Receive propertyId and jobId from the previous screen (e.g., JobBoard).
+  const { propertyId, jobId } = route.params as {
+    propertyId: string;
+    jobId: string;
+  };
 
   return (
     <Tab.Navigator

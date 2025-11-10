@@ -7,9 +7,18 @@ import { globalStyles } from "../styles/globalStyles";
 import JobBoard from "../screens/tradie/JobBoard";
 import Account from "../screens/profile/Account";
 
+/**
+ * Creates a new BottomTabNavigator instance.
+ */
 const Tab = createBottomTabNavigator();
 
-// The Tradie's specific tab navigator. This is what they see after login.
+/**
+ * A bottom tab navigator tailored for the "Tradie" user role.
+ *
+ * This component establishes the primary tabbed interface for a tradie,
+ * providing navigation between their main job board and their account
+ * management screen. This is the first screen they see after logging in.
+ */
 function TradieTabNavigator() {
   return (
     <Tab.Navigator
@@ -23,7 +32,7 @@ function TradieTabNavigator() {
     >
       <Tab.Screen
         name="Jobs"
-        component={JobBoard} // JobBoard is correctly used here.
+        component={JobBoard} 
         options={{
           tabBarIcon: ({ color, size }) => (
             <Briefcase color={color} size={size} />

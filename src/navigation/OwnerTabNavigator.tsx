@@ -7,8 +7,19 @@ import { globalStyles } from "../styles/globalStyles";
 import PropertyList from "../screens/property/PropertyList";
 import Account from "../screens/profile/Account";
 
+/**
+ * Creates a new BottomTabNavigator instance.
+ */
 const Tab = createBottomTabNavigator();
 
+/**
+ * A bottom tab navigator tailored for the "Owner" user role.
+ *
+ * This component establishes the primary tabbed interface for an owner,
+ * providing navigation between their list of properties and their
+ * account management screen.
+ *
+ */
 function OwnerTabNavigator() {
   return (
     <Tab.Navigator

@@ -1,10 +1,13 @@
-import React from 'react';
-import { Modal, View, Text, StyleSheet } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import Button from './Button';
-import { PALETTE } from '../styles/palette';
-import { STYLES } from '../styles/globalStyles';
+import React from "react";
+import { Modal, View, Text, StyleSheet } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import Button from "./Button";
+import { PALETTE } from "../styles/palette";
+import { STYLES } from "../styles/globalStyles";
 
+/**
+ * Defines the properties accepted by the ConfirmModal component.
+ */
 interface ConfirmModalProps {
   visible: boolean;
   title?: string;
@@ -16,12 +19,18 @@ interface ConfirmModalProps {
   onCancel: () => void;
 }
 
+/**
+ * A reusable modal component for confirming user actions.
+ *
+ * It displays an overlay, a content box with a title and message,
+ * and two action buttons (e.g., "Yes" and "Cancel").
+ */
 export default function ConfirmModal({
   visible,
-  title = 'Confirm',
-  message = 'Are you sure you want to continue?',
-  confirmText = 'Yes',
-  cancelText = 'Cancel',
+  title = "Confirm",
+  message = "Are you sure you want to continue?",
+  confirmText = "Yes",
+  cancelText = "Cancel",
   destructive = false,
   onConfirm,
   onCancel,
@@ -60,12 +69,12 @@ export default function ConfirmModal({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.45)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "rgba(0,0,0,0.45)",
+    justifyContent: "center",
+    alignItems: "center",
   },
   container: {
-    width: '90%',
+    width: "90%",
     backgroundColor: PALETTE.card,
     borderRadius: STYLES.borderRadius.medium,
     padding: 20,
@@ -74,7 +83,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 18,
-    fontWeight: '700',
+    fontWeight: "700",
     color: PALETTE.textPrimary,
     marginBottom: 8,
   },
@@ -84,8 +93,8 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   actions: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    justifyContent: "space-between",
     gap: 12,
   },
   cancelButton: {

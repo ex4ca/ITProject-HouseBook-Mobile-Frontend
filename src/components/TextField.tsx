@@ -13,7 +13,10 @@ import {
 import { PALETTE } from "../styles/palette";
 import { STYLES } from "../styles/globalStyles";
 
-// Defines the shape of the props that this component accepts.
+/**
+ * Defines the properties accepted by the TextField component.
+ * This extends standard TextInputProps for better type compatibility.
+ */
 interface TextFieldProps {
   placeholder?: string;
   value: string;

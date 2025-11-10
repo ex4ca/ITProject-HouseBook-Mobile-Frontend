@@ -1,29 +1,53 @@
-import React, { useState, useEffect } from 'react';
-import { NavigationContainer } from '@react-navigation/native';
-import { createStackNavigator } from '@react-navigation/stack';
-import { StatusBar } from 'expo-status-bar';
-import { supabase } from './src/config/supabaseClient';
-import type { Session, User } from '@supabase/supabase-js';
-import type { UserRole } from './src/types';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
+import React, { useState, useEffect } from "react";
+import { NavigationContainer } from "@react-navigation/native";
+import { createStackNavigator } from "@react-navigation/stack";
+import { StatusBar } from "expo-status-bar";
+import { supabase } from "./src/config/supabaseClient";
+import type { Session, User } from "@supabase/supabase-js";
+import type { UserRole } from "./src/types";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 
 // Navigators
-import AppNavigator from './src/navigation/AppNavigator';
-// Screens
-import AuthScreen from './src/screens/auth/AuthScreen';
+import AppNavigator from "./src/navigation/AppNavigator";
 
+// Screens
+import AuthScreen from "./src/screens/auth/AuthScreen";
+
+/**
+ * Creates a new StackNavigator instance for authentication.
+ */
 const Stack = createStackNavigator();
 
-function AuthNavigator({ onSuccessfulLogin }: { onSuccessfulLogin: (role: UserRole) => void }) {
+/**
+ * A stack navigator responsible for handling the authentication flow.
+ * It wraps the `AuthScreen` and manages the successful login callback.
+ */
+function AuthNavigator({
+  onSuccessfulLogin,
+}: {
+  onSuccessfulLogin: (role: UserRole) => void;
+}) {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="Auth">
-        {(props) => <AuthScreen {...props} onSuccessfulLogin={onSuccessfulLogin} />}
+        {(props) => (
+          <AuthScreen {...props} onSuccessfulLogin={onSuccessfulLogin} />
+        )}
       </Stack.Screen>
     </Stack.Navigator>
   );
 }
 
+/**
+ * The root component of the application.
+ *
+ * This component manages the global authentication state (session and user role)
+ * and conditionally renders the appropriate navigator:
+ * - `AuthNavigator` if the user is not authenticated.
+ * - `AppNavigator` if the user is authenticated and their role is set.
+ *
+ * It also initializes the Supabase auth listener to react to auth state changes.
+ */
 export default function App() {
   const [session, setSession] = useState<Session | null>(null);
   const [userRole, setUserRole] = useState<UserRole | null>(null);
@@ -31,25 +55,33 @@ export default function App() {
 
   useEffect(() => {
     const getInitialSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       setSession(session);
       setLoading(false);
     };
-    
+
     getInitialSession();
 
-    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-      if (!session) {
-        setUserRole(null);
-      }
-    });
+    const { data: authListener } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        setSession(session);
+        if (!session) {
+          setUserRole(null);
+        }
+      },
+    );
 
     return () => {
       authListener.subscription.unsubscribe();
     };
   }, []);
 
+  /**
+   * Callback function passed to `AuthNavigator` to set the user's role
+   * in the root `App` component's state upon successful login.
+   */
   const handleSuccessfulLogin = (role: UserRole) => {
     setUserRole(role);
   };

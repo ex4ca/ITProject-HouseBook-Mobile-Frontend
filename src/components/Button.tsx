@@ -8,7 +8,9 @@ import {
 import { PALETTE } from "../styles/palette";
 import { STYLES } from "../styles/globalStyles";
 
-// Defines the shape of the props that this component accepts.
+/**
+ * Defines the properties accepted by the Button component.
+ */
 interface ButtonProps {
   text: string;
   onPress: () => void;
@@ -17,6 +19,12 @@ interface ButtonProps {
   disabled?: boolean;
 }
 
+/**
+ * A reusable button component.
+ *
+ * This component wraps `TouchableOpacity` to provide a standardized
+ * look and feel, including support for a disabled state.
+ */
 const Button = ({
   text,
   onPress,

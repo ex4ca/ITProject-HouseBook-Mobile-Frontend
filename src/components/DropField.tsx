@@ -10,11 +10,13 @@ import {
   TextStyle,
 } from "react-native";
 import { ChevronsUpDown } from "lucide-react-native";
-import { SafeAreaView } from 'react-native-safe-area-context'; 
+import { SafeAreaView } from "react-native-safe-area-context";
 import { PALETTE } from "../styles/palette";
 import { STYLES } from "../styles/globalStyles";
 
-// Defines the shape of the props that this component accepts.
+/**
+ * Defines the properties accepted by the DropField component.
+ */
 interface DropFieldProps {
   options: string[];
   placeholder?: string;
@@ -25,6 +27,13 @@ interface DropFieldProps {
   disabled?: boolean;
 }
 
+/**
+ * A custom dropdown select component.
+ *
+ * This component displays a field that, when pressed, opens a modal
+ * containing a list of selectable options. The modal is positioned
+ * dynamically below the field.
+ */
 const DropField = ({
   options = [],
   placeholder = "Select an option",

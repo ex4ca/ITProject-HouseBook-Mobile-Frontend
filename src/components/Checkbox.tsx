@@ -11,6 +11,9 @@ import { Check } from "lucide-react-native";
 import { PALETTE } from "../styles/palette";
 import { STYLES } from "../styles/globalStyles";
 
+/**
+ * Defines the properties accepted by the Checkbox component.
+ */
 interface CheckboxProps {
   checked: boolean;
   onPress: () => void;
@@ -21,6 +24,12 @@ interface CheckboxProps {
   size?: number;
 }
 
+/**
+ * A reusable checkbox component.
+ * 
+ * This component provides a tappable area including a visual box and an
+ * optional label. It supports both string and custom React element labels.
+ */
 const Checkbox = ({
   checked = false,
   onPress,

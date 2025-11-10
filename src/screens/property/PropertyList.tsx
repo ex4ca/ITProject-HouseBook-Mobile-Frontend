@@ -14,11 +14,19 @@ import {
   getPropertiesByOwner,
   fetchMyFirstName,
 } from "../../services/FetchAuthority";
-import { SafeAreaView } from 'react-native-safe-area-context'; 
+import { SafeAreaView } from "react-native-safe-area-context";
 import { propertyListStyles as styles } from "../../styles/propertyListStyles";
 import { PALETTE } from "../../styles/palette";
 import type { Property } from "../../types";
 
+/**
+ * A screen component that displays a list of properties for an "Owner" user.
+ *
+ * This screen shows a personalized welcome message, a summary card with the
+ * total property count, and a list of all properties associated with the
+ * authenticated user. It also subscribes to real-time database changes
+ * to automatically refresh the list.
+ */
 const PropertyList = () => {
   const navigation: any = useNavigation();
   const [properties, setProperties] = useState<Property[]>([]);
@@ -27,6 +35,10 @@ const PropertyList = () => {
 
   const isFetching = useRef(false);
 
+  /**
+   * A memoized function to fetch all necessary data for the screen.
+   * It retrieves the current user, their first name, and their properties.
+   */
   const fetchData = useCallback(async () => {
     if (isFetching.current) return;
 
@@ -64,7 +76,7 @@ const PropertyList = () => {
   useFocusEffect(
     useCallback(() => {
       fetchData();
-    }, [fetchData])
+    }, [fetchData]),
   );
 
   useEffect(() => {
@@ -82,13 +94,14 @@ const PropertyList = () => {
 
   const renderPropertyCard = ({ item }: { item: Property }) => {
     // Use the splash_image from the database if it exists, otherwise use a placeholder.
-    const imageUrl = item.splash_image 
+    const imageUrl = item.splash_image
       ? item.splash_image
       : `https://placehold.co/600x400/E5E7EB/111827?text=${encodeURIComponent(
-          item.name || "Property"
+          item.name || "Property",
         )}`;
-    
-    const isInProgress = item.status && item.status.toLowerCase().includes('progress');
+
+    const isInProgress =
+      item.status && item.status.toLowerCase().includes("progress");
 
     return (
       <TouchableOpacity
@@ -112,9 +125,9 @@ const PropertyList = () => {
               </View>
             )}
           </View>
-          
+
           <Text style={styles.propertyAddress} numberOfLines={2}>
-             📍 {item.address}
+            📍 {item.address}
           </Text>
         </View>
       </TouchableOpacity>

@@ -10,10 +10,9 @@ import {
   Alert,
 } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
-import { SafeAreaView } from 'react-native-safe-area-context'; 
-import { ChevronLeft, Plus, Edit } from "lucide-react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { ChevronLeft, Edit } from "lucide-react-native";
 
-// Import the new, separated logic and styles
 import {
   fetchAssetDetails,
   addHistoryEntry,
@@ -32,11 +31,13 @@ const HistoryEntryCard = ({ entry }: { entry: HistoryEntry }) => (
     </View>
     <View style={styles.entryContent}>
       <Text style={styles.entryTitle}>{entry.change_description}</Text>
-      {/* Render specifications if they exist */}
     </View>
   </View>
 );
 
+/**
+ * A modal form for adding a new history entry.
+ */
 const AddEntryModal = ({
   visible,
   onClose,
@@ -48,11 +49,15 @@ const AddEntryModal = ({
 }) => {
   const [description, setDescription] = useState("");
 
+  /**
+   * Handles the submission of the form.
+   * Validates input and calls the onSubmit prop.
+   */
   const handleSubmit = () => {
     if (!description.trim()) {
       Alert.alert(
         "Missing Information",
-        "Please provide a description for the entry."
+        "Please provide a description for the entry.",
       );
       return;
     }
@@ -95,6 +100,13 @@ const AddEntryModal = ({
   );
 };
 
+/**
+ * A screen component that displays the detailed timeline and information
+ * for a specific asset (component).
+ *
+ * It fetches asset details, including its changelog, and allows users
+ * to add new history entries.
+ */
 const ComponentDetails = ({
   route,
   navigation,
@@ -108,6 +120,10 @@ const ComponentDetails = ({
   const [assetDetails, setAssetDetails] = useState<AssetDetails | null>(null);
   const [isAddingEntry, setIsAddingEntry] = useState(false);
 
+  /**
+   * `useFocusEffect` runs the provided callback every time the screen
+   * comes into focus.
+   */
   useFocusEffect(
     useCallback(() => {
       let isActive = true;
@@ -140,7 +156,7 @@ const ComponentDetails = ({
       return () => {
         isActive = false;
       };
-    }, [assetId])
+    }, [assetId]),
   );
 
   const handleAddEntry = async (description: string) => {
@@ -199,7 +215,7 @@ const ComponentDetails = ({
 
         {ChangeLog.sort(
           (a, b) =>
-            new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+            new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
         ).map((entry) => (
           <HistoryEntryCard key={entry.id} entry={entry} />
         ))}

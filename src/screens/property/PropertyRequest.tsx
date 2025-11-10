@@ -1,9 +1,8 @@
-import React, { useState, useCallback, useRef } from "react";
+import React, { useState, useCallback } from "react";
 import {
   View,
   Text,
   TouchableOpacity,
-  FlatList,
   ActivityIndicator,
   Alert,
   LayoutAnimation,
@@ -11,7 +10,7 @@ import {
   ScrollView,
 } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
-import { SafeAreaView } from 'react-native-safe-area-context'; 
+import { SafeAreaView } from "react-native-safe-area-context";
 import {
   CheckCircle,
   XCircle,
@@ -29,7 +28,11 @@ import { propertyRequestsStyles as styles } from "../../styles/requestStyles";
 import { PALETTE } from "../../styles/palette";
 import type { PendingRequest } from "../../types";
 
-// Renders the specification details for a change request.
+/**
+ * Renders a formatted list of key-value specification pairs.
+ * It iterates over an object and displays each entry, replacing
+ * underscores in the keys with spaces for readability.
+ */
 const SpecificationDetails = ({
   specifications,
 }: {
@@ -45,7 +48,13 @@ const SpecificationDetails = ({
   </View>
 );
 
-// Renders a single pending request card.
+/**
+ * Renders a single collapsible card for a pending request or a work history item.
+ *
+ * - If `showActions` is true, it displays "Accept" and "Decline" buttons.
+ * - If the status is "ACCEPTED" or "DECLINED", it shows a status badge.
+ * - The card can be expanded to show detailed specifications.
+ */
 const RequestCard = ({
   item,
   onUpdateStatus,
@@ -73,12 +82,8 @@ const RequestCard = ({
         <View style={styles.cardHeader}>
           <View style={styles.cardHeaderText}>
             {/* UPDATED: Display space and asset on separate lines with different styles */}
-            <Text style={styles.propertyName}>
-              {item.Assets.Spaces.name}
-            </Text>
-            <Text style={styles.assetName}>
-              {item.Assets.description}
-            </Text>
+            <Text style={styles.propertyName}>{item.Assets.Spaces.name}</Text>
+            <Text style={styles.assetName}>{item.Assets.description}</Text>
           </View>
           {isExpanded ? (
             <ChevronDown size={20} color={PALETTE.textSecondary} />
@@ -87,17 +92,35 @@ const RequestCard = ({
           )}
         </View>
         <View style={styles.descriptionRow}>
-          <Text style={styles.descriptionText}>"{item.change_description}"</Text>
-          {(item.status === 'ACCEPTED' || item.status === 'DECLINED') && (
-            <View style={[styles.statusLabel, item.status === 'ACCEPTED' ? styles.statusLabelAccepted : styles.statusLabelRejected]}>
-              <Text style={[styles.statusLabelText, item.status === 'ACCEPTED' ? styles.statusLabelTextAccepted : styles.statusLabelTextRejected]}>
-                {item.status === 'ACCEPTED' ? 'Accepted' : 'Rejected'}
+          <Text style={styles.descriptionText}>
+            "{item.change_description}"
+          </Text>
+          {(item.status === "ACCEPTED" || item.status === "DECLINED") && (
+            <View
+              style={[
+                styles.statusLabel,
+                item.status === "ACCEPTED"
+                  ? styles.statusLabelAccepted
+                  : styles.statusLabelRejected,
+              ]}
+            >
+              <Text
+                style={[
+                  styles.statusLabelText,
+                  item.status === "ACCEPTED"
+                    ? styles.statusLabelTextAccepted
+                    : styles.statusLabelTextRejected,
+                ]}
+              >
+                {item.status === "ACCEPTED" ? "Accepted" : "Rejected"}
               </Text>
             </View>
           )}
         </View>
         <Text style={styles.submittedBy}>Submitted by: {submittedByText}</Text>
-        <Text style={styles.submittedDate}>{new Date(item.created_at).toLocaleDateString()}</Text>
+        <Text style={styles.submittedDate}>
+          {new Date(item.created_at).toLocaleDateString()}
+        </Text>
       </TouchableOpacity>
 
       {isExpanded && (
@@ -133,8 +156,23 @@ const RequestCard = ({
   );
 };
 
-// --- MAIN SCREEN COMPONENT (No changes) ---
-
+/**
+ * A dual-purpose screen component.
+ *
+ * 1.  **"Add Property" Mode (No `propertyId`):**
+ * If no `propertyId` is passed in the route parameters, the screen
+ * displays a UI for adding a new property, prompting the user
+ * to scan a QR code (or simulate a scan). This is likely for
+ * a "tradie" user role.
+ *
+ * 2.  **"Requests" Mode (With `propertyId`):**
+ * If a `propertyId` is provided, the screen fetches and displays
+ * two lists for that property:
+ * - A list of "Pending Requests" that an owner can accept or decline.
+ * - A "Work History" list of all past accepted/declined requests.
+ *
+ * Data is refreshed every time the screen comes into focus.
+ */
 const PropertyRequestsScreen = ({
   route,
   navigation,
@@ -147,13 +185,16 @@ const PropertyRequestsScreen = ({
   const [loading, setLoading] = useState(true);
   const [requests, setRequests] = useState<PendingRequest[]>([]);
   const [workHistory, setWorkHistory] = useState<PendingRequest[]>([]);
-  const [workHistorySortAscending, setWorkHistorySortAscending] = useState(false);
+  const [workHistorySortAscending, setWorkHistorySortAscending] =
+    useState(false);
 
   // If no propertyId is provided, show the Add Property (QR scan) UI
   if (!propertyId) {
     const handleSimulateScan = () => {
       // Open the PIN entry page with a hard-coded scanned property text
-      navigation.navigate('PropertyPin', { scannedText: 'Property: 456 Collins Street, Melbourne' });
+      navigation.navigate("PropertyPin", {
+        scannedText: "Property: 456 Collins Street, Melbourne",
+      });
     };
 
     return (
@@ -177,15 +218,20 @@ const PropertyRequestsScreen = ({
             <Text style={styles.scanTitle}>Scan QR Code</Text>
             <View style={styles.dottedBox}>
               <Image
-                source={{ uri: 'https://placehold.co/240x240/EFEFF4/111827?text=QR' }}
+                source={{
+                  uri: "https://placehold.co/240x240/EFEFF4/111827?text=QR",
+                }}
                 style={styles.qrImage}
               />
               <Text style={{ marginTop: 12, color: PALETTE.textSecondary }}>
                 Point camera at QR code
               </Text>
             </View>
-            <Text style={[styles.emptyText, { marginTop: 12, textAlign: 'center' }]}> 
-              Scan the QR code provided by the property owner to access the property details.
+            <Text
+              style={[styles.emptyText, { marginTop: 12, textAlign: "center" }]}
+            >
+              Scan the QR code provided by the property owner to access the
+              property details.
             </Text>
 
             <TouchableOpacity
@@ -211,7 +257,7 @@ const PropertyRequestsScreen = ({
         try {
           const [pendingData, historyData] = await Promise.all([
             fetchPendingRequests(propertyId),
-            fetchPropertyWorkHistory(propertyId)
+            fetchPropertyWorkHistory(propertyId),
           ]);
           setRequests(pendingData);
           setWorkHistory(historyData);
@@ -225,41 +271,44 @@ const PropertyRequestsScreen = ({
       };
 
       loadRequests();
-    }, [propertyId])
+    }, [propertyId]),
   );
 
   const handleUpdateStatus = async (
     id: string,
-    status: "ACCEPTED" | "DECLINED"
+    status: "ACCEPTED" | "DECLINED",
   ) => {
     // Confirm with native alert before changing status
-    const title = status === 'ACCEPTED' ? 'Accept Request' : 'Decline Request';
-    const message = status === 'ACCEPTED' ? 'Are you sure you want to accept this request?' : 'Are you sure you want to decline this request?';
+    const title = status === "ACCEPTED" ? "Accept Request" : "Decline Request";
+    const message =
+      status === "ACCEPTED"
+        ? "Are you sure you want to accept this request?"
+        : "Are you sure you want to decline this request?";
     Alert.alert(
       title,
       message,
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: "Cancel", style: "cancel" },
         {
-          text: status === 'ACCEPTED' ? 'Accept' : 'Decline',
-          style: status === 'DECLINED' ? 'destructive' : 'default',
+          text: status === "ACCEPTED" ? "Accept" : "Decline",
+          style: status === "DECLINED" ? "destructive" : "default",
           onPress: async () => {
             try {
               await updateRequestStatus(id, status);
               // Refresh both lists to update pending requests and work history
               const [pendingData, historyData] = await Promise.all([
                 fetchPendingRequests(propertyId),
-                fetchPropertyWorkHistory(propertyId)
+                fetchPropertyWorkHistory(propertyId),
               ]);
               setRequests(pendingData);
               setWorkHistory(historyData);
             } catch (error: any) {
-              Alert.alert('Error', error.message);
+              Alert.alert("Error", error.message);
             }
           },
         },
       ],
-      { cancelable: true }
+      { cancelable: true },
     );
   };
 
@@ -283,12 +332,17 @@ const PropertyRequestsScreen = ({
         <Text style={styles.headerTitle}>Requests</Text>
         <View style={{ width: 40 }} />
       </View>
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.listContent}>
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={styles.listContent}
+      >
         {/* Pending Requests Section */}
         {requests.length > 0 && (
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Pending Requests ({requests.length})</Text>
+              <Text style={styles.sectionTitle}>
+                Pending Requests ({requests.length})
+              </Text>
             </View>
             {requests.map((request) => (
               <RequestCard
@@ -305,14 +359,18 @@ const PropertyRequestsScreen = ({
         {workHistory.length > 0 && (
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Work History ({workHistory.length})</Text>
-              <TouchableOpacity 
+              <Text style={styles.sectionTitle}>
+                Work History ({workHistory.length})
+              </Text>
+              <TouchableOpacity
                 style={styles.sortToggle}
-                onPress={() => setWorkHistorySortAscending(!workHistorySortAscending)}
+                onPress={() =>
+                  setWorkHistorySortAscending(!workHistorySortAscending)
+                }
               >
                 <ArrowUpDown size={16} color={PALETTE.textSecondary} />
                 <Text style={styles.sortToggleText}>
-                  {workHistorySortAscending ? 'Oldest' : 'Newest'}
+                  {workHistorySortAscending ? "Oldest" : "Newest"}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -335,9 +393,7 @@ const PropertyRequestsScreen = ({
         {/* Empty State */}
         {requests.length === 0 && workHistory.length === 0 && (
           <View style={styles.centerContainer}>
-            <Text style={styles.emptyText}>
-              No requests for this property.
-            </Text>
+            <Text style={styles.emptyText}>No requests for this property.</Text>
           </View>
         )}
       </ScrollView>

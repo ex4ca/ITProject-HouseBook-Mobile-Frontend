@@ -9,7 +9,7 @@ import {
 } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import { ChevronLeft, XCircle } from "lucide-react-native";
-import { SafeAreaView } from 'react-native-safe-area-context'; 
+import { SafeAreaView } from "react-native-safe-area-context";
 
 import {
   fetchMyProfile,
@@ -21,9 +21,17 @@ import type { UserProfile, ActiveTradieJob } from "../../types";
 import { authorityStyles as styles } from "../../styles/authorityStyles";
 import { PALETTE } from "../../styles/palette";
 
+/**
+ * A simple card component to display the currently logged-in user's
+ * profile information, including an avatar with their initials,
+ * full name, and email.
+ */
 const MyProfileCard = ({ profile }: { profile: UserProfile | null }) => {
   if (!profile) return null;
-  const initials = profile.name.split(" ").map((n) => n[0]).join("");
+  const initials = profile.name
+    .split(" ")
+    .map((n) => n[0])
+    .join("");
   return (
     <View style={[styles.section, styles.userProfile]}>
       <View style={styles.avatar}>
@@ -35,6 +43,11 @@ const MyProfileCard = ({ profile }: { profile: UserProfile | null }) => {
   );
 };
 
+/**
+ * A card component that displays the public contact information for
+ * the property's owner. This is intended to be shown to non-owners
+ * (e.g., tradies) who have access to the property.
+ */
 const PropertyOwnerCard = ({ owner }: { owner: UserProfile | null }) => {
   if (!owner) return null;
   return (
@@ -49,19 +62,28 @@ const PropertyOwnerCard = ({ owner }: { owner: UserProfile | null }) => {
   );
 };
 
-const AuthorityManagementCard = ({ 
+/**
+ * A card component for property owners to manage active sessions.
+ *
+ * It displays a list of all tradies currently working on a job at the property.
+ * Each entry includes the tradie's name, job title, and a button to
+ * "End Session," which revokes their access.
+ */
+const AuthorityManagementCard = ({
   jobs,
-  onEndSession 
-}: { 
-  jobs: ActiveTradieJob[],
-  // FIX: Update the function signature to include tradieId
-  onEndSession: (jobId: string, tradieId: string, tradieName: string) => void,
+  onEndSession,
+}: {
+  jobs: ActiveTradieJob[];
+  onEndSession: (jobId: string, tradieId: string, tradieName: string) => void;
 }) => (
   <View style={styles.section}>
     <Text style={styles.sectionTitle}>Active on Property</Text>
     {jobs.length > 0 ? (
       jobs.map((job) => {
-        const initials = job.tradieName.split(" ").map((n) => n[0]).join("");
+        const initials = job.tradieName
+          .split(" ")
+          .map((n) => n[0])
+          .join("");
         return (
           <View key={`${job.jobId}-${job.tradieId}`} style={styles.userRow}>
             <View style={styles.userInfo}>
@@ -73,9 +95,11 @@ const AuthorityManagementCard = ({
                 <Text style={styles.userStatus}>Job: {job.jobTitle}</Text>
               </View>
             </View>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={[styles.statusButton, styles.endSessionButton]}
-              onPress={() => onEndSession(job.jobId, job.tradieId, job.tradieName)}
+              onPress={() =>
+                onEndSession(job.jobId, job.tradieId, job.tradieName)
+              }
             >
               <XCircle size={18} color={PALETTE.danger} />
               <Text style={styles.endSessionButtonText}>End Session</Text>
@@ -91,6 +115,23 @@ const AuthorityManagementCard = ({
   </View>
 );
 
+/**
+ * A screen component that displays role and authority information
+ * related to a specific property.
+ *
+ * This screen operates in two modes based on the `isOwner` route parameter:
+ *
+ * 1.  **Owner Mode (`isOwner: true`):**
+ * Displays the owner's own profile (`MyProfileCard`) and a list
+ * of all tradies currently active on the property (`AuthorityManagementCard`).
+ * This mode allows the owner to remotely end a tradie's session.
+ *
+ * 2.  **Tradie Mode (`isOwner: false`):**
+ * Displays the tradie's own profile (`MyProfileCard`) and the
+ * contact details for the property's owner (`PropertyOwnerCard`).
+ *
+ * The screen fetches the relevant data every time it comes into focus.
+ */
 const Role = ({ route, navigation }: { route: any; navigation: any }) => {
   const { propertyId, isOwner } = route.params || {};
 
@@ -105,21 +146,23 @@ const Role = ({ route, navigation }: { route: any; navigation: any }) => {
         setLoading(true);
         try {
           if (!propertyId) {
-             setActiveJobs([]);
-             setPropertyOwner(null);
-             const profile = await fetchMyProfile();
-             setMyProfile(profile);
-             return;
+            setActiveJobs([]);
+            setPropertyOwner(null);
+            const profile = await fetchMyProfile();
+            setMyProfile(profile);
+            return;
           }
 
           const [profile, owner, jobList] = await Promise.all([
             fetchMyProfile(),
             isOwner ? Promise.resolve(null) : fetchPropertyOwner(propertyId),
-            isOwner ? fetchActiveJobsForProperty(propertyId) : Promise.resolve([]),
+            isOwner
+              ? fetchActiveJobsForProperty(propertyId)
+              : Promise.resolve([]),
           ]);
           setMyProfile(profile);
           setPropertyOwner(owner);
-          setActiveJobs(jobList || []); 
+          setActiveJobs(jobList || []);
         } catch (error) {
           console.error("Failed to fetch authority data:", error);
           Alert.alert("Error", "Could not load the authority data.");
@@ -129,31 +172,39 @@ const Role = ({ route, navigation }: { route: any; navigation: any }) => {
       };
 
       fetchData();
-    }, [propertyId, isOwner])
+    }, [propertyId, isOwner]),
   );
 
-  // FIX: Update the function to accept tradieId
-  const handleEndSession = async (jobId: string, tradieId: string, tradieName: string) => {
+  const handleEndSession = async (
+    jobId: string,
+    tradieId: string,
+    tradieName: string,
+  ) => {
     Alert.alert(
       "End Session",
       `Are you sure you want to end the session for ${tradieName}? This action cannot be undone.`,
       [
         { text: "Cancel", style: "cancel" },
-        { 
-          text: "End Session", 
+        {
+          text: "End Session",
           style: "destructive",
           onPress: async () => {
             try {
               await endTradieJob(jobId, tradieId);
-              setActiveJobs((prevJobs) => prevJobs.filter(
-                (job) => !(job.jobId === jobId && job.tradieId === tradieId)
-              ));
+              setActiveJobs((prevJobs) =>
+                prevJobs.filter(
+                  (job) => !(job.jobId === jobId && job.tradieId === tradieId),
+                ),
+              );
             } catch (error) {
-              Alert.alert("Error", "Could not end the session. Please try again.");
+              Alert.alert(
+                "Error",
+                "Could not end the session. Please try again.",
+              );
             }
-          }
-        }
-      ]
+          },
+        },
+      ],
     );
   };
 
@@ -199,7 +250,7 @@ const Role = ({ route, navigation }: { route: any; navigation: any }) => {
         <MyProfileCard profile={myProfile} />
         {!isOwner && <PropertyOwnerCard owner={propertyOwner} />}
         {isOwner && (
-          <AuthorityManagementCard 
+          <AuthorityManagementCard
             jobs={activeJobs}
             onEndSession={handleEndSession}
           />

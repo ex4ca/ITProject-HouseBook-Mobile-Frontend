@@ -180,7 +180,7 @@ Below are brief descriptions of key files and folders. This is not an exhaustive
   - `propertyDetails.ts` — Operations related to property Spaces, Assets and ChangeLog (add asset, add history, fetch details used by property UI).
   - `Request.ts` — Fetching and updating pending property requests (accept/decline flows).
   - `AuthService.ts` — Authentication helpers and Supabase auth wrappers.
-  - `FetchAssetTypes.ts`, `FetchSpaceEnum.ts` — Helpers to fetch reference data used by asset/space forms.
+  - `FetchAssetTypes.ts` — Helpers to fetch reference data used by asset/space forms.
 
 **Styles & Types**
 - `src/styles/` — All style modules (per-screen and shared) and color palette.

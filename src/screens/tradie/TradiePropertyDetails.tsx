@@ -45,8 +45,9 @@ if (
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
-// --- Reusable Components ---
-
+/**
+ * * A reusable modal component for displaying forms.
+ */
 const FormModal = ({
   visible,
   onClose,
@@ -78,6 +79,9 @@ const FormModal = ({
   </Modal>
 );
 
+/**
+ * Renders a formatted list of key-value specification pairs.
+ */
 const SpecificationDetails = ({
   specifications,
 }: {
@@ -93,6 +97,15 @@ const SpecificationDetails = ({
   </View>
 );
 
+/**
+ * A collapsible accordion component for a single asset.
+ *
+ * Displays:
+ * - The asset description.
+ * - The most recent "ACCEPTED" specifications.
+ * - An "Add Entry" button (if `isEditable` is true).
+ * - A collapsible list of all past "ACCEPTED" history entries.
+ */
 const AssetAccordion = ({
   asset,
   isExpanded,
@@ -107,10 +120,10 @@ const AssetAccordion = ({
   isEditable: boolean;
 }) => {
   const [expandedHistoryId, setExpandedHistoryId] = useState<string | null>(
-    null
+    null,
   );
   const acceptedLogs = asset.ChangeLog.filter(
-    (log) => log.status === "ACCEPTED"
+    (log) => log.status === "ACCEPTED",
   );
   const latestChange = acceptedLogs[0] || null;
 
@@ -157,7 +170,7 @@ const AssetAccordion = ({
                   style={styles.historyEntry}
                   onPress={() =>
                     setExpandedHistoryId((prev) =>
-                      prev === entry.id ? null : entry.id
+                      prev === entry.id ? null : entry.id,
                     )
                   }
                 >
@@ -199,8 +212,6 @@ const AssetAccordion = ({
   );
 };
 
-// --- Main Tradie Property Details Component ---
-
 export default function TradiePropertyDetails() {
   const route = useRoute();
   const navigation = useNavigation();
@@ -217,16 +228,19 @@ export default function TradiePropertyDetails() {
   const [selectedSpace, setSelectedSpace] = useState<string | null>("All");
   const [expandedAssetId, setExpandedAssetId] = useState<string | null>(null);
   const [isAddHistoryModalVisible, setAddHistoryModalVisible] = useState(false);
-  const [currentAsset, setCurrentAsset] =
-    useState<AssetWithChangelog | null>(null);
+  const [currentAsset, setCurrentAsset] = useState<AssetWithChangelog | null>(
+    null,
+  );
   const [newHistoryDescription, setNewHistoryDescription] = useState("");
   const [editableSpecs, setEditableSpecs] = useState<EditableSpec[]>([]);
 
   const [sortMode, setSortMode] = useState<"space" | "discipline">("space");
   const [selectedDiscipline, setSelectedDiscipline] = useState<string | null>(
-    "All"
+    "All",
   );
-  const [availableDisciplines, setAvailableDisciplines] = useState<string[]>([]);
+  const [availableDisciplines, setAvailableDisciplines] = useState<string[]>(
+    [],
+  );
   const [disciplineToSpacesMap, setDisciplineToSpacesMap] = useState<
     Record<string, SpaceWithAssets[]>
   >({});
@@ -239,7 +253,7 @@ export default function TradiePropertyDetails() {
       spacesData.forEach((space) => {
         space.Assets.forEach((asset) => {
           const assetType = assetTypes.find(
-            (type) => type.id === asset.asset_type_id
+            (type) => type.id === asset.asset_type_id,
           );
           const discipline = assetType?.discipline || "General";
 
@@ -250,7 +264,7 @@ export default function TradiePropertyDetails() {
           }
 
           const existingSpace = mapping[discipline].find(
-            (s) => s.id === space.id
+            (s) => s.id === space.id,
           );
           if (!existingSpace) {
             mapping[discipline].push(space);
@@ -270,7 +284,7 @@ export default function TradiePropertyDetails() {
         setSelectedDiscipline(disciplines[0]);
       }
     },
-    [assetTypes, sortMode, selectedDiscipline]
+    [assetTypes, sortMode, selectedDiscipline],
   );
 
   useFocusEffect(
@@ -311,7 +325,7 @@ export default function TradiePropertyDetails() {
       };
 
       loadData();
-    }, [propertyId, jobId, selectedSpace]) 
+    }, [propertyId, jobId, selectedSpace]),
   );
 
   useFocusEffect(
@@ -319,7 +333,7 @@ export default function TradiePropertyDetails() {
       if (spaces.length > 0 && assetTypes.length > 0) {
         extractDisciplinesAndMapping(spaces);
       }
-    }, [spaces, assetTypes, extractDisciplinesAndMapping])
+    }, [spaces, assetTypes, extractDisciplinesAndMapping]),
   );
 
   const handleAddHistory = async () => {
@@ -327,39 +341,46 @@ export default function TradiePropertyDetails() {
       Alert.alert("Missing Information", "Please provide a description.");
       return;
     }
-    const newSpecifications = editableSpecs.reduce((acc, spec) => {
-      if (spec.key.trim()) acc[spec.key.trim()] = spec.value.trim();
-      return acc;
-    }, {} as Record<string, string>);
+    const newSpecifications = editableSpecs.reduce(
+      (acc, spec) => {
+        if (spec.key.trim()) acc[spec.key.trim()] = spec.value.trim();
+        return acc;
+      },
+      {} as Record<string, string>,
+    );
 
     Alert.alert(
-      'Submit Update',
+      "Submit Update",
       `Submit this update for ${currentAsset?.description}?`,
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: "Cancel", style: "cancel" },
         {
-          text: 'Submit',
+          text: "Submit",
           onPress: async () => {
             try {
-              await addHistoryTradie(currentAsset, newHistoryDescription, newSpecifications);
-              setNewHistoryDescription('');
+              await addHistoryTradie(
+                currentAsset,
+                newHistoryDescription,
+                newSpecifications,
+              );
+              setNewHistoryDescription("");
               setEditableSpecs([]);
               setAddHistoryModalVisible(false);
               setCurrentAsset(null);
             } catch (error: any) {
-              Alert.alert('Error', error.message);
+              Alert.alert("Error", error.message);
             }
           },
         },
       ],
-      { cancelable: true }
+      { cancelable: true },
     );
   };
 
   const openAddHistoryModal = (asset: AssetWithChangelog) => {
     setCurrentAsset(asset);
     const latestAcceptedLog = asset.ChangeLog.find(
-      (log) => log.status === "ACCEPTED"
+      (log) => log.status === "ACCEPTED",
     );
     const latestSpecs = latestAcceptedLog?.specifications || {};
     const specsArray = Object.entries(latestSpecs).map(
@@ -367,7 +388,7 @@ export default function TradiePropertyDetails() {
         id: index,
         key: key,
         value: value as string,
-      })
+      }),
     );
     setEditableSpecs(specsArray);
     setAddHistoryModalVisible(true);
@@ -376,10 +397,10 @@ export default function TradiePropertyDetails() {
   const handleSpecChange = (
     id: number,
     field: "key" | "value",
-    value: string
+    value: string,
   ) => {
     setEditableSpecs((prev) =>
-      prev.map((spec) => (spec.id === id ? { ...spec, [field]: value } : spec))
+      prev.map((spec) => (spec.id === id ? { ...spec, [field]: value } : spec)),
     );
   };
   const addNewSpecRow = () =>
@@ -392,26 +413,36 @@ export default function TradiePropertyDetails() {
 
   const requestRemoveSpecRow = (id: number, key?: string) => {
     Alert.alert(
-      'Delete Attribute',
-      key ? `Delete attribute "${key}"? This cannot be undone.` : 'Delete this attribute? This cannot be undone.',
+      "Delete Attribute",
+      key
+        ? `Delete attribute "${key}"? This cannot be undone.`
+        : "Delete this attribute? This cannot be undone.",
       [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Delete', style: 'destructive', onPress: () => removeSpecRowInternal(id) },
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: () => removeSpecRowInternal(id),
+        },
       ],
-      { cancelable: true }
+      { cancelable: true },
     );
   };
-  
-  // --- UPDATED: Helper variables for both sort modes ---
-  const currentSpace = selectedSpace === 'All' ? null : spaces.find((s) => s.id === selectedSpace);
-  const currentAssets = selectedSpace === 'All' ? [] : (currentSpace?.Assets || []);
-  const selectedSpaceName = selectedSpace === 'All' ? 'All' : (currentSpace?.name || "Select a Space");
 
-  const currentDisciplineSpaces = selectedDiscipline === 'All' 
-    ? spaces 
-    : (selectedDiscipline ? disciplineToSpacesMap[selectedDiscipline] || [] : []);
+  const currentSpace =
+    selectedSpace === "All" ? null : spaces.find((s) => s.id === selectedSpace);
+  const currentAssets =
+    selectedSpace === "All" ? [] : currentSpace?.Assets || [];
+  const selectedSpaceName =
+    selectedSpace === "All" ? "All" : currentSpace?.name || "Select a Space";
+
+  const currentDisciplineSpaces =
+    selectedDiscipline === "All"
+      ? spaces
+      : selectedDiscipline
+        ? disciplineToSpacesMap[selectedDiscipline] || []
+        : [];
   const selectedDisciplineName = selectedDiscipline || "Select a Discipline";
-  // ---
 
   if (loading) {
     return (
@@ -439,7 +470,6 @@ export default function TradiePropertyDetails() {
         style={styles.scrollContainer}
         showsVerticalScrollIndicator={false}
       >
-        {/* --- UPDATED: Sort by Section --- */}
         <View style={styles.sortSection}>
           <Text style={styles.sortLabel}>Sort by:</Text>
           <View style={styles.sortToggleGroup}>
@@ -480,16 +510,18 @@ export default function TradiePropertyDetails() {
             <DropField
               options={
                 sortMode === "space"
-                  ? ['All', ...spaces.map((s) => s.name)]
-                  : ['All', ...availableDisciplines]
+                  ? ["All", ...spaces.map((s) => s.name)]
+                  : ["All", ...availableDisciplines]
               }
               selectedValue={
-                sortMode === "space" ? selectedSpaceName : selectedDisciplineName
+                sortMode === "space"
+                  ? selectedSpaceName
+                  : selectedDisciplineName
               }
               onSelect={(name) => {
                 if (sortMode === "space") {
-                  if (name === 'All') {
-                    setSelectedSpace('All');
+                  if (name === "All") {
+                    setSelectedSpace("All");
                   } else {
                     const space = spaces.find((s) => s.name === name);
                     if (space) {
@@ -498,8 +530,8 @@ export default function TradiePropertyDetails() {
                   }
                   setExpandedAssetId(null);
                 } else {
-                  if (name === 'All') {
-                    setSelectedDiscipline('All');
+                  if (name === "All") {
+                    setSelectedDiscipline("All");
                   } else {
                     setSelectedDiscipline(name);
                   }
@@ -510,17 +542,18 @@ export default function TradiePropertyDetails() {
           </View>
         </View>
 
-        {/* --- UPDATED: Content Area --- */}
         <Text style={styles.pageTitle}>
           {sortMode === "space" ? selectedSpaceName : selectedDisciplineName}
         </Text>
         <View style={styles.contentContainer}>
           {sortMode === "space" ? (
-            selectedSpace === 'All' ? (
+            selectedSpace === "All" ? (
               spaces.length > 0 ? (
                 spaces.map((space) => (
                   <View key={space.id} style={styles.disciplineSpaceContainer}>
-                    <Text style={styles.disciplineSpaceTitle}>{space.name}</Text>
+                    <Text style={styles.disciplineSpaceTitle}>
+                      {space.name}
+                    </Text>
                     {space.Assets.length > 0 ? (
                       space.Assets.map((asset) => (
                         <AssetAccordion
@@ -529,7 +562,7 @@ export default function TradiePropertyDetails() {
                           isExpanded={expandedAssetId === asset.id}
                           onToggle={() =>
                             setExpandedAssetId((prev) =>
-                              prev === asset.id ? null : asset.id
+                              prev === asset.id ? null : asset.id,
                             )
                           }
                           onAddHistory={openAddHistoryModal}
@@ -537,7 +570,9 @@ export default function TradiePropertyDetails() {
                         />
                       ))
                     ) : (
-                      <Text style={styles.emptyText}>No assets in this space.</Text>
+                      <Text style={styles.emptyText}>
+                        No assets in this space.
+                      </Text>
                     )}
                   </View>
                 ))
@@ -546,41 +581,40 @@ export default function TradiePropertyDetails() {
                   <Text style={styles.emptyText}>No spaces found.</Text>
                 </View>
               )
+            ) : currentAssets.length > 0 ? (
+              currentAssets.map((asset) => (
+                <AssetAccordion
+                  key={asset.id}
+                  asset={asset}
+                  isExpanded={expandedAssetId === asset.id}
+                  onToggle={() =>
+                    setExpandedAssetId((prev) =>
+                      prev === asset.id ? null : asset.id,
+                    )
+                  }
+                  onAddHistory={openAddHistoryModal}
+                  isEditable={editableAssetIds.has(asset.id)}
+                />
+              ))
             ) : (
-              currentAssets.length > 0 ? (
-                currentAssets.map((asset) => (
-                  <AssetAccordion
-                    key={asset.id}
-                    asset={asset}
-                    isExpanded={expandedAssetId === asset.id}
-                    onToggle={() =>
-                      setExpandedAssetId((prev) =>
-                        prev === asset.id ? null : asset.id
-                      )
-                    }
-                    onAddHistory={openAddHistoryModal}
-                    isEditable={editableAssetIds.has(asset.id)}
-                  />
-                ))
-              ) : (
-                <View style={styles.centerContainer}>
-                  <Text style={styles.emptyText}>
-                    No assets found in this space.
-                  </Text>
-                </View>
-              )
+              <View style={styles.centerContainer}>
+                <Text style={styles.emptyText}>
+                  No assets found in this space.
+                </Text>
+              </View>
             )
           ) : currentDisciplineSpaces.length > 0 ? (
             currentDisciplineSpaces.map((space) => {
-              const filteredAssets = selectedDiscipline === 'All' 
-                ? space.Assets 
-                : space.Assets.filter((asset) => {
-                    const assetType = assetTypes.find(
-                      (type) => type.id === asset.asset_type_id
-                    );
-                    const discipline = assetType?.discipline || "General";
-                    return discipline === selectedDiscipline;
-                  });
+              const filteredAssets =
+                selectedDiscipline === "All"
+                  ? space.Assets
+                  : space.Assets.filter((asset) => {
+                      const assetType = assetTypes.find(
+                        (type) => type.id === asset.asset_type_id,
+                      );
+                      const discipline = assetType?.discipline || "General";
+                      return discipline === selectedDiscipline;
+                    });
 
               return (
                 <View key={space.id} style={styles.disciplineSpaceContainer}>
@@ -593,7 +627,7 @@ export default function TradiePropertyDetails() {
                         isExpanded={expandedAssetId === asset.id}
                         onToggle={() =>
                           setExpandedAssetId((prev) =>
-                            prev === asset.id ? null : asset.id
+                            prev === asset.id ? null : asset.id,
                           )
                         }
                         onAddHistory={openAddHistoryModal}
@@ -602,10 +636,9 @@ export default function TradiePropertyDetails() {
                     ))
                   ) : (
                     <Text style={styles.emptyText}>
-                      {selectedDiscipline === 'All' 
-                        ? 'No assets in this space.' 
-                        : `No ${selectedDiscipline} assets in this space.`
-                      }
+                      {selectedDiscipline === "All"
+                        ? "No assets in this space."
+                        : `No ${selectedDiscipline} assets in this space.`}
                     </Text>
                   )}
                 </View>
@@ -614,10 +647,9 @@ export default function TradiePropertyDetails() {
           ) : (
             <View style={styles.centerContainer}>
               <Text style={styles.emptyText}>
-                {selectedDiscipline === 'All' 
-                  ? 'No spaces found.' 
-                  : `No spaces found with ${selectedDiscipline} assets.`
-                }
+                {selectedDiscipline === "All"
+                  ? "No spaces found."
+                  : `No spaces found with ${selectedDiscipline} assets.`}
               </Text>
             </View>
           )}

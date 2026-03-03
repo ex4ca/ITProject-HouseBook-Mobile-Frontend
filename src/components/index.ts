@@ -11,3 +11,4 @@ export { default as PropertyStatsCard } from './PropertyStatsCard';
 export { default as SpecificationDetails } from './SpecificationDetails';
 export { default as RequestCard } from './RequestCard';
 export { default as AssetAccordion } from './AssetAccordion';
+export { default as ImageCarousel } from './ImageCarousel';

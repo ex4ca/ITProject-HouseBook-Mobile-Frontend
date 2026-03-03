@@ -25,7 +25,8 @@ import { fetchPropertyImages } from "../../services/Image";
 import { fetchPreviousOwners } from "../../services/FetchPreviousOwners";
 import { propertyGeneralStyles as styles } from "../../styles/propertyGeneralStyles";
 import { PALETTE } from "../../styles/palette";
-import { PropertyStatsCard } from "../../components";
+import { PropertyStatsCard, ImageCarousel } from "../../components";
+import { calculateSpaceCounts } from "../../utils/propertyHelpers";
 import type { PropertyGeneral } from "../../types";
 
 const { width } = Dimensions.get("window");
@@ -95,15 +96,7 @@ const PropertyGeneralScreen = ({
         // Process property data
         if (propertyData) {
           setProperty(propertyData);
-          const counts = (propertyData.Spaces || []).reduce(
-            (acc, space) => {
-              const type = space.type.toLowerCase();
-              acc[type] = (acc[type] || 0) + 1;
-              return acc;
-            },
-            {} as Record<string, number>,
-          );
-          setSpaceCounts(counts);
+          setSpaceCounts(calculateSpaceCounts(propertyData.Spaces));
         }
 
         // Process image data
@@ -178,29 +171,7 @@ const PropertyGeneralScreen = ({
 
         <View style={styles.detailsCard}>
           <Text style={styles.cardTitle}>Property Images</Text>
-          {propertyImages.length > 0 ? (
-            <View style={{ height: 250, marginTop: 12, borderRadius: 8 }}>
-              <FlatList
-                data={propertyImages}
-                renderItem={({ item }) => (
-                  <View style={[styles.imageSlide, { width: width - 40 }]}>
-                    <Image
-                      source={{ uri: item.uri }}
-                      style={styles.propertyImage}
-                    />
-                  </View>
-                )}
-                keyExtractor={(item) => item.id}
-                horizontal
-                pagingEnabled
-                showsHorizontalScrollIndicator={false}
-              />
-            </View>
-          ) : (
-            <View style={styles.centerContainer}>
-              <Text style={styles.emptyText}>No images uploaded yet.</Text>
-            </View>
-          )}
+          <ImageCarousel images={propertyImages} />
         </View>
 
         {/* --- OTHER CARDS --- */}

@@ -23,7 +23,8 @@ import { fetchPropertyGeneralData } from "../../services/Property";
 import { fetchPropertyImages } from "../../services/Image";
 import { propertyGeneralStyles as styles } from "../../styles/propertyGeneralStyles";
 import { PALETTE } from "../../styles/palette";
-import { PropertyStatsCard } from "../../components";
+import { PropertyStatsCard, ImageCarousel } from "../../components";
+import { calculateSpaceCounts } from "../../utils/propertyHelpers";
 import type { PropertyGeneral } from "../../types";
 
 /**
@@ -66,16 +67,7 @@ export default function TradiePropertyGeneral() {
 
         if (propertyData) {
           setProperty(propertyData);
-
-          const counts = (propertyData.Spaces || []).reduce(
-            (acc, space) => {
-              const type = space.type.toLowerCase();
-              acc[type] = (acc[type] || 0) + 1;
-              return acc;
-            },
-            {} as Record<string, number>,
-          );
-          setSpaceCounts(counts);
+          setSpaceCounts(calculateSpaceCounts(propertyData.Spaces));
         }
 
         setPropertyImages(
@@ -147,29 +139,7 @@ export default function TradiePropertyGeneral() {
         {/* --- IMAGE SECTION --- */}
         <View style={styles.detailsCard}>
           <Text style={styles.cardTitle}>Property Images</Text>
-          {propertyImages.length > 0 ? (
-            <View style={{ height: 250, marginTop: 12, borderRadius: 8 }}>
-              <FlatList
-                data={propertyImages}
-                renderItem={({ item }) => (
-                  <View style={[styles.imageSlide]}>
-                    <Image
-                      source={{ uri: item.uri! }}
-                      style={styles.propertyImage}
-                    />
-                  </View>
-                )}
-                keyExtractor={(item) => item.id}
-                horizontal
-                pagingEnabled
-                showsHorizontalScrollIndicator={false}
-              />
-            </View>
-          ) : (
-            <Text style={styles.emptyText}>
-              No images found for this property.
-            </Text>
-          )}
+          <ImageCarousel images={propertyImages} />
         </View>
         <View style={styles.detailsContainer}>
           <Text style={styles.propertyName}>{property?.name}</Text>

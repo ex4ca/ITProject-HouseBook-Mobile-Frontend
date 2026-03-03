@@ -1,5 +1,4 @@
-
-import type { SpaceWithAssets } from "../types";
+import type { SpaceWithAssets, PropertyGeneral } from "../types";
 
 type AssetType = {
   id: number;
@@ -38,4 +37,13 @@ function getDisciplinesAndMapping(
   return { disciplines, mapping };
 }
 
-export { getDisciplinesAndMapping };
+function calculateSpaceCounts(spaces: PropertyGeneral['Spaces'] | undefined): Record<string, number> {
+  if (!spaces) return {};
+  return spaces.reduce((acc, space) => {
+    const type = space.type.toLowerCase();
+    acc[type] = (acc[type] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
+}
+
+export { getDisciplinesAndMapping, calculateSpaceCounts };

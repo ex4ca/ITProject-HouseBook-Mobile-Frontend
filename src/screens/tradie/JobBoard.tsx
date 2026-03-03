@@ -99,7 +99,7 @@ export default function JobBoard() {
    * A component rendered at the top of the FlatList.
    * Contains the welcome message, summary card, and "Scan" button.
    */
-  const ListHeader = () => (
+  const renderListHeader = () => (
     <>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Welcome, Tradesperson</Text>
@@ -143,7 +143,7 @@ export default function JobBoard() {
         data={jobs}
         renderItem={renderJobCard}
         keyExtractor={(item) => item.job_id}
-        ListHeaderComponent={ListHeader}
+        ListHeaderComponent={renderListHeader}
         contentContainerStyle={styles.listContentContainer}
         ListEmptyComponent={
           <View style={styles.centerContainer}>

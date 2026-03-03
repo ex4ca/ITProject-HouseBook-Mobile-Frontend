@@ -14,7 +14,7 @@ import {
 import { useRoute, useNavigation } from "@react-navigation/native";
 import { claimJobWithPin } from "../../services/FetchAuthority";
 import { PALETTE } from "../../styles/palette";
-import Button from "../../components/Button";
+import { Button, TextField } from "../../components";
 
 /**
  * A screen component where a user (typically a tradie) enters a PIN
@@ -89,7 +89,7 @@ export default function PinEntryScreen() {
     if (pin.length === 6) {
       handleSubmit();
     }
-  }, [pin]);
+  }, [pin, handleSubmit]);
 
   return (
     <KeyboardAvoidingView
@@ -102,14 +102,18 @@ export default function PinEntryScreen() {
           <Text style={styles.subtitle}>
             Enter the PIN associated with this job to claim it.
           </Text>
-          <TextInput
-            style={styles.pinInput}
+          <TextField
+            style={{ marginBottom: 24, paddingHorizontal: 0 }}
+            inputStyle={{ 
+              fontSize: 24, 
+              textAlign: "center", 
+              letterSpacing: 8, 
+            }}
             value={pin}
             onChangeText={setPin}
             keyboardType="number-pad"
             maxLength={6}
             placeholder="••••••"
-            placeholderTextColor="#9CA3AF"
           />
           {loading ? (
             <ActivityIndicator
@@ -148,17 +152,5 @@ const styles = StyleSheet.create({
     textAlign: "center",
     color: PALETTE.textSecondary,
     marginBottom: 32,
-  },
-  pinInput: {
-    backgroundColor: PALETTE.card,
-    borderWidth: 1,
-    borderColor: PALETTE.border,
-    borderRadius: 12,
-    padding: 16,
-    fontSize: 24,
-    textAlign: "center",
-    letterSpacing: 8,
-    color: PALETTE.textPrimary,
-    marginBottom: 24,
   },
 });

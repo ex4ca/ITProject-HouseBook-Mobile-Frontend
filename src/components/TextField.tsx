@@ -33,6 +33,7 @@ interface TextFieldProps {
   autoCorrect?: boolean;
   textContentType?: TextInputProps["textContentType"];
   autoComplete?: TextInputProps["autoComplete"];
+  maxLength?: number;
 }
 
 const TextField = ({
@@ -51,6 +52,7 @@ const TextField = ({
   autoCorrect,
   textContentType,
   autoComplete,
+  maxLength,
 }: TextFieldProps) => {
   const [isFocused, setIsFocused] = useState(false);
 
@@ -87,6 +89,7 @@ const TextField = ({
         autoCorrect={autoCorrect}
         textContentType={textContentType}
         autoComplete={autoComplete}
+        maxLength={maxLength}
         textAlignVertical={multiline ? "top" : "center"}
       />
     </View>

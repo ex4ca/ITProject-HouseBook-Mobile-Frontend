@@ -21,11 +21,10 @@ import {
   ChevronRight,
   ChevronLeft,
   PlusCircle,
-  X,
   Trash2,
 } from "lucide-react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { DropField } from "../../components";
+import { DropField, FormModal, AssetAccordion } from "../../components";
 
 import { fetchPropertyAndJobScope } from "../../services/FetchAuthority";
 import { fetchAssetTypes } from "../../services/FetchAssetTypes";
@@ -45,172 +44,8 @@ if (
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
-/**
- * * A reusable modal component for displaying forms.
- */
-const FormModal = ({
-  visible,
-  onClose,
-  title,
-  children,
-  onSubmit,
-  submitText = "Add",
-}: any) => (
-  <Modal
-    animationType="slide"
-    transparent={true}
-    visible={visible}
-    onRequestClose={onClose}
-  >
-    <View style={styles.modalOverlay}>
-      <View style={styles.modalContainer}>
-        <View style={styles.modalHeader}>
-          <Text style={styles.modalTitle}>{title}</Text>
-          <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-            <X size={24} color={PALETTE.textSecondary} />
-          </TouchableOpacity>
-        </View>
-        <ScrollView keyboardShouldPersistTaps="handled">{children}</ScrollView>
-        <TouchableOpacity style={styles.submitButton} onPress={onSubmit}>
-          <Text style={styles.submitButtonText}>{submitText}</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
-  </Modal>
-);
-
-/**
- * Renders a formatted list of key-value specification pairs.
- */
-const SpecificationDetails = ({
-  specifications,
-}: {
-  specifications: Record<string, any>;
-}) => (
-  <View style={styles.specificationsBox}>
-    {Object.entries(specifications).map(([key, value]) => (
-      <View key={key} style={styles.specPair}>
-        <Text style={styles.specKey}>{key}</Text>
-        <Text style={styles.specValue}>{String(value)}</Text>
-      </View>
-    ))}
-  </View>
-);
-
-/**
- * A collapsible accordion component for a single asset.
- *
- * Displays:
- * - The asset description.
- * - The most recent "ACCEPTED" specifications.
- * - An "Add Entry" button (if `isEditable` is true).
- * - A collapsible list of all past "ACCEPTED" history entries.
- */
-const AssetAccordion = ({
-  asset,
-  isExpanded,
-  onToggle,
-  onAddHistory,
-  isEditable,
-}: {
-  asset: AssetWithChangelog;
-  isExpanded: boolean;
-  onToggle: () => void;
-  onAddHistory: (asset: AssetWithChangelog) => void;
-  isEditable: boolean;
-}) => {
-  const [expandedHistoryId, setExpandedHistoryId] = useState<string | null>(
-    null,
-  );
-  const acceptedLogs = asset.ChangeLog.filter(
-    (log) => log.status === "ACCEPTED",
-  );
-  const latestChange = acceptedLogs[0] || null;
-
-  return (
-    <View style={styles.assetContainer}>
-      <TouchableOpacity style={styles.assetHeader} onPress={onToggle}>
-        <Text style={styles.assetTitle}>{asset.description}</Text>
-        {isExpanded ? (
-          <ChevronDown size={20} color={PALETTE.textPrimary} />
-        ) : (
-          <ChevronRight size={20} color={PALETTE.textPrimary} />
-        )}
-      </TouchableOpacity>
-      {isExpanded && (
-        <View style={styles.assetContent}>
-          <Text style={styles.contentSectionTitle}>Current Specifications</Text>
-          {latestChange ? (
-            <SpecificationDetails
-              specifications={latestChange.specifications}
-            />
-          ) : (
-            <Text style={styles.emptyText}>No specifications found.</Text>
-          )}
-          <View style={styles.historySectionHeader}>
-            <Text style={styles.contentSectionTitle}>History</Text>
-            {isEditable ? (
-              <TouchableOpacity
-                style={styles.addButtonSmall}
-                onPress={() => onAddHistory(asset)}
-              >
-                <PlusCircle size={18} color={PALETTE.primary} />
-                <Text style={styles.addButtonSmallText}>Add Entry</Text>
-              </TouchableOpacity>
-            ) : (
-              <Text style={styles.permissionText}>
-                You don't have permission to edit.
-              </Text>
-            )}
-          </View>
-          {acceptedLogs.length > 1 ? (
-            acceptedLogs.slice(1).map((entry) => (
-              <View key={entry.id} style={styles.historyItemContainer}>
-                <TouchableOpacity
-                  style={styles.historyEntry}
-                  onPress={() =>
-                    setExpandedHistoryId((prev) =>
-                      prev === entry.id ? null : entry.id,
-                    )
-                  }
-                >
-                  <View style={styles.historyHeader}>
-                    <Text style={styles.historyDate}>
-                      {new Date(entry.created_at).toLocaleString()}
-                    </Text>
-                    {expandedHistoryId === entry.id ? (
-                      <ChevronDown color={PALETTE.textSecondary} size={16} />
-                    ) : (
-                      <ChevronRight color={PALETTE.textSecondary} size={16} />
-                    )}
-                  </View>
-                  <Text style={styles.historyDescription}>
-                    “{entry.change_description}”
-                  </Text>
-                  <Text style={styles.historyAuthor}>
-                    By:{" "}
-                    {entry.User
-                      ? `${entry.User.first_name} ${entry.User.last_name}`
-                      : "System"}
-                  </Text>
-                </TouchableOpacity>
-                {expandedHistoryId === entry.id && (
-                  <View style={styles.historySpecBox}>
-                    <SpecificationDetails
-                      specifications={entry.specifications}
-                    />
-                  </View>
-                )}
-              </View>
-            ))
-          ) : (
-            <Text style={styles.emptyText}>No other history entries.</Text>
-          )}
-        </View>
-      )}
-    </View>
-  );
-};
+// All duplicate inline UI implementations (FormModal, AssetAccordion, SpecificationDetails) 
+// have been extracted to src/components/ to keep this screen clean and strictly focused on logic.
 
 export default function TradiePropertyDetails() {
   const route = useRoute();

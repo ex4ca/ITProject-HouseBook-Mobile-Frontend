@@ -13,12 +13,13 @@ import {
 import { useFocusEffect } from "@react-navigation/native";
 import {
   ChevronLeft,
+  ChevronRight,
+  ChevronDown,
   PlusCircle,
   Trash2,
 } from "lucide-react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { DropField, FormModal } from "../../components";
-import AssetAccordion from "../../components/AssetAccordion";
+import { DropField, FormModal, AssetAccordion } from "../../components";
 
 import {
   fetchPropertyDetails,

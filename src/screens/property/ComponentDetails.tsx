@@ -4,8 +4,6 @@ import {
   Text,
   TouchableOpacity,
   ScrollView,
-  Modal,
-  TextInput,
   ActivityIndicator,
   Alert,
 } from "react-native";
@@ -19,86 +17,8 @@ import {
 } from "../../services/AssetService";
 import { componentDetailsStyles as styles } from "../../styles/componentDetailsStyles";
 import { PALETTE } from "../../styles/palette";
-import type { AssetDetails, HistoryEntry } from "../../types";
-import { Button } from "../../components";
-
-const HistoryEntryCard = ({ entry }: { entry: HistoryEntry }) => (
-  <View style={styles.historyEntry}>
-    <View style={styles.entryHeader}>
-      <Text style={styles.entryDate}>
-        {new Date(entry.created_at).toLocaleDateString()}
-      </Text>
-    </View>
-    <View style={styles.entryContent}>
-      <Text style={styles.entryTitle}>{entry.change_description}</Text>
-    </View>
-  </View>
-);
-
-/**
- * A modal form for adding a new history entry.
- */
-const AddEntryModal = ({
-  visible,
-  onClose,
-  onSubmit,
-}: {
-  visible: boolean;
-  onClose: () => void;
-  onSubmit: (description: string) => void;
-}) => {
-  const [description, setDescription] = useState("");
-
-  /**
-   * Handles the submission of the form.
-   * Validates input and calls the onSubmit prop.
-   */
-  const handleSubmit = () => {
-    if (!description.trim()) {
-      Alert.alert(
-        "Missing Information",
-        "Please provide a description for the entry.",
-      );
-      return;
-    }
-    onSubmit(description);
-    setDescription(""); // Reset after submit
-  };
-
-  return (
-    <Modal
-      visible={visible}
-      transparent={true}
-      animationType="slide"
-      onRequestClose={onClose}
-    >
-      <View style={styles.modalOverlay}>
-        <View style={styles.modalContent}>
-          <Text style={styles.modalTitle}>Add New History Entry</Text>
-          <TextInput
-            style={[
-              styles.modalInput,
-              { height: 100, textAlignVertical: "top" },
-            ]}
-            placeholder="Description of work or update..."
-            value={description}
-            onChangeText={setDescription}
-            multiline
-          />
-          <View style={styles.modalButtons}>
-            <Button
-              text="Cancel"
-              onPress={onClose}
-              style={{ backgroundColor: PALETTE.background }}
-              textStyle={{ color: PALETTE.textPrimary }}
-            />
-            <Button text="Add Entry" onPress={handleSubmit} />
-          </View>
-        </View>
-      </View>
-    </Modal>
-  );
-};
+import type { AssetDetails } from "../../types";
+import { HistoryEntryCard, AddEntryModal } from "../../components";
 
 /**
  * A screen component that displays the detailed timeline and information

@@ -16,6 +16,7 @@ import { Button, TextField, Checkbox } from "../../components";
 import { loginUser, signupUser } from "../../services/AuthService";
 import { authStyles as styles } from "../../styles/authStyles";
 import { PALETTE } from "../../styles/palette";
+import { validateSignUpForm, getPasswordValidationMessages } from "../../utils/validationHelpers";
 import type { UserRole } from "../../types";
 
 /**
@@ -33,10 +34,6 @@ interface AuthScreenProps {
  * form state, validation, and API calls for authentication.
  */
 const AuthScreen = ({ onSuccessfulLogin }: AuthScreenProps) => {
-  const MINPASSWORDLEN = 6;
-  const MAXEMAILLEN = 254;
-  const MAXNAMELEN = 50;
-  const MAXPASSWORDLEN = 128;
   const [activeTab, setActiveTab] = useState("login");
   const [userType, setUserType] = useState<UserRole>("owner");
   const [email, setEmail] = useState("");
@@ -48,45 +45,6 @@ const AuthScreen = ({ onSuccessfulLogin }: AuthScreenProps) => {
   const [agreeToTerms, setAgreeToTerms] = useState(false);
   const [loading, setLoading] = useState(false);
   const [isPasswordFocused, setIsPasswordFocused] = useState(false);
-
-  /**
-   * Validates a password string against a set of criteria.
-   */  
-  const validatePassword = (pwd: string) => {
-    return {
-      hasMinLength: pwd.length >= MINPASSWORDLEN,
-      hasUppercase: /[A-Z]/.test(pwd),
-      hasLowercase: /[a-z]/.test(pwd),
-      hasNumber: /[0-9]/.test(pwd),
-      hasSpecialChar: /[!@#$%^&*(),.?":{}|<>]/.test(pwd),
-    };
-  };
-
-  /**
-   * Gets a list of unmet password requirements.
-   */
-  const getPasswordValidationMessages = (pwd: string) => {
-    const validation = validatePassword(pwd);
-    const messages = [];
-
-    if (!validation.hasMinLength) {
-      messages.push(`At least ${MINPASSWORDLEN} characters`);
-    }
-    if (!validation.hasUppercase) {
-      messages.push("1 capital letter");
-    }
-    if (!validation.hasLowercase) {
-      messages.push("1 lowercase letter");
-    }
-    if (!validation.hasNumber) {
-      messages.push("1 number");
-    }
-    if (!validation.hasSpecialChar) {
-      messages.push("1 special character");
-    }
-
-    return messages;
-  };
 
   /**
    * Handles the user login attempt.
@@ -115,114 +73,20 @@ const AuthScreen = ({ onSuccessfulLogin }: AuthScreenProps) => {
    * calling the `signupUser` service or showing alerts on error.
    */
   const handleSignUp = async () => {
-    if (
-      !firstName ||
-      !lastName ||
-      !email ||
-      !password ||
-      !confirmPassword ||
-      !phone
-    ) {
-      Alert.alert("Missing Information", "Please fill in all fields.");
-      return;
-    }
-    if (password !== confirmPassword) {
-      Alert.alert("Password Mismatch", "Passwords do not match.");
-      return;
-    }
-    if (!agreeToTerms) {
-      Alert.alert(
-        "Terms and Conditions",
-        "You must agree to the terms to continue.",
-      );
-      return;
-    }
-    if (!firstName.trim().match(/^[\p{L}]+(?:[\s'-][\p{L}]+)*$/u)) {
-      Alert.alert(
-        "Invalid First Name",
-        "First name can only contain letters, spaces, hyphens, and apostrophes.",
-      );
-      return;
-    }
-    if (!lastName.trim().match(/^[\p{L}]+(?:[\s'-][\p{L}]+)*$/u)) {
-      Alert.alert(
-        "Invalid Last Name",
-        "Last name can only contain letters, spaces, hyphens, and apostrophes.",
-      );
-      return;
-    }
-    if (!email.match(/^[\w-]+(\.[\w-]+)*@([\w-]+\.)+[a-zA-Z]{2,7}$/)) {
-      Alert.alert("Invalid Email", "Please enter a valid email address.");
-      return;
-    }
-    if (!phone.match(/^[0-9]{2,4}[- ]?[0-9]{3,4}[- ]?[0-9]{3,4}$/)) {
-      Alert.alert("Invalid Phone Number", "Please enter a valid phone number.");
-      return;
-    }
-    if (password.length < MINPASSWORDLEN) {
-      Alert.alert(
-        "Weak Password",
-        `Password must be at least ${MINPASSWORDLEN} characters long.`,
-      );
-      return;
-    }
-    if (!password.match(/[A-Z]/)) {
-      Alert.alert(
-        "Weak Password",
-        "Password must contain at least one uppercase letter.",
-      );
-      return;
-    }
-    if (!password.match(/[a-z]/)) {
-      Alert.alert(
-        "Weak Password",
-        "Password must contain at least one lowercase letter.",
-      );
-      return;
-    }
-    if (!password.match(/[0-9]/)) {
-      Alert.alert(
-        "Weak Password",
-        "Password must contain at least one number.",
-      );
-      return;
-    }
-    if (!password.match(/[!@#$%^&*(),.?":{}|<>]/)) {
-      Alert.alert(
-        "Weak Password",
-        "Password must contain at least one special character.",
-      );
-      return;
-    }
-    if (email.length > MAXEMAILLEN) {
-      Alert.alert(
-        "Input Too Long",
-        `Email cannot exceed ${MAXEMAILLEN} characters.`,
-      );
-      return;
-    }
-    if (firstName.length > MAXNAMELEN) {
-      Alert.alert(
-        "Input Too Long",
-        `First name cannot exceed ${MAXNAMELEN} characters.`,
-      );
-      return;
-    }
-    if (lastName.length > MAXNAMELEN) {
-      Alert.alert(
-        "Input Too Long",
-        `Last name cannot exceed ${MAXNAMELEN} characters.`,
-      );
-      return;
-    }
-    if (password.length > MAXPASSWORDLEN) {
-      Alert.alert(
-        "Input Too Long",
-        `Password cannot exceed ${MAXPASSWORDLEN} characters.`,
-      );
-      return;
-    }
+    const validationError = validateSignUpForm(
+      firstName,
+      lastName,
+      email,
+      phone,
+      password,
+      confirmPassword,
+      agreeToTerms
+    );
 
+    if (validationError) {
+      Alert.alert(validationError.title, validationError.message);
+      return;
+    }
 
     setLoading(true);
     try {

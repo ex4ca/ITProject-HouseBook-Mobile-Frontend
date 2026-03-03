@@ -121,3 +121,25 @@ export const loginUser = async (
   // If the check passes, return the session. The onAuthStateChange listener will handle the rest.
   return sessionData;
 };
+
+/**
+ * Defines the shape of the user profile data fetched from the database.
+ */
+export interface UserProfile {
+  first_name: string;
+  last_name: string;
+  email: string;
+}
+
+/**
+ * Fetches specific profile details for a given user ID from the 'User' table.
+ */  
+export const fetchUserProfile = async (userId: string): Promise<UserProfile> => {
+  const { data, error } = await supabase
+    .from("User")
+    .select("first_name, last_name, email")
+    .eq("user_id", userId)
+    .single();
+  if (error) throw error;
+  return data;
+};

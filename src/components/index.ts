@@ -8,3 +8,5 @@ export { default as HistoryEntryCard } from './HistoryEntryCard';
 export { default as AddEntryModal } from './AddEntryModal';
 export { default as FormModal } from './FormModal';
 export { default as PropertyStatsCard } from './PropertyStatsCard';
+export { default as SpecificationDetails } from './SpecificationDetails';
+export { default as RequestCard } from './RequestCard';

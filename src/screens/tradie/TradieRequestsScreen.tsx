@@ -15,9 +15,6 @@ import {
   useNavigation,
 } from "@react-navigation/native";
 import {
-  XCircle,
-  ChevronDown,
-  ChevronRight,
   ChevronLeft,
   Plus,
   PlusCircle,
@@ -33,128 +30,13 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { fetchPropertyAndJobScope } from "../../services/FetchAuthority";
 import { propertyRequestsStyles as styles } from "../../styles/requestStyles";
 import { PALETTE } from "../../styles/palette";
-import { DropField } from "../../components";
+import { DropField, RequestCard } from "../../components";
 import type {
   PendingRequest,
   SpaceWithAssets,
   AssetWithChangelog,
   EditableSpec,
 } from "../../types";
-
-const SpecificationDetails = ({
-  specifications,
-}: {
-  specifications: Record<string, any>;
-}) => (
-  <View style={styles.specificationsBox}>
-    {Object.entries(specifications).map(([key, value]) => (
-      <View key={key} style={styles.specPair}>
-        <Text style={styles.specKey}>{key}</Text>
-        <Text style={styles.specValue}>{String(value)}</Text>
-      </View>
-    ))}
-  </View>
-);
-
-/**
- * Renders a single collapsible card for a tradie's request.
- *
- * This card displays:
- * - The asset's location (space) and description.
- * - The tradie's change description and submission details.
- * - The request status (Accepted, Rejected) if applicable.
- * - A "Cancel" button if the request is still "PENDING".
- * - A collapsible section to view the submitted specifications.
- */
-const RequestCard = ({
-  item,
-  onCancel,
-  showActions = true,
-}: {
-  item: PendingRequest;
-  onCancel?: (id: string) => void;
-  showActions?: boolean;
-}) => {
-  const [isExpanded, setIsExpanded] = useState(false);
-
-  const toggleExpand = () => {
-    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-    setIsExpanded(!isExpanded);
-  };
-
-  const submittedByText = item.User
-    ? `${item.User.first_name} ${item.User.last_name}`
-    : "System";
-
-  return (
-    <View style={styles.card}>
-      <TouchableOpacity onPress={toggleExpand}>
-        <View style={styles.cardHeader}>
-          <View style={styles.cardHeaderText}>
-            <Text style={styles.propertyName}>{item.Assets.Spaces.name}</Text>
-            <Text style={styles.assetName}>{item.Assets.description}</Text>
-          </View>
-          {isExpanded ? (
-            <ChevronDown size={20} color={PALETTE.textSecondary} />
-          ) : (
-            <ChevronRight size={20} color={PALETTE.textSecondary} />
-          )}
-        </View>
-        <View style={styles.descriptionRow}>
-          <Text style={styles.descriptionText}>
-            "{item.change_description}"
-          </Text>
-          {(item.status === "ACCEPTED" || item.status === "DECLINED") && (
-            <View
-              style={[
-                styles.statusLabel,
-                item.status === "ACCEPTED"
-                  ? styles.statusLabelAccepted
-                  : styles.statusLabelRejected,
-              ]}
-            >
-              <Text
-                style={[
-                  styles.statusLabelText,
-                  item.status === "ACCEPTED"
-                    ? styles.statusLabelTextAccepted
-                    : styles.statusLabelTextRejected,
-                ]}
-              >
-                {item.status === "ACCEPTED" ? "Accepted" : "Rejected"}
-              </Text>
-            </View>
-          )}
-        </View>
-        <Text style={styles.submittedBy}>Submitted by: {submittedByText}</Text>
-        <Text style={styles.submittedDate}>
-          {new Date(item.created_at).toLocaleDateString()}
-        </Text>
-      </TouchableOpacity>
-
-      {isExpanded && (
-        <View style={styles.expandedContent}>
-          <Text style={styles.detailsTitle}>Requested Specifications</Text>
-          <SpecificationDetails specifications={item.specifications} />
-        </View>
-      )}
-
-      {showActions && item.status === "PENDING" && onCancel && (
-        <View style={styles.actionButtons}>
-          <TouchableOpacity
-            style={[styles.statusButton, styles.declineButton]}
-            onPress={() => onCancel(item.id)}
-          >
-            <XCircle size={18} color={PALETTE.danger} />
-            <Text style={[styles.statusButtonText, { color: PALETTE.danger }]}>
-              Cancel
-            </Text>
-          </TouchableOpacity>
-        </View>
-      )}
-    </View>
-  );
-};
 
 const RequestCreationForm = ({
   spaces,

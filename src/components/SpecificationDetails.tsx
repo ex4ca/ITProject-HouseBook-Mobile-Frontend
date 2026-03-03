@@ -1,23 +1,25 @@
 import React from "react";
 import { View, Text } from "react-native";
-import { propertyDetailsStyles as styles } from "../styles/propertyDetailsStyles";
+import { propertyRequestsStyles as styles } from "../styles/requestStyles";
 
 /**
- * Defines the properties accepted by the SpecificationDetails component.
+ * Renders a formatted list of key-value specification pairs.
+ * It iterates over an object and displays each entry, replacing
+ * underscores in the keys with spaces for readability.
  */
-export default function SpecificationDetails({
+const SpecificationDetails = ({
   specifications,
 }: {
   specifications: Record<string, any>;
-}) {
-  return (
-    <View style={styles.specificationsBox}>
-      {Object.entries(specifications).map(([key, value]) => (
-        <View key={key} style={styles.specPair}>
-          <Text style={styles.specKey}>{key}</Text>
-          <Text style={styles.specValue}>{String(value)}</Text>
-        </View>
-      ))}
-    </View>
-  );
-}
+}) => (
+  <View style={styles.specificationsBox}>
+    {Object.entries(specifications).map(([key, value]) => (
+      <View key={key} style={styles.specPair}>
+        <Text style={styles.specKey}>{key.replace(/_/g, " ")}</Text>
+        <Text style={styles.specValue}>{String(value)}</Text>
+      </View>
+    ))}
+  </View>
+);
+
+export default SpecificationDetails;

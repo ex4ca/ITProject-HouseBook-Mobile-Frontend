@@ -6,3 +6,4 @@ export { default as DropField } from './DropField';
 export { default as Checkbox } from './Checkbox';
 export { default as HistoryEntryCard } from './HistoryEntryCard';
 export { default as AddEntryModal } from './AddEntryModal';
+export { default as FormModal } from './FormModal';

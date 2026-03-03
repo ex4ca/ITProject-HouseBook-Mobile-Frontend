@@ -7,7 +7,6 @@ import {
   ActivityIndicator,
   Platform,
   UIManager,
-  Modal,
   TextInput,
   Alert,
 } from "react-native";
@@ -15,11 +14,10 @@ import { useFocusEffect } from "@react-navigation/native";
 import {
   ChevronLeft,
   PlusCircle,
-  X,
   Trash2,
 } from "lucide-react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { DropField } from "../../components";
+import { DropField, FormModal } from "../../components";
 import AssetAccordion from "../../components/AssetAccordion";
 
 import {
@@ -44,40 +42,6 @@ if (
 ) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
-
-/**
- * A reusable modal component for displaying forms.
- */
-const FormModal = ({
-  visible,
-  onClose,
-  title,
-  children,
-  onSubmit,
-  submitText = "Add",
-}: any) => (
-  <Modal
-    animationType="slide"
-    transparent={true}
-    visible={visible}
-    onRequestClose={onClose}
-  >
-    <View style={styles.modalOverlay}>
-      <View style={styles.modalContainer}>
-        <View style={styles.modalHeader}>
-          <Text style={styles.modalTitle}>{title}</Text>
-          <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-            <X size={24} color={PALETTE.textSecondary} />
-          </TouchableOpacity>
-        </View>
-        <ScrollView keyboardShouldPersistTaps="handled">{children}</ScrollView>
-        <TouchableOpacity style={styles.submitButton} onPress={onSubmit}>
-          <Text style={styles.submitButtonText}>{submitText}</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
-  </Modal>
-);
 
 /**
  * A screen component that displays the detailed asset timeline for a property.

@@ -134,7 +134,7 @@ const PropertyList = () => {
     );
   };
 
-  const ListHeader = () => (
+  const renderListHeader = () => (
     <>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Welcome, {userName || "Owner"}</Text>
@@ -167,7 +167,7 @@ const PropertyList = () => {
         data={properties}
         renderItem={renderPropertyCard}
         keyExtractor={(item) => item.property_id}
-        ListHeaderComponent={ListHeader}
+        ListHeaderComponent={renderListHeader}
         ListEmptyComponent={
           !loading ? (
             <View style={styles.centerContainer}>

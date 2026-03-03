@@ -17,7 +17,7 @@ describe('AssetAccordion', () => {
     const onToggle = jest.fn();
 
     const { getByText } = render(
-      <AssetAccordion asset={mockAsset as any} isExpanded={true} onToggle={onToggle} onAddHistory={onAddHistory} />
+      <AssetAccordion asset={mockAsset as any} isExpanded={true} onToggle={onToggle} onAddHistory={onAddHistory} isEditable={true} />
     );
 
     expect(getByText('Current Specifications')).toBeTruthy();

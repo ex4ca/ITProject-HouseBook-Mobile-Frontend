@@ -1,9 +1,10 @@
 import React, { useState } from "react";
-import { View, Text, TouchableOpacity, TextInput } from "react-native";
+import { View, Text, TouchableOpacity } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { ChevronLeft } from "lucide-react-native";
 import { propertyRequestsStyles as styles } from "../../styles/requestStyles";
 import { PALETTE } from "../../styles/palette";
+import { Button, TextField } from "../../components";
 
 /**
  * A screen component that prompts the user to enter a PIN
@@ -63,22 +64,15 @@ const PropertyPin = ({
           >
             Property Access PIN
           </Text>
-          <TextInput
-            style={{
-              width: "100%",
-              borderWidth: 1,
-              borderColor: PALETTE.border,
-              borderRadius: 8,
-              paddingVertical: 8,
-              paddingHorizontal: 12,
-              marginBottom: 12,
-              textAlign: "center",
-            }}
-            secureTextEntry
+          
+          <TextField
             value={pin}
             onChangeText={setPin}
             placeholder="Enter PIN"
+            secureTextEntry
             keyboardType="numeric"
+            style={{ marginBottom: 12 }}
+            inputStyle={{ textAlign: "center" }}
           />
 
           <Text
@@ -94,14 +88,14 @@ const PropertyPin = ({
             Demo PIN: 1234
           </Text>
 
-          <TouchableOpacity
-            style={styles.simulateButton}
+          <Button 
+            text="Verify PIN" 
             onPress={() => {
               /* verify action later */
-            }}
-          >
-            <Text style={styles.simulateButtonText}>Verify PIN</Text>
-          </TouchableOpacity>
+            }} 
+            style={styles.simulateButton} 
+            textStyle={styles.simulateButtonText} 
+          />
         </View>
       </View>
     </SafeAreaView>

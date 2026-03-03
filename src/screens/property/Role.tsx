@@ -208,28 +208,6 @@ const Role = ({ route, navigation }: { route: any; navigation: any }) => {
     );
   };
 
-  if (loading) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.header}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => navigation.goBack()}
-          >
-            <ChevronLeft size={24} color={PALETTE.textPrimary} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Authority</Text>
-          <View style={{ width: 40 }} />
-        </View>
-        <ActivityIndicator
-          style={{ flex: 1 }}
-          size="large"
-          color={PALETTE.primary}
-        />
-      </SafeAreaView>
-    );
-  }
-
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
@@ -243,19 +221,27 @@ const Role = ({ route, navigation }: { route: any; navigation: any }) => {
         <View style={{ width: 40 }} />
       </View>
 
-      <ScrollView
-        style={styles.scrollContainer}
-        showsVerticalScrollIndicator={false}
-      >
-        <MyProfileCard profile={myProfile} />
-        {!isOwner && <PropertyOwnerCard owner={propertyOwner} />}
-        {isOwner && (
-          <AuthorityManagementCard
-            jobs={activeJobs}
-            onEndSession={handleEndSession}
-          />
-        )}
-      </ScrollView>
+      {loading ? (
+        <ActivityIndicator
+          style={{ flex: 1 }}
+          size="large"
+          color={PALETTE.primary}
+        />
+      ) : (
+        <ScrollView
+          style={styles.scrollContainer}
+          showsVerticalScrollIndicator={false}
+        >
+          <MyProfileCard profile={myProfile} />
+          {!isOwner && <PropertyOwnerCard owner={propertyOwner} />}
+          {isOwner && (
+            <AuthorityManagementCard
+              jobs={activeJobs}
+              onEndSession={handleEndSession}
+            />
+          )}
+        </ScrollView>
+      )}
     </SafeAreaView>
   );
 };

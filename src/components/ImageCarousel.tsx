@@ -41,8 +41,11 @@ export default function ImageCarousel({ images }: ImageCarouselProps) {
         )}
         keyExtractor={(item) => item.id}
         horizontal
-        pagingEnabled
         showsHorizontalScrollIndicator={false}
+        contentContainerStyle={{ paddingHorizontal: 16 }}
+        snapToInterval={width - 60 + 12} // width of slide + gap
+        decelerationRate="fast"
+        ItemSeparatorComponent={() => <View style={{ width: 12 }} />}
       />
 
       <ImageViewing
@@ -61,8 +64,6 @@ const styles = StyleSheet.create({
   carouselContainer: {
     height: 250,
     marginTop: 12,
-    borderRadius: 8,
-    overflow: "hidden",
   },
   centerContainer: {
     height: 200,
@@ -76,7 +77,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   imageSlide: {
-    width: width - 40, // Account for parent padding (20 on each side in General screens)
+    width: width - 60, // Leave more room on edges so user can see next photo
     justifyContent: "center",
     alignItems: "center",
   },

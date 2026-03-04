@@ -21,8 +21,9 @@ import QRCode from "react-native-qrcode-svg";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { fetchPropertyGeneralData } from "../../services/PropertyService";
-import { fetchPropertyImages } from "../../services/Image";
+import { fetchPropertyImages, uploadPropertyImage } from "../../services/Image";
 import { fetchPreviousOwners } from "../../services/PropertyService";
+import * as ImagePicker from "expo-image-picker";
 import { propertyGeneralStyles as styles } from "../../styles/propertyGeneralStyles";
 import { PALETTE } from "../../styles/palette";
 import { PropertyStatsCard, ImageCarousel } from "../../components";
@@ -76,6 +77,7 @@ const PropertyGeneralScreen = ({
   const [spaceCounts, setSpaceCounts] = useState<Record<string, number>>({});
   const [previousOwners, setPreviousOwners] = useState<PreviousOwner[]>([]);
   const [ownersDropdownOpen, setOwnersDropdownOpen] = useState(false);
+  const [uploading, setUploading] = useState(false);
 
   /**
    * Fetches all necessary data for the screen in parallel.
@@ -114,6 +116,44 @@ const PropertyGeneralScreen = ({
       }
     }
   }, [propertyId]);
+
+  const handleUploadPhoto = async () => {
+    try {
+      // Request media library permissions
+      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      
+      if (!permissionResult.granted) {
+        Alert.alert("Permission Required", "You need to grant camera roll permissions to upload photos.");
+        return;
+      }
+
+      // Launch the image picker
+      const pickerResult = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ["images"],
+        allowsEditing: true,
+        quality: 0.8,
+      });
+
+      if (!pickerResult.canceled && pickerResult.assets && pickerResult.assets.length > 0) {
+        if (!propertyId) return;
+        
+        setUploading(true);
+        const selectedImage = pickerResult.assets[0];
+        
+        await uploadPropertyImage(propertyId, selectedImage.uri);
+        
+        Alert.alert("Success", "Property image uploaded successfully!");
+        
+        // Reload data to fetch the newly uploaded image
+        await loadData();
+      }
+    } catch (error: any) {
+      console.error("Error picking/uploading image:", error);
+      Alert.alert("Error", error.message || "Failed to upload image.");
+    } finally {
+      setUploading(false);
+    }
+  };
 
   useFocusEffect(
     useCallback(() => {
@@ -170,7 +210,28 @@ const PropertyGeneralScreen = ({
         </View>
 
         <View style={styles.detailsCard}>
-          <Text style={styles.cardTitle}>Property Images</Text>
+          <View style={[styles.cardHeader, { justifyContent: "space-between", marginBottom: 12 }]}>
+            <Text style={[styles.cardTitle, { marginBottom: 0 }]}>Property Images</Text>
+            {propertyId && (
+              <TouchableOpacity
+                onPress={handleUploadPhoto}
+                disabled={uploading}
+                style={{
+                  backgroundColor: PALETTE.primary,
+                  paddingHorizontal: 12,
+                  paddingVertical: 6,
+                  borderRadius: 6,
+                  opacity: uploading ? 0.6 : 1,
+                }}
+              >
+                {uploading ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <Text style={{ color: "#fff", fontWeight: "600", fontSize: 14 }}>Upload Photo</Text>
+                )}
+              </TouchableOpacity>
+            )}
+          </View>
           <ImageCarousel images={propertyImages} />
         </View>
 

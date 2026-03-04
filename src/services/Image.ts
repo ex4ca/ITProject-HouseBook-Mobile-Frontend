@@ -1,5 +1,4 @@
 import { supabase } from "../config/supabaseClient";
-import * as FileSystem from "expo-file-system";
 
 const API_BASE_URL = "https://housebook-backend.vercel.app";
 
@@ -98,4 +97,58 @@ export const setSplashImage = async (signedUrl: string) => {
   }
 
   return await response.json();
+};
+
+/**
+ * Uploads a local image (from Expo Image Picker) securely using the backend API.
+ * 
+ * 1. Grabs a fresh Supabase session token.
+ * 2. Creates a multipart FormData payload containing the property ID and the image.
+ * 3. Sends it to the backend (`/api/images`) to handle the Signed URL generation and DB record insertion.
+ */
+export const uploadPropertyImage = async (
+  propertyId: string,
+  localUri: string,
+  description?: string,
+): Promise<void> => {
+  const session = await getFreshSession();
+
+  try {
+    // Determine the MIME type from the file extension
+    const fileExtension = localUri.split(".").pop() || "jpeg";
+    const mimeType = `image/${fileExtension === "jpg" ? "jpeg" : fileExtension}`;
+
+    // Create the FormData payload exactly as the backend expects it
+    const formData = new FormData();
+    formData.append("propertyId", propertyId);
+    if (description) {
+      formData.append("description", description);
+    }
+    
+    // React Native's FormData requires this specific object structure for files
+    formData.append("file", {
+      uri: localUri,
+      type: mimeType,
+      name: `upload.${fileExtension}`,
+    } as any);
+
+    const response = await fetch(`${API_BASE_URL}/api/images`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${session.access_token}`,
+        // Note: Do NOT set Content-Type manually when using FormData in React Native.
+        // It will automatically set the boundary headers.
+      },
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(errorText || "Backend rejected the photo upload.");
+    }
+
+  } catch (error: any) {
+    console.error("Error uploading image via backend:", error);
+    throw new Error(error.message || "Failed to upload image. Please try again.");
+  }
 };

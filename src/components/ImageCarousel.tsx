@@ -1,5 +1,6 @@
-import React from "react";
-import { View, Text, Image, FlatList, Dimensions, StyleSheet } from "react-native";
+import React, { useState } from "react";
+import { View, Text, Image, FlatList, Dimensions, StyleSheet, TouchableOpacity } from "react-native";
+import ImageViewing from "react-native-image-viewing";
 import { PALETTE } from "../styles/palette";
 
 const { width } = Dimensions.get("window");
@@ -9,6 +10,9 @@ interface ImageCarouselProps {
 }
 
 export default function ImageCarousel({ images }: ImageCarouselProps) {
+  const [isVisible, setIsVisible] = useState(false);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+
   if (!images || images.length === 0) {
     return (
       <View style={styles.centerContainer}>
@@ -17,19 +21,37 @@ export default function ImageCarousel({ images }: ImageCarouselProps) {
     );
   }
 
+  const formattedImages = images.map((img) => ({ uri: img.uri }));
+
   return (
     <View style={styles.carouselContainer}>
       <FlatList
         data={images}
-        renderItem={({ item }) => (
-          <View style={styles.imageSlide}>
+        renderItem={({ item, index }) => (
+          <TouchableOpacity 
+            style={styles.imageSlide} 
+            activeOpacity={0.9}
+            onPress={() => {
+              setCurrentImageIndex(index);
+              setIsVisible(true);
+            }}
+          >
             <Image source={{ uri: item.uri }} style={styles.propertyImage} />
-          </View>
+          </TouchableOpacity>
         )}
         keyExtractor={(item) => item.id}
         horizontal
         pagingEnabled
         showsHorizontalScrollIndicator={false}
+      />
+
+      <ImageViewing
+        images={formattedImages}
+        imageIndex={currentImageIndex}
+        visible={isVisible}
+        onRequestClose={() => setIsVisible(false)}
+        swipeToCloseEnabled={true}
+        doubleTapToZoomEnabled={true}
       />
     </View>
   );

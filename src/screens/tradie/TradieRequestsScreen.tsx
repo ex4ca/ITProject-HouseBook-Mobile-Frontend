@@ -25,9 +25,9 @@ import {
   fetchTradieRequests,
   cancelTradieRequest,
 } from "../../services/Request";
-import { addHistoryTradie } from "../../services/propertyDetails";
+import { addHistoryTradie } from "../../services/PropertyService";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { fetchPropertyAndJobScope } from "../../services/FetchAuthority";
+import { fetchPropertyAndJobScope } from "../../services/PropertyService";
 import { propertyRequestsStyles as styles } from "../../styles/requestStyles";
 import { PALETTE } from "../../styles/palette";
 import { DropField, RequestCard } from "../../components";

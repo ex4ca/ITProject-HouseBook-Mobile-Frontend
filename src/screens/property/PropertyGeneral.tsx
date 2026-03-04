@@ -20,9 +20,9 @@ import {
 import QRCode from "react-native-qrcode-svg";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { fetchPropertyGeneralData } from "../../services/Property";
+import { fetchPropertyGeneralData } from "../../services/PropertyService";
 import { fetchPropertyImages } from "../../services/Image";
-import { fetchPreviousOwners } from "../../services/FetchPreviousOwners";
+import { fetchPreviousOwners } from "../../services/PropertyService";
 import { propertyGeneralStyles as styles } from "../../styles/propertyGeneralStyles";
 import { PALETTE } from "../../styles/palette";
 import { PropertyStatsCard, ImageCarousel } from "../../components";

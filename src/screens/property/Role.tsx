@@ -11,12 +11,9 @@ import { useFocusEffect } from "@react-navigation/native";
 import { ChevronLeft, XCircle } from "lucide-react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import {
-  fetchMyProfile,
-  fetchPropertyOwner,
-  fetchActiveJobsForProperty,
-  endTradieJob,
-} from "../../services/FetchAuthority";
+import { fetchMyProfile } from "../../services/UserService";
+import { fetchPropertyOwner } from "../../services/PropertyService";
+import { fetchActiveJobsForProperty, endTradieJob } from "../../services/JobService";
 import type { UserProfile, ActiveTradieJob } from "../../types";
 import { authorityStyles as styles } from "../../styles/authorityStyles";
 import { PALETTE } from "../../styles/palette";

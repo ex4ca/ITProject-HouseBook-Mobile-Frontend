@@ -1,4 +1,4 @@
-import { validatePhoneNumber, formatName } from '../../src/services/utils';
+// No utils import needed here anymore
 
 // Replace with actual imports or mock implementations
 describe('AuthService utilities (example)', () => {

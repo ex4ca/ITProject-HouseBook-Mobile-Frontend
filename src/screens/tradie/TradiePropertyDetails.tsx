@@ -26,9 +26,9 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { DropField, FormModal, AssetAccordion } from "../../components";
 
-import { fetchPropertyAndJobScope } from "../../services/FetchAuthority";
-import { fetchAssetTypes } from "../../services/FetchAssetTypes";
-import { addHistoryTradie } from "../../services/propertyDetails";
+import { fetchPropertyAndJobScope } from "../../services/PropertyService";
+import { fetchAssetTypes } from "../../services/PropertyService";
+import { addHistoryTradie } from "../../services/PropertyService";
 import { propertyDetailsStyles as styles } from "../../styles/propertyDetailsStyles";
 import { PALETTE } from "../../styles/palette";
 import type {

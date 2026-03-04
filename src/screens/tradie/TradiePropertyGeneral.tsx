@@ -19,7 +19,7 @@ import {
   ChevronLeft,
 } from "lucide-react-native";
 
-import { fetchPropertyGeneralData } from "../../services/Property";
+import { fetchPropertyGeneralData } from "../../services/PropertyService";
 import { fetchPropertyImages } from "../../services/Image";
 import { propertyGeneralStyles as styles } from "../../styles/propertyGeneralStyles";
 import { PALETTE } from "../../styles/palette";

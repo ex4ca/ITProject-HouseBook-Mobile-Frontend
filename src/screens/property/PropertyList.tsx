@@ -10,10 +10,8 @@ import {
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { Home } from "lucide-react-native";
 import { supabase } from "../../config/supabaseClient";
-import {
-  getPropertiesByOwner,
-  fetchMyFirstName,
-} from "../../services/FetchAuthority";
+import { getPropertiesByOwner } from "../../services/PropertyService";
+import { fetchMyFirstName } from "../../services/UserService";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { propertyListStyles as styles } from "../../styles/propertyListStyles";
 import { PALETTE } from "../../styles/palette";

@@ -12,7 +12,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import Button from "../../components/Button";
 import { propertyListStyles as styles } from "../../styles/propertyListStyles";
 import { PALETTE } from "../../styles/palette";
-import { getJobsForTradie } from "../../services/FetchAuthority";
+import { getJobsForTradie } from "../../services/JobService";
 import { supabase } from "../../config/supabaseClient";
 
 /**

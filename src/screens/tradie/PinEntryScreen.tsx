@@ -12,7 +12,7 @@ import {
   Platform,
 } from "react-native";
 import { useRoute, useNavigation } from "@react-navigation/native";
-import { claimJobWithPin } from "../../services/FetchAuthority";
+import { claimJobWithPin } from "../../services/JobService";
 import { PALETTE } from "../../styles/palette";
 import { Button, TextField } from "../../components";
 

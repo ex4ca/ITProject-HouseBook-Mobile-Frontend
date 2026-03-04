@@ -122,19 +122,12 @@ export const loginUser = async (
   return sessionData;
 };
 
-/**
- * Defines the shape of the user profile data fetched from the database.
- */
-export interface UserProfile {
-  first_name: string;
-  last_name: string;
-  email: string;
-}
+import type { UserProfile } from "../types";
 
 /**
  * Fetches specific profile details for a given user ID from the 'User' table.
  */  
-export const fetchUserProfile = async (userId: string): Promise<UserProfile> => {
+export const fetchUserProfile = async (userId: string): Promise<{first_name: string; last_name: string; email: string}> => {
   const { data, error } = await supabase
     .from("User")
     .select("first_name, last_name, email")

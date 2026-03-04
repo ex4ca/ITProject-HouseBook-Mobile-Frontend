@@ -12,7 +12,8 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { User, LogOut } from "lucide-react-native";
 import { PALETTE } from "../../styles/palette";
 import { styles } from "../../styles/accountStyles";
-import { fetchUserProfile, UserProfile } from "../../services/AuthService";
+import { fetchUserProfile } from "../../services/UserService";
+import type { UserProfile } from "../../types";
 
 /**
  * Defines the type for the navigation route parameters
@@ -53,7 +54,14 @@ const AccountScreen = () => {
           if (!user) throw new Error("No user logged in.");
 
           // Fetch user profile from AuthService
-          const profile = await fetchUserProfile(user.id);
+          const profileData = await fetchUserProfile(user.id);
+          const profile: UserProfile = {
+            id: user.id,
+            name: `${profileData.first_name || ""} ${profileData.last_name || ""}`.trim(),
+            email: profileData.email || "",
+            phone: user.phone || null,
+            roles: [], // Roles aren't needed here
+          };
           setUserProfile(profile);
           setUserRole(
             selectedRole === "owner" ? "Property Owner" : "Trade Person",
@@ -91,8 +99,8 @@ const AccountScreen = () => {
     );
   }
 
-  const initials = userProfile
-    ? `${userProfile.first_name.charAt(0)}${userProfile.last_name.charAt(0)}`
+  const initials = userProfile && userProfile.name
+    ? userProfile.name.split(" ").map(n => n.charAt(0)).join("")
     : "";
 
   return (
@@ -108,9 +116,7 @@ const AccountScreen = () => {
           </View>
           {userProfile && (
             <>
-              <Text
-                style={styles.userName}
-              >{`${userProfile.first_name} ${userProfile.last_name}`}</Text>
+              <Text style={styles.userName}>{userProfile.name}</Text>
               <Text style={styles.userEmail}>{userProfile.email}</Text>
               <View style={styles.roleBadge}>
                 <Text style={styles.roleText}>{userRole}</Text>

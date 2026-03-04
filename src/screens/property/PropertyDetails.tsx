@@ -26,8 +26,8 @@ import {
   addSpace,
   addAsset,
   addHistoryOwner,
-} from "../../services/propertyDetails";
-import { fetchAssetTypes } from "../../services/FetchAssetTypes";
+} from "../../services/PropertyService";
+import { fetchAssetTypes } from "../../services/PropertyService";
 import { propertyDetailsStyles as styles } from "../../styles/propertyDetailsStyles";
 import { PALETTE } from "../../styles/palette";
 import type {

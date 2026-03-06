@@ -19,8 +19,8 @@ jest.mock("../../src/config/supabaseClient", () => ({
 }));
 
 describe("JobService - claimJobWithPin", () => {
-  const MOCK_PROPERTY_ID = "test-property-id";
-  const MOCK_PIN = "123456";
+  const MOCK_PROPERTY_ID = "4fbeb5c5-1234-4fbe-bc72-760b4f39d602";
+  const MOCK_PIN = "002809";
 
   beforeEach(() => {
     jest.clearAllMocks();

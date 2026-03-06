@@ -89,7 +89,8 @@ export default function PinEntryScreen() {
     if (pin.length === 6) {
       handleSubmit();
     }
-  }, [pin, handleSubmit]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pin]);
 
   return (
     <KeyboardAvoidingView

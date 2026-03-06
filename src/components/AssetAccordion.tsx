@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { View, Text, TouchableOpacity } from "react-native";
-import { ChevronDown, ChevronRight, PlusCircle } from "lucide-react-native";
+import { ChevronDown, ChevronRight, PlusCircle, Lock } from "lucide-react-native";
 import { propertyDetailsStyles as styles } from "../styles/propertyDetailsStyles";
 import { PALETTE } from "../styles/palette";
 import SpecificationDetails from "./SpecificationDetails";
@@ -39,7 +39,12 @@ const AssetAccordion = ({
   return (
     <View style={styles.assetContainer}>
       <TouchableOpacity style={styles.assetHeader} onPress={onToggle}>
-        <Text style={styles.assetTitle}>{asset.description}</Text>
+        <View style={{ flexDirection: "row", alignItems: "center", flex: 1, paddingRight: 8 }}>
+          <Text style={[styles.assetTitle, { flex: 0, flexShrink: 1 }]}>{asset.description}</Text>
+          {!isEditable && (
+            <Lock size={16} color={PALETTE.textSecondary} style={{ marginLeft: 8 }} />
+          )}
+        </View>
         {isExpanded ? (
           <ChevronDown size={20} color={PALETTE.textPrimary} />
         ) : (

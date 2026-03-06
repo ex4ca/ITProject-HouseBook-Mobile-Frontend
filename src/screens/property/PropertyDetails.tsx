@@ -516,6 +516,7 @@ const PropertyDetails = ({
                             )
                           }
                           onAddHistory={openAddHistoryModal}
+                          isEditable={true}
                         />
                       ))
                     ) : (
@@ -542,6 +543,7 @@ const PropertyDetails = ({
                     )
                   }
                   onAddHistory={openAddHistoryModal}
+                  isEditable={true}
                 />
               ))
             ) : (
@@ -579,6 +581,7 @@ const PropertyDetails = ({
                           )
                         }
                         onAddHistory={openAddHistoryModal}
+                        isEditable={true}
                       />
                     ))
                   ) : (

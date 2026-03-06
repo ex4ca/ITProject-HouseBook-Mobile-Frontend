@@ -201,7 +201,8 @@ export const getPropertiesByOwner = async (
                     pin, 
                     created_at,
                     status,
-                    splash_image 
+                    splash_image,
+                    PropertyImages ( image_link )
                 )
             )
         `,
@@ -231,23 +232,43 @@ export const getPropertiesByOwner = async (
       processedProperty.isActive = property.status === "ACTIVE";
 
       // Generate a signed URL for the splash image if it exists.
-      if (property.splash_image) {
-        const { data: signedUrlData, error: signedUrlError } =
-          await supabase.storage
-            .from("Property_Images")
-            .createSignedUrl(property.splash_image, 60 * 5); // 5-minute expiry
+      // If there is no splash_image, check if there are PropertyImages we can use instead.
+      const propAny = property as any;
+      const imageToLoad = property.splash_image || (propAny.PropertyImages && propAny.PropertyImages.length > 0 ? propAny.PropertyImages[0].image_link : null);
 
-        if (signedUrlError) {
-          console.error(
-            `Error creating signed URL for ${property.splash_image}:`,
-            signedUrlError,
-          );
-          // If signing fails, nullify the image so a placeholder is used.
-          processedProperty.splash_image = null;
+      if (imageToLoad) {
+        // Find if it's already a full URL or just a path
+        if (imageToLoad.startsWith("http")) {
+            processedProperty.splash_image = imageToLoad;
         } else {
-          processedProperty.splash_image = signedUrlData.signedUrl;
+            // Defensively strip bucket name prefix if the backend accidentally saved it
+            let cleanPath = imageToLoad;
+            if (cleanPath.toLowerCase().startsWith('property_images/')) {
+                cleanPath = cleanPath.substring('property_images/'.length);
+            }
+            
+            const { data: signedUrlData, error: signedUrlError } =
+              await supabase.storage
+                .from("Property_Images")
+                .createSignedUrl(cleanPath, 60 * 5); // 5-minute expiry
+
+            if (signedUrlError) {
+              // If the image was deleted from the bucket, silently ignore and skip
+              if (signedUrlError.message?.includes("Object not found")) {
+                  console.warn(`Image missing in bucket: ${cleanPath}`);
+              } else {
+                  console.error(`Error creating signed URL for ${cleanPath}:`, signedUrlError);
+              }
+              processedProperty.splash_image = null;
+            } else {
+              processedProperty.splash_image = signedUrlData.signedUrl;
+            }
         }
       }
+      
+      // Cleanup the nested PropertyImages array from the final response
+      delete processedProperty.PropertyImages;
+      
       return processedProperty;
     }),
   );

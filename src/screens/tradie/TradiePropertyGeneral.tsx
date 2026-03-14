@@ -17,6 +17,7 @@ import {
   ChevronLeft,
 } from "lucide-react-native";
 
+import { supabase } from "../../config/supabaseClient";
 import { fetchPropertyGeneralData } from "../../services/PropertyService";
 import { fetchPropertyImages } from "../../services/Image";
 import { propertyGeneralStyles as styles } from "../../styles/propertyGeneralStyles";
@@ -58,18 +59,65 @@ export default function TradiePropertyGeneral() {
     if (propertyId) {
       setLoading(true);
       try {
-        const [propertyData, fetchedImages] = await Promise.all([
-          fetchPropertyGeneralData(propertyId),
-          fetchPropertyImages(propertyId),
-        ]);
+        const propertyData = await fetchPropertyGeneralData(propertyId);
+
+        let displayImages: string[] = [];
 
         if (propertyData) {
           setProperty(propertyData);
           setSpaceCounts(calculateSpaceCounts(propertyData.Spaces));
+
+          // If there is a splash image, fetch its signed URL and prepend it
+          if (propertyData.splash_image) {
+             let cleanPath = propertyData.splash_image;
+             if (cleanPath.toLowerCase().startsWith('property_images/')) {
+                 cleanPath = cleanPath.substring('property_images/'.length);
+             }
+
+             const { data: signedUrlData, error: signedUrlError } = await supabase.storage
+                 .from("Property_Images")
+                 .createSignedUrl(cleanPath, 60 * 5);
+             
+             if (signedUrlError) {
+                 if (signedUrlError.message?.includes("Object not found")) {
+                     console.warn(`TradiePropertyGeneral: Splash Image missing in bucket: ${cleanPath}`);
+                 } else {
+                     console.error(`Error creating signed URL for ${cleanPath}:`, signedUrlError);
+                 }
+             } else if (signedUrlData?.signedUrl) {
+                 displayImages.push(signedUrlData.signedUrl);
+             }
+          }
+
+          // Next, fetch signed URLs for all the gallery images
+          if (propertyData.PropertyImages && propertyData.PropertyImages.length > 0) {
+              const galleryUrls = await Promise.all(
+                  propertyData.PropertyImages.map(async (img) => {
+                      let cleanPath = img.image_link;
+                      if (!cleanPath) return null;
+                      if (cleanPath.toLowerCase().startsWith('property_images/')) {
+                          cleanPath = cleanPath.substring('property_images/'.length);
+                      }
+                      
+                      const { data: signedUrlData, error: signedUrlError } = await supabase.storage
+                          .from("Property_Images")
+                          .createSignedUrl(cleanPath, 60 * 5);
+                          
+                      if (!signedUrlError && signedUrlData?.signedUrl) {
+                          return signedUrlData.signedUrl;
+                      }
+                      return null;
+                  })
+              );
+              
+              // Filter out any errors/nulls and safely push to displayImages
+              const validGalleryUrls = galleryUrls.filter(Boolean) as string[];
+              displayImages.push(...validGalleryUrls);
+          }
         }
 
         setPropertyImages(
-          fetchedImages.map((uri, index) => ({ id: `image-${index}`, uri })),
+          displayImages.map((uri, index) => ({ id: `image-${index}`, uri })),
         );
       } catch (err: any) {
         console.error(

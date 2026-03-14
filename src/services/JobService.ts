@@ -152,7 +152,10 @@ export const getJobsForTradie = async (
                     property_id,
                     name,
                     address,
-                    splash_image 
+                    splash_image,
+                    PropertyImages (
+                      image_link
+                    )
                 )
             )
         `,
@@ -182,19 +185,32 @@ export const getJobsForTradie = async (
       }
 
       let splashImageUrl = null;
-      if (property.splash_image) {
-        const { data: signedUrlData, error: signedUrlError } =
-          await supabase.storage
-            .from("Property_Images")
-            .createSignedUrl(property.splash_image, 60 * 5); // 5-minute expiry
+      const propAny = property as any;
+      const imageToLoad = property.splash_image || (propAny.PropertyImages && propAny.PropertyImages.length > 0 ? propAny.PropertyImages[0].image_link : null);
 
-        if (signedUrlError) {
-          console.error(
-            `Error creating signed URL for ${property.splash_image}:`,
-            signedUrlError,
-          );
+      if (imageToLoad) {
+        if (imageToLoad.startsWith("http")) {
+            splashImageUrl = imageToLoad;
         } else {
-          splashImageUrl = signedUrlData.signedUrl;
+            let cleanPath = imageToLoad;
+            if (cleanPath.toLowerCase().startsWith('property_images/')) {
+                cleanPath = cleanPath.substring('property_images/'.length);
+            }
+
+            const { data: signedUrlData, error: signedUrlError } =
+              await supabase.storage
+                .from("Property_Images")
+                .createSignedUrl(cleanPath, 60 * 5); // 5-minute expiry
+
+            if (signedUrlError) {
+              if (signedUrlError.message?.includes("Object not found")) {
+                  console.warn(`Image missing in bucket: ${cleanPath}`);
+              } else {
+                  console.error(`Error creating signed URL for ${cleanPath}:`, signedUrlError);
+              }
+            } else {
+              splashImageUrl = signedUrlData.signedUrl;
+            }
         }
       }
 

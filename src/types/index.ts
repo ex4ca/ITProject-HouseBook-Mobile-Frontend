@@ -63,6 +63,7 @@ export type PropertyGeneral = {
   description: string | null;
   total_floor_area: number | null;
   block_size: number | null;
+  splash_image?: string | null;
   Spaces: GeneralSpace[];
   PropertyImages: { image_link: string; image_name: string }[];
 };

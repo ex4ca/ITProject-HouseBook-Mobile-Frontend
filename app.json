@@ -11,13 +11,22 @@
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
-    "platforms": ["ios", "android", "web"],
+    "platforms": [
+      "ios",
+      "android",
+      "web"
+    ],
     "assetBundlePatterns": [
       "**/*"
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.housebook.app"
+      "bundleIdentifier": "com.provisionit.housebook",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Allow Housebook to access your camera to scan QR codes for property access.",
+        "NSMicrophoneUsageDescription": "Allow $(PRODUCT_NAME) to access your microphone",
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -30,21 +39,19 @@
         "android.permission.RECORD_AUDIO"
       ]
     },
-    "web": {
-    },
+    "web": {},
     "plugins": [
       [
         "expo-camera",
         {
           "cameraPermission": "Allow Housebook to access your camera to scan QR codes for property access."
         }
-      ],
-      [
-        "expo-barcode-scanner",
-        {
-          "cameraPermission": "Allow Housebook to access your camera to scan QR codes for property access."
-        }
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "dfae8b4e-6b34-4656-9656-4bbcd6a57785"
+      }
+    }
   }
 }

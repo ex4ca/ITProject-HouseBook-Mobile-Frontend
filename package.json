@@ -27,7 +27,6 @@
     "babel-preset-expo": "~54.0.0",
     "base64-arraybuffer": "^1.0.2",
     "expo": "~54.0.33",
-    "expo-barcode-scanner": "~12.9.0",
     "expo-camera": "~17.0.10",
     "expo-image-picker": "~17.0.10",
     "expo-status-bar": "~3.0.9",
